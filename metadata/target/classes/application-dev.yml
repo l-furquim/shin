@@ -1,0 +1,35 @@
+server:
+  port: 8080
+eureka:
+  client:
+    enabled: false
+spring:
+  flyway:
+    enabled: true
+    schemas: metadata
+    table: flyway_schema_history
+    locations: classpath:db/migration/auth
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: false
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB:shin}
+    user: ${POSTGRES_USER:root}
+    password: ${POSTGRES_PASSWORD:root}
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:5432/${POSTGRES_DB:shin}
+    username: root
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  cloud:
+    discovery:
+      enabled: false
+    config:
+      enabled: false
+      import-check: false

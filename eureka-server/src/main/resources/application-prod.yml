@@ -1,0 +1,21 @@
+eureka:
+  instance:
+    hostname: ${HOSTNAME:eureka-server-0}
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.cloud.client.hostname}:${random.value}
+  client:
+    register-with-eureka: true   # Peer-to-peer replication in production
+    fetch-registry: true          # Fetch registry from peers
+    service-url:
+      defaultZone: ${EUREKA_PEERS:http://eureka-server-0.eureka-server:8761/eureka/,http://eureka-server-1.eureka-server:8761/eureka/,http://eureka-server-2.eureka-server:8761/eureka/}
+  server:
+    enable-self-preservation: true   # Enable in production
+    renewal-percent-threshold: 0.85  # Default threshold
+    eviction-interval-timer-in-ms: 60000  # Check every 60 seconds
+    response-cache-update-interval-ms: 30000
+
+logging:
+  level:
+    root: WARN
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO

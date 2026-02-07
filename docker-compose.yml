@@ -1,0 +1,178 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: shin-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: shin
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./scripts/initialize-schemas:/docker-entrypoint-initdb.d
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d shin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    container_name: shin-redis
+    hostname: redis
+    command: redis-server --requirepass redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: shin-eureka
+    hostname: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_USERNAME=eureka
+      - EUREKA_PASSWORD=eureka123
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: shin-config
+    hostname: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev,native
+      - CONFIG_SERVER_ENCRYPT_KEY=${CONFIG_SERVER_ENCRYPT_KEY:-changeme-use-strong-key}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+    volumes:
+      - ./config-repo:/app/config-repo
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: shin-gateway
+    hostname: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+#
+#  metadata:
+#    build:
+#      context: ./metadata
+#      dockerfile: Dockerfile
+#    container_name: shin-metadata
+#    hostname: metadata-service
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=dev
+#      - CONFIG_SERVER_USERNAME=configuser
+#      - CONFIG_SERVER_PASSWORD=configpass
+#    depends_on:
+#      eureka-server:
+#        condition: service_healthy
+#      config-server:
+#        condition: service_healthy
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - shin-network
+#    healthcheck:
+#      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 90s
+#
+#  upload:
+#    build:
+#      context: ./upload
+#      dockerfile: Dockerfile
+#    container_name: shin-upload
+#    hostname: upload-service
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=dev
+#      - CONFIG_SERVER_USERNAME=configuser
+#      - CONFIG_SERVER_PASSWORD=configpass
+#    depends_on:
+#      eureka-server:
+#        condition: service_healthy
+#      config-server:
+#        condition: service_healthy
+#      postgres:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    networks:
+#      - shin-network
+#    healthcheck:
+#      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 90s
+
+networks:
+  shin-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

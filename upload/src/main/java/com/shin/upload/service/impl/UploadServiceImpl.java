@@ -1,0 +1,218 @@
+package com.shin.upload.service.impl;
+
+import com.shin.upload.dto.CancelUploadResponse;
+import com.shin.upload.dto.ChunkUploadResponse;
+import com.shin.upload.dto.CreateVideoRequest;
+import com.shin.upload.dto.InitiateUploadRequest;
+import com.shin.upload.dto.InitiateUploadResponse;
+import com.shin.upload.dto.TranscodeJobEvent;
+import com.shin.upload.dto.UpdateVideoRequest;
+import com.shin.upload.exceptions.InvalidChunkException;
+import com.shin.upload.exceptions.InvalidVideoUploadException;
+import com.shin.upload.exceptions.UploadNotFoundException;
+import com.shin.upload.model.UploadState;
+import com.shin.upload.model.enums.UploadStatus;
+import com.shin.upload.producers.TranscoderJobProducer;
+import com.shin.upload.service.MetadataClientService;
+import com.shin.upload.service.StorageService;
+import com.shin.upload.service.UploadService;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.IntStream;
+
+@Service
+@RequiredArgsConstructor
+public class UploadServiceImpl implements UploadService {
+
+    private static final Logger log = LoggerFactory.getLogger(UploadServiceImpl.class);
+    private static final long CHUNK_SIZE = 5 * 1024 * 1024;
+
+    private final StorageService storageService;
+    private final MetadataClientService metadataClient;
+    private final TranscoderJobProducer producer;
+    private final RedisTemplate<String, UploadState> redisTemplate;
+
+    @Override
+    public InitiateUploadResponse initiateUpload(InitiateUploadRequest request) {
+        validateVideoFile(request.fileName(), request.fileSize(), request.contentType());
+
+        UUID uploadId = UUID.randomUUID();
+        UUID videoId = UUID.randomUUID();
+
+        long totalChunks = (request.fileSize() / CHUNK_SIZE) + (request.fileSize() % CHUNK_SIZE > 0 ? 1 : 0);
+
+        log.info("Initiating upload: uploadId={}, videoId={}, totalChunks={}", uploadId, videoId, totalChunks);
+
+        UploadState uploadState = new UploadState(
+            uploadId,
+            videoId,
+            request.userId(),
+            request.fileName(),
+            request.fileSize(),
+            (int) totalChunks,
+            0,
+            request.resolutions().toString(),
+            UploadStatus.INITIATED,
+            LocalDateTime.now()
+        );
+
+        redisTemplate.opsForValue().set("upload:" + uploadId, uploadState);
+
+        metadataClient.createVideo(
+            new CreateVideoRequest(
+                videoId,
+                request.fileName().substring(0, request.fileName().lastIndexOf('.')),
+                "",
+                "PRIVATE",
+                "PROCESSING",
+                request.userId(),
+                request.resolutions()
+            )
+        );
+
+        return new InitiateUploadResponse(
+            uploadId,
+            videoId,
+            CHUNK_SIZE,
+            (int) totalChunks,
+            request.resolutions()
+        );
+    }
+
+    @Override
+    public ChunkUploadResponse uploadChunk(String uploadId, Integer chunkNumber, Integer totalChunks, byte[] data) {
+        UploadState state = redisTemplate.opsForValue().get("upload:" + uploadId);
+        if (state == null) {
+            throw new UploadNotFoundException("Upload not found");
+        }
+
+        boolean result = true;
+        double progress = (state.uploadedChunks().doubleValue() / totalChunks) * 100;
+
+        try {
+            if (chunkNumber < 1 || chunkNumber > totalChunks) {
+                throw new InvalidChunkException("Invalid chunk number. Expected 1 to " + totalChunks + ", got " + chunkNumber);
+            }
+
+            String chunkKey = "uploads/temp/" + state.videoId() + "/chunk-" + chunkNumber;
+
+            storageService.upload("raw", chunkKey, data, "application/octet-stream");
+
+            int newUploadedChunks = state.uploadedChunks() + 1;
+
+            UploadState updatedState = new UploadState(
+                state.id(),
+                state.videoId(),
+                state.userId(),
+                state.fileName(),
+                state.fileSize(),
+                state.totalChunks(),
+                newUploadedChunks,
+                state.resolutions(),
+                newUploadedChunks == state.totalChunks() ? UploadStatus.PROCESSING : UploadStatus.UPLOADING,
+                state.createdAt()
+            );
+
+            log.info("Uploaded chunks: {} to the of {} for uploadId={} in key={}", newUploadedChunks, state.totalChunks(), uploadId, chunkKey);
+
+            redisTemplate.opsForValue().set("upload:" + uploadId, updatedState, Duration.ofHours(24));
+
+            progress = (updatedState.uploadedChunks().doubleValue() / totalChunks) * 100;
+
+            if (updatedState.uploadedChunks() == totalChunks) {
+                assembleAndProcess(updatedState);
+            }
+
+        } catch (Exception e) {
+            log.error("Error uploading chunk {} for uploadId={}: {}", chunkNumber, uploadId, e.getMessage(), e);
+            result = false;
+        }
+
+        return new ChunkUploadResponse(uploadId, chunkNumber, result, progress);
+    }
+
+    @Override
+    public CancelUploadResponse cancelUpload(String uploadId) {
+        UploadState state = redisTemplate.opsForValue().get("upload:" + uploadId);
+        if (state == null) {
+            throw new UploadNotFoundException("Upload not found");
+        }
+
+        try {
+            List<String> keys = IntStream.rangeClosed(1, state.totalChunks())
+                .mapToObj(chunkNumber -> "uploads/temp/" + state.videoId() + "/chunk-" + chunkNumber)
+                .toList();
+
+            storageService.deleteMultiple("raw", keys);
+        } catch (Exception e) {
+            log.error("Error while canceling the upload: ", e);
+        }
+
+        redisTemplate.delete("upload:" + uploadId);
+
+        return new CancelUploadResponse(
+            state.id().toString(),
+            state.uploadedChunks(),
+            state.totalChunks()
+        );
+    }
+
+    private void assembleAndProcess(UploadState state) {
+        String finalKey = "raw/" + state.videoId() + "/original.mp4";
+
+        List<String> chunks = IntStream.rangeClosed(1, state.totalChunks())
+            .mapToObj(i -> "uploads/temp/" + state.videoId() + "/chunk-" + i)
+            .toList();
+
+        storageService.assembleChunks(chunks, "raw", finalKey);
+
+        chunks.forEach(chunkKey -> storageService.delete("raw", chunkKey));
+
+        long processingTimeInMinutes = Duration.between(state.createdAt(), LocalDateTime.now()).toMinutes();
+
+        log.info("Assembled chunks into final video at key={} for uploadId={} in {} minutes", finalKey, state.id(), processingTimeInMinutes);
+
+        metadataClient.updateVideo(
+            new UpdateVideoRequest("PROCESSED", null, null, null, null, null, "PUBLIC", null, null, null, null, null, null, null),
+            state.videoId().toString()
+        );
+
+        producer.createJob(
+            new TranscodeJobEvent(
+                state.videoId().toString(),
+                finalKey,
+                state.userId(),
+                state.fileName(),
+                Arrays.asList(state.resolutions().split(","))
+            )
+        );
+
+        redisTemplate.delete("upload:" + state.id());
+    }
+
+    private void validateVideoFile(String fileName, Long fileSize, String contentType) {
+        List<String> allowedExtensions = Arrays.asList("mp4", "webm", "mov", "avi", "mkv");
+        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+
+        if (!allowedExtensions.contains(extension)) {
+            throw new InvalidVideoUploadException("Invalid file type. Allowed: " + String.join(", ", allowedExtensions));
+        }
+
+        if (fileSize > 10L * 1024 * 1024 * 1024) {
+            throw new InvalidVideoUploadException("File too large. Max size: 10GB");
+        }
+
+        if (!contentType.startsWith("video/")) {
+            throw new InvalidVideoUploadException("Invalid content type. Must be video/*");
+        }
+    }
+}

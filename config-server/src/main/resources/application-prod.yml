@@ -1,0 +1,26 @@
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI}
+          username: ${GIT_USERNAME}
+          password: ${GIT_PASSWORD}
+          search-paths: /
+          timeout: 10
+          force-pull: true
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_PEERS:http://eureka-peer1:8761/eureka/,http://eureka-peer2:8761/eureka/,http://eureka-peer3:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.cloud.client.hostname}:${random.value}
+
+logging:
+  level:
+    root: WARN
+    org.springframework.cloud.config: INFO
+    org.springframework.cloud.bus: INFO

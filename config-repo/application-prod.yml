@@ -1,0 +1,27 @@
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_PEERS:http://eureka-peer1:8761/eureka/,http://eureka-peer2:8761/eureka/,http://eureka-peer3:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.cloud.client.hostname}:${random.value}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+
+logging:
+  level:
+    root: WARN
+    com.shin: INFO

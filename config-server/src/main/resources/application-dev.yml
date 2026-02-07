@@ -1,0 +1,21 @@
+spring:
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:///app/config-repo
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://eureka:eureka123@eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: false
+    hostname: config-server
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.config: DEBUG
+    org.springframework.cloud.bus: DEBUG
