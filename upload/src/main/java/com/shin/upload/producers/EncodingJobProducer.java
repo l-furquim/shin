@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class TranscoderJobProducer {
+public class EncodingJobProducer {
 
     private final SqsTemplate template;
 

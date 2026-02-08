@@ -169,6 +169,44 @@ services:
 #      retries: 5
 #      start_period: 90s
 
+  encoding:
+    build:
+      context: ./encoding
+      dockerfile: Dockerfile
+    container_name: shin-encoding
+    hostname: encoding-service
+    environment:
+      DECODE_JOB_QUEUE_URL: ${DECODE_JOB_QUEUE_URL}
+      ENCODE_FINISHED_TOPIC_ARN: ${ENCODE_FINISHED_TOPIC_ARN}
+      CHUNK_PROCESSED_TOPIC_ARN: ${CHUNK_PROCESSED_TOPIC_ARN}
+      RAW_BUCKET_NAME: ${RAW_BUCKET_NAME}
+      PROCESSED_BUCKET_NAME: ${PROCESSED_BUCKET_NAME}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    networks:
+      - shin-network
+
+  thumbnail:
+    build:
+      context: ./thumbnail
+      dockerfile: Dockerfile
+    container_name: shin-thumbnail
+    hostname: thumbnail-service
+    environment:
+      THUMBNAIL_JOB_QUEUE_URL: ${THUMBNAIL_JOB_QUEUE_URL}
+      RAW_BUCKET_NAME: ${RAW_BUCKET_NAME}
+      THUMBNAIL_BUCKET_NAME: ${THUMBNAIL_BUCKET_NAME}
+      AWS_REGION: ${AWS_REGION}
+      THUMBNAIL_GENERATED_TOPIC_ARN: ${THUMBNAIL_GENERATED_TOPIC_ARN}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    networks:
+      - shin-network
+
+
 networks:
   shin-network:
     driver: bridge

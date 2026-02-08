@@ -12,7 +12,7 @@ import java.util.Set;
 public record PatchVideoByIdRequest(
     String title,
     String description,
-    Long duration,
+    Double duration,
     String resolutions,
     String uploadKey,
     String thumbnailUrl,

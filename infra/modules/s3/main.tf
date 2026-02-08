@@ -90,6 +90,18 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "thumbnail_bucket"
   }
 }
 
+resource "aws_s3_bucket_cors_configuration" "processed_bucket" {
+  bucket = aws_s3_bucket.processed_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
+  }
+}
+
 # resource "aws_s3_bucket_lifecycle_configuration" "processed_bucket" {
 #   bucket = aws_s3_bucket.processed_bucket.id
 

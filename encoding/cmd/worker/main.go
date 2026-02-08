@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"transcoding-service/internal/aws"
 	"transcoding-service/internal/config"
+	"transcoding-service/internal/queue/sns"
 	"transcoding-service/internal/queue/sqs"
 	"transcoding-service/internal/service"
 	s3storage "transcoding-service/internal/storage/s3"
@@ -29,8 +30,28 @@ func main() {
 	s3Client := s3storage.New(awsCfg)
 	storage := s3storage.NewStorageService(s3Client)
 
+	snsClient := sns.New(awsCfg)
+
+	var chunkProgressPublisher *sns.Publisher
+	if cfg.ChunkProcessedTopicARN != "" {
+		chunkProgressPublisher = sns.NewPublisher(snsClient, cfg.ChunkProcessedTopicARN)
+		log.Printf("Chunk progress publisher initialized with topic: %s", cfg.ChunkProcessedTopicARN)
+	} else {
+		log.Println("Warning: CHUNK_PROCESSED_TOPIC_ARN not set, progress notifications disabled")
+	}
+
+	var completionPublisher *sns.Publisher
+	if cfg.EncodeFinishedTopicARN != "" {
+		completionPublisher = sns.NewPublisher(snsClient, cfg.EncodeFinishedTopicARN)
+		log.Printf("Completion publisher initialized with topic: %s", cfg.EncodeFinishedTopicARN)
+	} else {
+		log.Println("Warning: ENCODE_FINISHED_TOPIC_ARN not set, completion notifications disabled")
+	}
+
 	ts := &service.TranscodingService{
-		Storage: storage,
+		Storage:             storage,
+		ChunkPublisher:      chunkProgressPublisher,
+		CompletionPublisher: completionPublisher,
 	}
 
 	sqsClient := sqs.New(awsCfg)

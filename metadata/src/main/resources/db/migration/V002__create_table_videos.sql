@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS videos (
     default_language VARCHAR(100),
     published_locale VARCHAR(100),
     only_for_adults BOOLEAN NOT NULL,
-    duration INTEGER,
+    duration decimal,
     resolutions VARCHAR(100),
     published_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE,

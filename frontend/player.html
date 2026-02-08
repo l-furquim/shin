@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shin Video Player</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="player-styles.css">
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>DASH Video Player</h1>
+
+        <div class="input-section">
+            <input type="text" id="cdnUrl" placeholder="CloudFront URL (e.g., https://d123.cloudfront.net)">
+            <input type="text" id="videoId" placeholder="Video ID">
+            <select id="resolution">
+                <option value="360p">360p</option>
+                <option value="480p">480p</option>
+                <option value="720p" selected>720p</option>
+                <option value="1080p">1080p</option>
+            </select>
+            <button id="loadBtn">Load Video</button>
+        </div>
+
+        <div class="player-section" id="playerSection">
+            <video id="videoPlayer" controls></video>
+            <div class="player-info">
+                <span id="bitrateInfo"></span>
+                <span id="bufferInfo"></span>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script src="player.js"></script>
+</body>
+</html>

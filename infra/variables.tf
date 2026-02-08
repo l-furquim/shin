@@ -40,6 +40,7 @@ variable "sqs_queue_names" {
   type        = list(string)
   default = [
     "decode-job",
+    "thumbnail-job",
   ]
 }
 

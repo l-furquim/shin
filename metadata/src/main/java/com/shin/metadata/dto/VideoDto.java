@@ -23,7 +23,7 @@ public record VideoDto(
     VideoLanguage defaultLanguage,
     String publishedLocale,
     Set<Tag> tags,
-    Long duration,
+    Double duration,
     String resolutions,
     LocalDateTime publishedAt,
     LocalDateTime scheduledPublishAt,

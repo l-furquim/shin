@@ -57,3 +57,8 @@ output "region" {
   description = "AWS region"
   value       = var.region
 }
+
+output "cloud_front_cdn_url" {
+  description = "CloudFront CDN URL"
+  value       = module.cloudfront.cloud_front_cdn_url
+}

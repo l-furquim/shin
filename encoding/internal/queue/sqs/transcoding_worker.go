@@ -28,9 +28,17 @@ func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.
 	}
 
 	model := event.ToModel()
+	var processingErr error
 
-	processedPath, err := w.service.ProcessJob(ctx, model, cfg)
+	defer func() {
+		if processingErr != nil {
+			w.service.SendFailureNotification(ctx, model.VideoId, processingErr.Error())
+		}
+	}()
+
+	processedPath, duration, err := w.service.ProcessJob(ctx, model, cfg)
 	if err != nil {
+		processingErr = err
 		return err
 	}
 
@@ -41,8 +49,9 @@ func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.
 		}
 	}()
 
-	err = w.service.SendChunksToStorage(ctx, processedPath, model, cfg)
+	err = w.service.SendChunksToStorage(ctx, processedPath, model, duration, cfg)
 	if err != nil {
+		processingErr = err
 		return err
 	}
 

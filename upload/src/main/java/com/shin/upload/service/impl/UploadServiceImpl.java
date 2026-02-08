@@ -6,7 +6,8 @@ import com.shin.upload.exceptions.InvalidVideoUploadException;
 import com.shin.upload.exceptions.UploadNotFoundException;
 import com.shin.upload.model.UploadState;
 import com.shin.upload.model.enums.UploadStatus;
-import com.shin.upload.producers.TranscoderJobProducer;
+import com.shin.upload.producers.EncodingJobProducer;
+import com.shin.upload.producers.ThumbnailJobProducer;
 import com.shin.upload.service.MetadataClientService;
 import com.shin.upload.service.StorageService;
 import com.shin.upload.service.UploadService;
@@ -36,7 +37,8 @@ public class UploadServiceImpl implements UploadService {
 
     private final StorageService storageService;
     private final MetadataClientService metadataClient;
-    private final TranscoderJobProducer producer;
+    private final EncodingJobProducer encodingProducer;
+    private final ThumbnailJobProducer thumbnailProducer;
     private final RedisTemplate<String, UploadState> redisTemplate;
 
     @Override
@@ -64,19 +66,12 @@ public class UploadServiceImpl implements UploadService {
             throw new InvalidVideoUploadException(e.getMessage());
         }
 
-        producer.createJob(
-                new TranscodeJobEvent(
-                        data.videoId(),
-                        finalKey,
-                        userId,
-                        originalName,
-                        Arrays.asList(data.resolutions())
-                )
-        );
-
-        metadataClient.updateVideo(
-                new UpdateVideoRequest(null, null, null, String.join(",", data.resolutions()), null, null, null, null, null, null, null, null, null, "PROCESSING"),
-                data.videoId()
+        this.integrateEvents(
+                data.videoId(),
+                finalKey,
+                userId,
+                originalName,
+                Arrays.asList(data.resolutions())
         );
 
         return new RawUploadResponse(
@@ -245,11 +240,11 @@ public class UploadServiceImpl implements UploadService {
             String finalKey
     ) {
         metadataClient.updateVideo(
-                new UpdateVideoRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, "UPLOADED"),
+                new UpdateVideoRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, "PROCESSING"),
                 state.videoId().toString()
         );
 
-        producer.createJob(
+        encodingProducer.createJob(
                 new TranscodeJobEvent(
                         state.videoId().toString(),
                         finalKey,
@@ -260,6 +255,36 @@ public class UploadServiceImpl implements UploadService {
         );
 
         redisTemplate.delete("upload:" + state.id());
+    }
+
+    private void integrateEvents(
+            String videoId,
+            String finalKey,
+            String userId,
+            String originalName,
+            List<String> resolutions
+    ) {
+        encodingProducer.createJob(
+                new TranscodeJobEvent(
+                        videoId,
+                        finalKey,
+                        userId,
+                        originalName,
+                        resolutions
+                )
+        );
+
+        thumbnailProducer.createJob(
+                new ThumbnailJobEvent(
+                        videoId,
+                        finalKey
+                )
+        );
+
+        metadataClient.updateVideo(
+                new UpdateVideoRequest(null, null, null, String.join(",", resolutions), null, null, null, null, null, null, null, null, null, "PROCESSING"),
+                videoId
+        );
     }
 
 

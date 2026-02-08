@@ -21,4 +21,7 @@ public interface VideoService {
     SearchVideosResponse searchByCategory(String categoryName, int start, int end);
 
     SearchVideosResponse searchAll(int start, int end);
+
+    void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration);
+
 }

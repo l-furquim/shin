@@ -14,6 +14,8 @@ sns_topic_names = [
 
 sqs_queue_names = [
   "decode-job",
+  "thumbnail-job",
+  "metadata-events",
 ]
 
 sqs_message_retention_seconds  = 345600  # 4 days

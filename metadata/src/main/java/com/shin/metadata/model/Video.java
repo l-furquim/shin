@@ -73,7 +73,7 @@ public class Video {
     @Builder.Default
     private Set<Tag> tags = new HashSet<>();
 
-    private Long duration;
+    private Double duration;
 
     private String resolutions;
 

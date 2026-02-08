@@ -15,7 +15,7 @@ echo "Tearing down existing dev environment"
 #   -auto-approve
 
 echo "Recreating dev environment"
-terraform -chdir=$TERRAFORM_PATH init
+# terraform -chdir=$TERRAFORM_PATH init
 # terraform -chdir=$TERRAFORM_PATH apply \
 #   -var-file="environments/dev/terraform.tfvars" \
 #   -auto-approve
@@ -28,5 +28,11 @@ set -Ux RAW_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket
 set -Ux THUMBNAIL_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
 set -Ux AWS_REGION (terraform -chdir=$TERRAFORM_PATH output -raw region)
 set -Ux DECODE_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
-
+set -Ux THUMBNAIL_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
+set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
+set -Ux ENCODE_FINISHED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')
+set -Ux AWS_ACCESS_KEY_ID (aws configure get aws_access_key_id)
+set -Ux AWS_SECRET_ACCESS_KEY (aws configure get aws_secret_access_key)
+set -Ux AWS_SESSION_TOKEN (aws configure get aws_session_token)
+set -Ux THUMBNAIL_GENERATED_TOPIC_ARN = (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')
 echo "Dev environment initialized successfully"

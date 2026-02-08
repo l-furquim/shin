@@ -184,7 +184,7 @@ public class VideoServiceImpl implements VideoService {
             video.getDefaultLanguage(),
             video.getPublishedLocale(),
             video.getTags(),
-            video.getDuration() != null ? video.getDuration() : 0L,
+            video.getDuration() != null ? video.getDuration() : 0.0,
             video.getResolutions(),
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
@@ -251,6 +251,28 @@ public class VideoServiceImpl implements VideoService {
                 .map(this::toDto)
                 .toList()
         );
+    }
+
+    @Override
+    public void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration) {
+        Video video = videoRepository.findById(UUID.fromString(videoId))
+                .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + videoId + " not found"));
+
+        final var isCompleted = status.equals("completed");
+
+        video.setStatus(
+                isCompleted ? ProcessingStatus.PROCESSED : ProcessingStatus.FAILED
+        );
+
+        if(isCompleted) {
+            log.info("Video failed to be encoded {}", videoId);
+            return;
+        }
+
+        video.setResolutions(String.join(",", resolutions));
+        video.setDuration(duration);
+
+        videoRepository.save(video);
     }
 
     private VideoDto toDto(Video video) {

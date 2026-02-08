@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #fafafa;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -16,18 +16,20 @@ body {
 
 .container {
     background: white;
-    border-radius: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
     padding: 40px;
     max-width: 600px;
     width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
-    color: #333;
+    color: #0a0a0a;
     margin-bottom: 30px;
     text-align: center;
     font-size: 28px;
+    font-weight: 600;
 }
 
 .upload-section {
@@ -39,37 +41,38 @@ h1 {
 #fileInput {
     flex: 1;
     padding: 12px;
-    border: 2px dashed #667eea;
-    border-radius: 8px;
+    border: 2px dashed #d4d4d4;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s;
+    background: #fafafa;
 }
 
 #fileInput:hover {
-    border-color: #764ba2;
-    background: #f8f9ff;
+    border-color: #0a0a0a;
+    background: #f5f5f5;
 }
 
 #uploadBtn {
     padding: 12px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #0a0a0a;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    transition: all 0.3s;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
 #uploadBtn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    background: #171717;
 }
 
 #uploadBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: #a3a3a3;
 }
 
 .progress-section {
@@ -83,71 +86,78 @@ h1 {
 
 .progress-bar {
     width: 100%;
-    height: 30px;
-    background: #e0e0e0;
-    border-radius: 15px;
+    height: 8px;
+    background: #e5e5e5;
+    border-radius: 4px;
     overflow: hidden;
     margin-bottom: 10px;
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: #0a0a0a;
     transition: width 0.3s ease;
     width: 0%;
 }
 
 .progress-text {
     text-align: center;
-    font-weight: 600;
-    color: #667eea;
-    font-size: 18px;
+    font-weight: 500;
+    color: #0a0a0a;
+    font-size: 14px;
 }
 
 .status {
-    padding: 15px;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border-radius: 6px;
     margin-bottom: 20px;
     display: none;
-    font-weight: 500;
+    font-weight: 400;
+    font-size: 14px;
+    border: 1px solid;
 }
 
 .status.success {
-    background: #d4edda;
-    color: #155724;
+    background: #fafafa;
+    color: #0a0a0a;
+    border-color: #d4d4d4;
     display: block;
 }
 
 .status.error {
-    background: #f8d7da;
-    color: #721c24;
+    background: #fafafa;
+    color: #0a0a0a;
+    border-color: #0a0a0a;
     display: block;
 }
 
 .status.info {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: #fafafa;
+    color: #525252;
+    border-color: #d4d4d4;
     display: block;
 }
 
 .info {
-    background: #f8f9fa;
+    background: #fafafa;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
     font-size: 14px;
-    color: #666;
+    color: #525252;
     line-height: 1.6;
 }
 
 .info strong {
-    color: #333;
+    color: #0a0a0a;
     display: block;
     margin-bottom: 5px;
 }
 
 .info code {
-    background: #e9ecef;
+    background: #f5f5f5;
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
+    border: 1px solid #e5e5e5;
 }
