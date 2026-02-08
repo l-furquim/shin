@@ -1,16 +1,6 @@
 package com.shin.metadata.service.impl;
 
-import com.shin.metadata.dto.AddVideoToPlaylistRequest;
-import com.shin.metadata.dto.AddVideoToPlaylistResponse;
-import com.shin.metadata.dto.CreatePlaylistRequest;
-import com.shin.metadata.dto.CreatePlaylistResponse;
-import com.shin.metadata.dto.GetPlaylistByIdResponse;
-import com.shin.metadata.dto.PatchPlaylistRequest;
-import com.shin.metadata.dto.PatchPlaylistResponse;
-import com.shin.metadata.dto.RemoveVideoFromPlaylistResponse;
-import com.shin.metadata.dto.ReorderPlaylistRequest;
-import com.shin.metadata.dto.ReorderPlaylistResponse;
-import com.shin.metadata.dto.VideoToAdd;
+import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidPlaylistRequestException;
 import com.shin.metadata.exception.PlaylistNotFoundException;
 import com.shin.metadata.model.Playlist;
@@ -18,82 +8,247 @@ import com.shin.metadata.repository.PlaylistRepository;
 import com.shin.metadata.service.PlaylistService;
 import com.shin.metadata.service.VideoService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlaylistServiceImpl implements PlaylistService {
+
+    private static final String PLAYLIST_NOT_FOUND = "Playlist with id: %s not found";
+    private static final String VIDEO_NOT_IN_PLAYLIST = "Video with id: %s not found in playlist with id: %s";
 
     private final PlaylistRepository playlistRepository;
     private final VideoService videoService;
 
     @Override
-    public CreatePlaylistResponse create(CreatePlaylistRequest createPlaylistRequest) {
-        if (createPlaylistRequest.title().isBlank()) {
-            throw new InvalidPlaylistRequestException("Title must not be empty");
-        }
+    @Transactional
+    public CreatePlaylistResponse create(CreatePlaylistRequest request) {
+        validateTitle(request.title());
 
-        String thumbnailUrl = "";
-        if (createPlaylistRequest.videos() != null && !createPlaylistRequest.videos().isEmpty()) {
-            UUID firstVideoId = createPlaylistRequest.videos().get(0);
-            var video = videoService.getVideoById(firstVideoId);
-            thumbnailUrl = video.thumbnailUrl() != null ? video.thumbnailUrl() : "";
-        }
+        List<UUID> videoIds = request.videos() != null ? new ArrayList<>(request.videos()) : new ArrayList<>();
+        String thumbnailUrl = determineThumbnailUrl(videoIds);
 
         Playlist playlist = Playlist.builder()
             .id(UUID.randomUUID())
-            .name(createPlaylistRequest.title())
-            .description(createPlaylistRequest.description())
+            .name(request.title())
+            .description(request.description())
             .thumbnailUrl(thumbnailUrl)
-            .visibility(createPlaylistRequest.visibility())
-            .videos(createPlaylistRequest.videos() != null ? new ArrayList<>(createPlaylistRequest.videos()) : new ArrayList<>())
+            .visibility(request.visibility())
+            .videos(videoIds)
             .build();
 
         Playlist saved = playlistRepository.save(playlist);
+        log.info("Created playlist: {}", saved.getId());
 
-        return new CreatePlaylistResponse(
-            saved.getId(),
-            saved.getName(),
-            saved.getDescription(),
-            saved.getThumbnailUrl(),
-            saved.getVisibility(),
-            saved.getVideos()
-        );
+        return toCreateResponse(saved);
     }
 
     @Override
+    @Transactional
     public ReorderPlaylistResponse reorder(UUID playlistId, ReorderPlaylistRequest request) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
+        Playlist playlist = findPlaylistById(playlistId);
 
-        if (request.videosIds().isEmpty()) {
-            throw new InvalidPlaylistRequestException("videosIds must not be null");
-        }
+        validateReorderRequest(request, playlist);
 
-        List<UUID> newOrder = request.videosIds();
         List<UUID> currentVideos = playlist.getVideos();
+        List<UUID> newOrder = new ArrayList<>(request.videosIds());
 
-        int size = Math.min(currentVideos.size(), newOrder.size());
-        for (int i = 0; i < size; i++) {
-            if (!currentVideos.get(i).equals(newOrder.get(i))) {
-                currentVideos.set(i, newOrder.get(i));
-            }
+        if (!haveSameElements(currentVideos, newOrder)) {
+            throw new InvalidPlaylistRequestException(
+                "New order must contain exactly the same videos as current playlist"
+            );
         }
 
-        if (newOrder.size() > currentVideos.size()) {
-            currentVideos.addAll(newOrder.subList(currentVideos.size(), newOrder.size()));
-        } else if (newOrder.size() < currentVideos.size()) {
-            for (int i = currentVideos.size() - 1; i >= newOrder.size(); i--) {
-                currentVideos.remove(i);
-            }
+        playlist.setVideos(newOrder);
+        Playlist saved = playlistRepository.save(playlist);
+
+        log.info("Reordered playlist: {}", playlistId);
+        return toReorderResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID playlistId) {
+        Playlist playlist = findPlaylistById(playlistId);
+        playlistRepository.delete(playlist);
+        log.info("Deleted playlist: {}", playlistId);
+    }
+
+    @Override
+    @Transactional
+    public AddVideoToPlaylistResponse addVideo(UUID playlistId, AddVideoToPlaylistRequest request) {
+        Playlist playlist = findPlaylistById(playlistId);
+
+        if (request.videos() == null || request.videos().isEmpty()) {
+            throw new InvalidPlaylistRequestException("Videos list cannot be empty");
         }
 
-        playlistRepository.save(playlist);
+        List<UUID> playlistVideos = playlist.getVideos();
 
+        for (VideoToAdd videoToAdd : request.videos()) {
+            validateVideoToAdd(videoToAdd);
+
+            UUID videoId = videoToAdd.videoId();
+
+            if (playlistVideos.contains(videoId)) {
+                log.warn("Video {} already in playlist {}, skipping", videoId, playlistId);
+                continue;
+            }
+
+            int position = videoToAdd.position() != null ? videoToAdd.position() : playlistVideos.size();
+
+            if (position < 0 || position > playlistVideos.size()) {
+                throw new InvalidPlaylistRequestException(
+                    String.format("Invalid position %d. Must be between 0 and %d", position, playlistVideos.size())
+                );
+            }
+
+            playlistVideos.add(position, videoId);
+        }
+
+        Playlist saved = playlistRepository.save(playlist);
+        log.info("Added {} videos to playlist: {}", request.videos().size(), playlistId);
+
+        return toAddVideoResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetPlaylistByIdResponse getById(UUID playlistId) {
+        Playlist playlist = findPlaylistById(playlistId);
+        return toGetByIdResponse(playlist);
+    }
+
+    @Override
+    @Transactional
+    public PatchPlaylistResponse patchPlaylist(UUID playlistId, PatchPlaylistRequest request) {
+        Playlist playlist = findPlaylistById(playlistId);
+
+        boolean updated = false;
+
+        if (request.videos() != null) {
+            playlist.setVideos(new ArrayList<>(request.videos()));
+            updated = true;
+        }
+        if (request.name() != null && !request.name().isBlank()) {
+            playlist.setName(request.name());
+            updated = true;
+        }
+        if (request.description() != null) {
+            playlist.setDescription(request.description());
+            updated = true;
+        }
+        if (request.visibility() != null) {
+            playlist.setVisibility(request.visibility());
+            updated = true;
+        }
+        if (request.thumbnailUrl() != null) {
+            playlist.setThumbnailUrl(request.thumbnailUrl());
+            updated = true;
+        }
+
+        if (!updated) {
+            log.debug("No fields to update for playlist: {}", playlistId);
+            return toPatchResponse(playlist);
+        }
+
+        Playlist saved = playlistRepository.save(playlist);
+        log.info("Updated playlist: {}", playlistId);
+
+        return toPatchResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public RemoveVideoFromPlaylistResponse removeVideo(UUID playlistId, UUID videoId) {
+        Playlist playlist = findPlaylistById(playlistId);
+
+        boolean removed = playlist.getVideos().remove(videoId);
+
+        if (!removed) {
+            throw new InvalidPlaylistRequestException(
+                String.format(VIDEO_NOT_IN_PLAYLIST, videoId, playlistId)
+            );
+        }
+
+        Playlist saved = playlistRepository.save(playlist);
+        log.info("Removed video {} from playlist: {}", videoId, playlistId);
+
+        return toRemoveVideoResponse(saved);
+    }
+
+    private Playlist findPlaylistById(UUID playlistId) {
+        return playlistRepository.findById(playlistId)
+            .orElseThrow(() -> new PlaylistNotFoundException(
+                String.format(PLAYLIST_NOT_FOUND, playlistId)
+            ));
+    }
+
+    private void validateTitle(String title) {
+        if (title == null || title.isBlank()) {
+            throw new InvalidPlaylistRequestException("Title cannot be empty");
+        }
+    }
+
+    private void validateReorderRequest(ReorderPlaylistRequest request, Playlist playlist) {
+        if (request.videosIds() == null || request.videosIds().isEmpty()) {
+            throw new InvalidPlaylistRequestException("videosIds cannot be null or empty");
+        }
+
+        if (request.videosIds().size() != playlist.getVideos().size()) {
+            throw new InvalidPlaylistRequestException(
+                String.format("videosIds size (%d) must match playlist size (%d)",
+                    request.videosIds().size(), playlist.getVideos().size())
+            );
+        }
+    }
+
+    private void validateVideoToAdd(VideoToAdd videoToAdd) {
+        if (videoToAdd == null || videoToAdd.videoId() == null) {
+            throw new InvalidPlaylistRequestException("Video ID cannot be null");
+        }
+    }
+
+    private boolean haveSameElements(List<UUID> list1, List<UUID> list2) {
+        if (list1.size() != list2.size()) {
+            return false;
+        }
+        Set<UUID> set1 = new HashSet<>(list1);
+        Set<UUID> set2 = new HashSet<>(list2);
+        return set1.equals(set2);
+    }
+
+    private String determineThumbnailUrl(List<UUID> videoIds) {
+        if (videoIds == null || videoIds.isEmpty()) {
+            return "";
+        }
+
+        try {
+            var video = videoService.getVideoById(videoIds.getFirst());
+            return video.thumbnailUrl() != null ? video.thumbnailUrl() : "";
+        } catch (Exception e) {
+            log.warn("Failed to get thumbnail from video: {}", videoIds.getFirst(), e);
+            return "";
+        }
+    }
+
+    private CreatePlaylistResponse toCreateResponse(Playlist playlist) {
+        return new CreatePlaylistResponse(
+            playlist.getId(),
+            playlist.getName(),
+            playlist.getDescription(),
+            playlist.getThumbnailUrl(),
+            playlist.getVisibility(),
+            playlist.getVideos()
+        );
+    }
+
+    private ReorderPlaylistResponse toReorderResponse(Playlist playlist) {
         return new ReorderPlaylistResponse(
             playlist.getId(),
             playlist.getName(),
@@ -104,36 +259,7 @@ public class PlaylistServiceImpl implements PlaylistService {
         );
     }
 
-    @Override
-    public void delete(UUID playlistId) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
-
-        playlistRepository.delete(playlist);
-    }
-
-    @Override
-    public AddVideoToPlaylistResponse addVideo(UUID playlistId, AddVideoToPlaylistRequest request) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
-
-        List<UUID> playlistVideos = playlist.getVideos();
-        int size = Math.max(playlistVideos.size(), request.videos().size());
-
-        for (int i = 0; i < size; i++) {
-            VideoToAdd videoToAdd = i < request.videos().size() ? request.videos().get(i) : null;
-            if (videoToAdd != null) {
-                int position = videoToAdd.position() != null ? videoToAdd.position() : playlistVideos.size();
-                if (position >= 0 && position <= playlistVideos.size()) {
-                    playlistVideos.add(position, videoToAdd.videoId());
-                } else {
-                    throw new InvalidPlaylistRequestException("Invalid position " + videoToAdd.position() + " for video " + videoToAdd.videoId());
-                }
-            }
-        }
-
-        playlistRepository.save(playlist);
-
+    private AddVideoToPlaylistResponse toAddVideoResponse(Playlist playlist) {
         return new AddVideoToPlaylistResponse(
             playlist.getId(),
             playlist.getName(),
@@ -144,11 +270,7 @@ public class PlaylistServiceImpl implements PlaylistService {
         );
     }
 
-    @Override
-    public GetPlaylistByIdResponse getById(UUID playlistId) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
-
+    private GetPlaylistByIdResponse toGetByIdResponse(Playlist playlist) {
         return new GetPlaylistByIdResponse(
             playlist.getId(),
             playlist.getName(),
@@ -159,29 +281,7 @@ public class PlaylistServiceImpl implements PlaylistService {
         );
     }
 
-    @Override
-    public PatchPlaylistResponse patchPlaylist(UUID playlistId, PatchPlaylistRequest request) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
-
-        if (request.videos() != null) {
-            playlist.setVideos(new ArrayList<>(request.videos()));
-        }
-        if (request.name() != null) {
-            playlist.setName(request.name());
-        }
-        if (request.description() != null) {
-            playlist.setDescription(request.description());
-        }
-        if (request.visibility() != null) {
-            playlist.setVisibility(request.visibility());
-        }
-        if (request.thumbnailUrl() != null) {
-            playlist.setThumbnailUrl(request.thumbnailUrl());
-        }
-
-        playlistRepository.save(playlist);
-
+    private PatchPlaylistResponse toPatchResponse(Playlist playlist) {
         return new PatchPlaylistResponse(
             playlist.getId(),
             playlist.getName(),
@@ -192,19 +292,7 @@ public class PlaylistServiceImpl implements PlaylistService {
         );
     }
 
-    @Override
-    public RemoveVideoFromPlaylistResponse removeVideo(UUID playlistId, UUID videoId) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new PlaylistNotFoundException("Playlist wth id: " + playlistId + " not found"));
-
-        boolean removed = playlist.getVideos().remove(videoId);
-
-        if (!removed) {
-            throw new InvalidPlaylistRequestException("Video with id: " + videoId + " not found in playlist with id: " + playlistId);
-        }
-
-        playlistRepository.save(playlist);
-
+    private RemoveVideoFromPlaylistResponse toRemoveVideoResponse(Playlist playlist) {
         return new RemoveVideoFromPlaylistResponse(
             playlist.getId(),
             playlist.getName(),

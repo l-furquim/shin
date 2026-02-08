@@ -3,15 +3,13 @@ package com.shin.metadata.dto;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 
-import java.util.List;
 import java.util.UUID;
 
 public record CreateVideoResponse(
     UUID id,
-    UUID videoId,
     String title,
     String description,
     VideoVisibility visibility,
     ProcessingStatus status,
-    List<String> resolutions
+    String resolutions
 ) {}

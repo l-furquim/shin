@@ -5,6 +5,9 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  cloud:
+    discovery:
+      enabled: true
 
 eureka:
   client:

@@ -1,15 +1,12 @@
 package com.shin.metadata.service;
 
-import com.shin.metadata.dto.CreateVideoRequest;
-import com.shin.metadata.dto.CreateVideoResponse;
-import com.shin.metadata.dto.GetVideoByIdResponse;
-import com.shin.metadata.dto.PatchVideoByIdRequest;
-import com.shin.metadata.dto.PatchVideoByIdResponse;
-import com.shin.metadata.dto.SearchVideosResponse;
+import com.shin.metadata.dto.*;
 
 import java.util.UUID;
 
 public interface VideoService {
+
+    InitVideoResponse initVideo(String userId);
 
     CreateVideoResponse createVideo(CreateVideoRequest request);
 

@@ -1,25 +1,12 @@
 package com.shin.metadata.controller;
 
-import com.shin.metadata.dto.CreateVideoRequest;
-import com.shin.metadata.dto.CreateVideoResponse;
-import com.shin.metadata.dto.GetVideoByIdResponse;
-import com.shin.metadata.dto.PatchVideoByIdRequest;
-import com.shin.metadata.dto.PatchVideoByIdResponse;
-import com.shin.metadata.dto.SearchVideosResponse;
+import com.shin.metadata.dto.*;
 import com.shin.metadata.service.VideoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -29,6 +16,15 @@ import java.util.UUID;
 public class VideoController {
 
     private final VideoService videoService;
+
+    @PostMapping("/init")
+    public ResponseEntity<InitVideoResponse> initVideo(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        var response = videoService.initVideo(userId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
     @PostMapping
     public ResponseEntity<CreateVideoResponse> createVideo(
@@ -49,7 +45,7 @@ public class VideoController {
     @PatchMapping("/{id}")
     public ResponseEntity<PatchVideoByIdResponse> patchVideoById(
         @PathVariable("id") UUID id,
-        @RequestBody PatchVideoByIdRequest request
+        @Valid @RequestBody PatchVideoByIdRequest request
     ) {
         PatchVideoByIdResponse response = videoService.patchVideoById(id, request);
         return ResponseEntity.ok(response);

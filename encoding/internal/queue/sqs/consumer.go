@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
@@ -19,29 +20,50 @@ func NewConsumer(client *sqs.Client, queueURL string) *Consumer {
 	}
 }
 
-func (c *Consumer) Start(ctx context.Context, handler func([]byte) error) {
+func (c *Consumer) Start(ctx context.Context, handler func([]byte) error) error {
 	for {
-		resp, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
-			QueueUrl:            &c.queueURL,
-			MaxNumberOfMessages: 10,
-			WaitTimeSeconds:     20, // Long polling
-		})
+		select {
+		case <-ctx.Done():
+			log.Println("Consumer shutting down...")
+			return ctx.Err()
+		default:
+			if err := c.processMessages(ctx, handler); err != nil {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				log.Printf("Error processing messages: %v", err)
+			}
+		}
+	}
+}
 
-		if err != nil {
-			log.Println("Error while receiving the message: ", err)
+func (c *Consumer) processMessages(ctx context.Context, handler func([]byte) error) error {
+	resp, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
+		QueueUrl:            aws.String(c.queueURL),
+		MaxNumberOfMessages: 10,
+		WaitTimeSeconds:     20,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, msg := range resp.Messages {
+		if msg.Body == nil {
 			continue
 		}
 
-		for _, msg := range resp.Messages {
-			err := handler([]byte(*msg.Body))
-
-			if err == nil {
-				c.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
-					QueueUrl:      &c.queueURL,
-					ReceiptHandle: msg.ReceiptHandle,
-				})
-			}
+		if err := handler([]byte(*msg.Body)); err != nil {
+			log.Printf("Error handling message: %v", err)
+			continue
 		}
 
+		if _, err := c.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
+			QueueUrl:      aws.String(c.queueURL),
+			ReceiptHandle: msg.ReceiptHandle,
+		}); err != nil {
+			log.Printf("Error deleting message: %v", err)
+		}
 	}
+
+	return nil
 }

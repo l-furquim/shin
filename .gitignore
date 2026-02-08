@@ -7,6 +7,9 @@
 # BlueJ files
 *.ctxt
 
+# Environment files
+.env
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
@@ -26,9 +29,11 @@ replay_pid*
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
 
+target/
+
 
 ## Config private repo
-/config-repo/
+config-repo/
 
 ## Terraform stuff
 .terraform/

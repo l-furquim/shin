@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -108,9 +107,12 @@ func BuildDashCommands(
 
 			"-f", "dash",
 			"-seg_duration", "6",
+			"-use_timeline", "1",
+			"-use_template", "1",
+			"-adaptation_sets", "id=0,streams=v id=1,streams=a",
 
-			"-init_seg_name", "init.m4s",
-			"-media_seg_name", "chunk-$Number$.m4s",
+			"-init_seg_name", "init-$RepresentationID$.m4s",
+			"-media_seg_name", "chunk-$RepresentationID$-$Number$.m4s",
 
 			filepath.Join(outputDir, "manifest.mpd"),
 		}
@@ -136,48 +138,55 @@ func runFFmpeg(args []string) error {
 	return nil
 }
 
-func (s *TranscodingService) SendChunksToStorage(ctx context.Context, path string, event *model.TranscodingJob) error {
+func (s *TranscodingService) SendChunksToStorage(ctx context.Context, path string, event *model.TranscodingJob, cfg *config.Config) error {
 	for _, resolution := range event.Resolutions {
-
+		resolution = strings.Trim(resolution, "[]")
 		resolutionPath := filepath.Join(path, resolution)
 
 		sem := make(chan struct{}, 5)
+		errChan := make(chan error, 10)
 		var wg sync.WaitGroup
 
-		err := filepath.Walk(resolutionPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil || info.IsDir() {
+		err := filepath.Walk(resolutionPath, func(filePath string, info os.FileInfo, err error) error {
+			if err != nil {
 				return err
+			}
+			if info.IsDir() {
+				return nil
 			}
 
 			wg.Add(1)
 			sem <- struct{}{}
 
-			go func(p string) {
+			go func(p string, name string) {
 				defer wg.Done()
 				defer func() { <-sem }()
 
-				f, err := os.Open(p)
+				buf, err := os.ReadFile(p)
 				if err != nil {
-					return
-				}
-				defer f.Close()
-
-				buf, err := io.ReadAll(f)
-				if err != nil {
+					errChan <- fmt.Errorf("failed to read file %s: %w", p, err)
 					return
 				}
 
-				s.Storage.UploadChunk(ctx, &buf, info.Name(), "processed", event.VideoId, resolution)
-
-			}(path)
+				if err := s.Storage.UploadChunk(ctx, &buf, name, cfg.ProcessedBucketName, event.VideoId, resolution); err != nil {
+					errChan <- err
+				}
+			}(filePath, info.Name())
 
 			return nil
 		})
 
 		wg.Wait()
+		close(errChan)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to walk directory %s: %w", resolutionPath, err)
+		}
+
+		for err := range errChan {
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

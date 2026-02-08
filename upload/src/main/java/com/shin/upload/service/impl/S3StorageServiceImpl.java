@@ -25,10 +25,10 @@ public class S3StorageServiceImpl implements StorageService {
 
     private final S3Client client;
 
-    @Value("${spring.cloud.aws.s3.raw-bucket-url}")
+    @Value("${spring.cloud.aws.s3.buckets.raw}")
     private String rawBucket;
 
-    @Value("${spring.cloud.aws.s3.processed-bucket-url}")
+    @Value("${spring.cloud.aws.s3.buckets.processed}")
     private String processedBucket;
 
     public S3StorageServiceImpl(S3Client client) {

@@ -4,22 +4,24 @@ import com.shin.metadata.model.VideoCategory;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
+import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 public record PatchVideoByIdRequest(
     String title,
     String description,
     Long duration,
-    List<String> resolutions,
-    String videoKey,
+    String resolutions,
+    String uploadKey,
     String thumbnailUrl,
     VideoCategory videoCategory,
     VideoVisibility visibility,
     VideoLanguage defaultLanguage,
     Boolean onlyForAdults,
-    List<String> tags,
+    @Valid Set<TagIdentifier> tagsToAdd,
+    @Valid Set<TagIdentifier> tagsToRemove,
     LocalDateTime scheduledPublishAt,
     ProcessingStatus status
 ) {}

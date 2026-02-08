@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "video_categories")
+@Table(name = "videos_categories", schema = "metadata")
 @Getter
 @Setter
 @NoArgsConstructor

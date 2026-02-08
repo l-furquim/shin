@@ -1,21 +1,21 @@
 package com.shin.upload.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 public record UpdateVideoRequest(
     String title,
     String description,
-    String playlistId,
-    String videoKey,
+    Long duration,
+    String resolutions,
+    String uploadKey,
     String thumbnailUrl,
-    String videoCategory,
+    Integer videoCategoryId,
     String visibility,
     String defaultLanguage,
     Boolean onlyForAdults,
-    List<String> tags,
-    Long duration,
-    List<String> resolutions,
+    Set<TagIdentifier> tagsToAdd,
+    Set<TagIdentifier> tagsToRemove,
     LocalDateTime scheduledPublishAt,
     String status
 ) {}

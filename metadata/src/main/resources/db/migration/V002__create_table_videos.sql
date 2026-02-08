@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS videos (
-    id UUID PRIMARY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255),
     description TEXT,
     creator_id UUID NOT NULL,
     upload_key VARCHAR(255),
@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS videos (
     duration INTEGER,
     resolutions VARCHAR(100),
     published_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
     scheduled_publish_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP

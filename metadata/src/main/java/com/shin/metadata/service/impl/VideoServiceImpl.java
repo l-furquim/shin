@@ -1,48 +1,72 @@
 package com.shin.metadata.service.impl;
 
-import com.shin.metadata.dto.CreateVideoRequest;
-import com.shin.metadata.dto.CreateVideoResponse;
-import com.shin.metadata.dto.GetVideoByIdResponse;
-import com.shin.metadata.dto.PatchVideoByIdRequest;
-import com.shin.metadata.dto.PatchVideoByIdResponse;
-import com.shin.metadata.dto.SearchVideosResponse;
-import com.shin.metadata.dto.VideoDto;
+import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidVideoRequestException;
+import com.shin.metadata.model.Tag;
 import com.shin.metadata.model.Video;
+import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 import com.shin.metadata.repository.VideoRepository;
+import com.shin.metadata.service.TagService;
 import com.shin.metadata.service.VideoService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VideoServiceImpl implements VideoService {
 
     private final VideoRepository videoRepository;
+    private final TagService tagService;
+
+    @Override
+    public InitVideoResponse initVideo(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new InvalidVideoRequestException("User ID must not be empty");
+        }
+
+        UUID videoId = UUID.randomUUID();
+
+        Video video = Video.builder()
+            .id(videoId)
+            .creatorId(UUID.fromString(userId))
+            .status(ProcessingStatus.DRAFT)
+            .visibility(VideoVisibility.PRIVATE)
+            .onlyForAdults(false)
+            .build();
+
+        video = videoRepository.save(video);
+
+        return new InitVideoResponse(
+            video.getId(),
+            video.getStatus(),
+            video.getCreatedAt().plusHours(24) // Expires in one day if not published
+        );
+    }
 
     @Override
     public CreateVideoResponse createVideo(CreateVideoRequest request) {
         Video video = Video.builder()
-            .videoId(request.videoId())
+             .id(request.videoId() != null ? request.videoId() : UUID.randomUUID())
             .title(request.title())
             .description(request.description())
             .visibility(request.visibility())
             .status(request.status())
-            .accountId(request.accountId())
-            .resolutions(new ArrayList<>(request.resolutions()))
+            .creatorId(UUID.fromString(request.accountId()))
+            .resolutions(request.resolutions())
             .build();
 
         video = videoRepository.save(video);
 
         return new CreateVideoResponse(
             video.getId(),
-            video.getVideoId(),
             video.getTitle(),
             video.getDescription(),
             video.getVisibility(),
@@ -58,13 +82,12 @@ public class VideoServiceImpl implements VideoService {
 
         return new GetVideoByIdResponse(
             video.getId(),
-            video.getVideoId(),
             video.getTitle(),
             video.getDescription(),
             video.getVisibility(),
-            video.getAccountId() != null ? video.getAccountId() : "",
+            video.getCreatorId().toString(),
             video.getOnlyForAdults(),
-            video.getVideoKey(),
+            video.getUploadKey(),
             video.getThumbnailUrl(),
             video.getVideoCategory(),
             video.getDefaultLanguage(),
@@ -98,8 +121,8 @@ public class VideoServiceImpl implements VideoService {
         if (request.resolutions() != null) {
             video.updateResolutions(request.resolutions());
         }
-        if (request.videoKey() != null) {
-            video.setVideoKey(request.videoKey());
+        if (request.uploadKey() != null) {
+            video.setUploadKey(request.uploadKey());
         }
         if (request.thumbnailUrl() != null) {
             video.setThumbnailUrl(request.thumbnailUrl());
@@ -116,9 +139,31 @@ public class VideoServiceImpl implements VideoService {
         if (request.onlyForAdults() != null) {
             video.setOnlyForAdults(request.onlyForAdults());
         }
-        if (request.tags() != null) {
-            video.updateTags(request.tags());
+
+        if (request.tagsToAdd() != null && !request.tagsToAdd().isEmpty()) {
+            Set<Tag> tagsToAdd = tagService.findOrCreateTags(request.tagsToAdd());
+            for (Tag tag : tagsToAdd) {
+                if (!video.getTags().contains(tag)) {
+                    video.addTag(tag);
+                    log.debug("Added tag {} to video {}", tag.getName(), video.getId());
+                } else {
+                    log.debug("Tag {} already on video {}, skipping", tag.getName(), video.getId());
+                }
+            }
         }
+
+        if (request.tagsToRemove() != null && !request.tagsToRemove().isEmpty()) {
+            Set<Tag> tagsToRemove = tagService.findTagsOrThrow(request.tagsToRemove());
+            for (Tag tag : tagsToRemove) {
+                if (video.getTags().contains(tag)) {
+                    video.removeTag(tag);
+                    log.debug("Removed tag {} from video {}", tag.getName(), video.getId());
+                } else {
+                    log.warn("Tag {} not found on video {}, skipping removal", tag.getName(), video.getId());
+                }
+            }
+        }
+
         if (request.scheduledPublishAt() != null) {
             video.setScheduledPublishAt(request.scheduledPublishAt());
         }
@@ -128,13 +173,12 @@ public class VideoServiceImpl implements VideoService {
 
         return new PatchVideoByIdResponse(
             video.getId(),
-            video.getVideoId(),
             video.getTitle(),
             video.getDescription(),
             video.getVisibility(),
-            video.getAccountId() != null ? video.getAccountId() : "",
+            video.getCreatorId().toString(),
             video.getOnlyForAdults(),
-            video.getVideoKey(),
+            video.getUploadKey(),
             video.getThumbnailUrl(),
             video.getVideoCategory(),
             video.getDefaultLanguage(),
@@ -165,8 +209,8 @@ public class VideoServiceImpl implements VideoService {
             throw new InvalidVideoRequestException("Account ID must not be empty");
         }
 
-        var videos = videoRepository.findByAccountIdAndVisibility(
-            accountId,
+        var videos = videoRepository.findByCreatorIdAndVisibility(
+            UUID.fromString(accountId),
             VideoVisibility.PUBLIC,
             PageRequest.of(start, end)
         );
@@ -212,13 +256,12 @@ public class VideoServiceImpl implements VideoService {
     private VideoDto toDto(Video video) {
         return new VideoDto(
             video.getId(),
-            video.getVideoId(),
             video.getTitle(),
             video.getDescription(),
             video.getVisibility(),
-            video.getAccountId() != null ? video.getAccountId() : "",
+            video.getCreatorId().toString(),
             video.getOnlyForAdults(),
-            video.getVideoKey(),
+            video.getUploadKey(),
             video.getThumbnailUrl(),
             video.getVideoCategory(),
             video.getDefaultLanguage(),

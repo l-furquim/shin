@@ -41,7 +41,7 @@ func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.
 		}
 	}()
 
-	err = w.service.SendChunksToStorage(ctx, processedPath, model)
+	err = w.service.SendChunksToStorage(ctx, processedPath, model, cfg)
 	if err != nil {
 		return err
 	}

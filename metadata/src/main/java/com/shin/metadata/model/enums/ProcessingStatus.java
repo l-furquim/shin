@@ -2,8 +2,10 @@ package com.shin.metadata.model.enums;
 
 public enum ProcessingStatus {
     FAILED,
+    UPLOADING,
+    UPLOADED,
     PROCESSING,
     PROCESSED,
-    WAITING,
-    DRAFT
+    DRAFT,
+    EXPIRED
 }

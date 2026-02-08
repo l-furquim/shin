@@ -3,14 +3,7 @@ package com.shin.metadata.model;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,12 +13,12 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "videos")
+@Table(name = "videos", schema = "metadata")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,22 +27,20 @@ import java.util.UUID;
 public class Video {
 
     @Id
-    @Builder.Default
-    private UUID id = UUID.randomUUID();
-
-    private UUID videoId;
+    private UUID id;
 
     private String title;
 
     private String description;
 
-    private String accountId;
+    private UUID creatorId;
 
-    private String videoKey;
+    private String uploadKey;
 
     private String thumbnailUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
     private VideoCategory videoCategory;
 
     @Enumerated(EnumType.STRING)
@@ -66,19 +57,31 @@ public class Video {
     @Builder.Default
     private Boolean onlyForAdults = false;
 
-    @ElementCollection
+    @ManyToMany
+    @JoinTable(
+            name = "videos_tags",
+            schema = "metadata",
+            joinColumns = @JoinColumn(
+                    name = "video_id",
+                    referencedColumnName = "id"
+            ),
+            inverseJoinColumns = @JoinColumn(
+                    name = "tag_id",
+                    referencedColumnName = "id"
+            )
+    )
     @Builder.Default
-    private List<String> tags = new ArrayList<>();
+    private Set<Tag> tags = new HashSet<>();
 
     private Long duration;
 
-    @ElementCollection
-    @Builder.Default
-    private List<String> resolutions = new ArrayList<>();
+    private String resolutions;
 
     private LocalDateTime publishedAt;
 
     private LocalDateTime scheduledPublishAt;
+
+    private LocalDateTime expiresAt;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -86,20 +89,19 @@ public class Video {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public void addTag(String tag) {
+    public void addTag(Tag tag) {
         tags.add(tag);
     }
 
-    public void removeTag(String tag) {
+    public void removeTag(Tag tag) {
         tags.remove(tag);
     }
 
-    public void updateResolutions(List<String> newResolutions) {
-        resolutions.clear();
-        resolutions.addAll(newResolutions);
+    public void updateResolutions(String newResolutions) {
+        this.resolutions = newResolutions;
     }
 
-    public void updateTags(List<String> newTags) {
+    public void updateTags(Set<Tag> newTags) {
         tags.clear();
         tags.addAll(newTags);
     }

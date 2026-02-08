@@ -19,15 +19,17 @@ type Config struct {
 	RawBucketName       string
 	ProcessedBucketName string
 	Env                 Env
+	Region              string
 }
 
 func LoadConfig(env Env) *Config {
 	cfg := &Config{
 		Port:                getEnv("PORT", "8080"),
-		JobRequestQueueURL:  getEnv("JOB_REQUEST_QUEUE", "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/transcoding-job"),
-		JobFinishedTopicARN: getEnv("JOB_FINISHED_ARN", ""),
-		RawBucketName:       getEnv("RAW_BUCKET_NAME", "baboo-raw-bucket"),
-		ProcessedBucketName: getEnv("PROCESSED_BUCKET_NAME", "baboo-processed-bucket"),
+		JobRequestQueueURL:  mustGetEnv("DECODE_JOB_QUEUE_URL"),
+		JobFinishedTopicARN: getEnv("JOB_FINISHED_TOPIC_ARN", ""),
+		RawBucketName:       mustGetEnv("RAW_BUCKET_NAME"),
+		ProcessedBucketName: mustGetEnv("PROCESSED_BUCKET_NAME"),
+		Region:              getEnv("AWS_REGION", "us-east-1"),
 		Env:                 env,
 	}
 
@@ -35,12 +37,19 @@ func LoadConfig(env Env) *Config {
 }
 
 func getEnv(key, defaultValue string) string {
-	env := os.Getenv(key)
-
-	log.Printf("Loaded env: %s\n", env)
-
-	if value := env; value != "" {
+	if value := os.Getenv(key); value != "" {
+		log.Printf("Loaded env %s: %s", key, value)
 		return value
 	}
+	log.Printf("Using default for %s: %s", key, defaultValue)
 	return defaultValue
+}
+
+func mustGetEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("Required environment variable %s is not set", key)
+	}
+	log.Printf("Loaded env %s: %s", key, value)
+	return value
 }
