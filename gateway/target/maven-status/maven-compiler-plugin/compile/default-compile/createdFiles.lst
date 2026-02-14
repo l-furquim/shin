@@ -1,4 +1,0 @@
-com/shin/gateway/config/GatewayRoutingConfig.class
-com/shin/gateway/GatewayApplication.class
-com/shin/gateway/config/RedisConfig.class
-com/shin/gateway/config/ClientAddressResolver.class

@@ -54,7 +54,15 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8761/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -81,7 +89,15 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8888/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -109,65 +125,101 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
-#
-#  metadata:
-#    build:
-#      context: ./metadata
-#      dockerfile: Dockerfile
-#    container_name: shin-metadata
-#    hostname: metadata-service
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=dev
-#      - CONFIG_SERVER_USERNAME=configuser
-#      - CONFIG_SERVER_PASSWORD=configpass
-#    depends_on:
-#      eureka-server:
-#        condition: service_healthy
-#      config-server:
-#        condition: service_healthy
-#      postgres:
-#        condition: service_healthy
-#    networks:
-#      - shin-network
-#    healthcheck:
-#      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 5
-#      start_period: 90s
-#
-#  upload:
-#    build:
-#      context: ./upload
-#      dockerfile: Dockerfile
-#    container_name: shin-upload
-#    hostname: upload-service
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=dev
-#      - CONFIG_SERVER_USERNAME=configuser
-#      - CONFIG_SERVER_PASSWORD=configpass
-#    depends_on:
-#      eureka-server:
-#        condition: service_healthy
-#      config-server:
-#        condition: service_healthy
-#      postgres:
-#        condition: service_healthy
-#      redis:
-#        condition: service_healthy
-#    networks:
-#      - shin-network
-#    healthcheck:
-#      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 5
-#      start_period: 90s
+
+  metadata:
+    build:
+      context: .
+      dockerfile: metadata/Dockerfile
+    container_name: shin-metadata
+    hostname: metadata-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - METADATA_EVENT=${METADATA_EVENT_QUEUE:-shin-dev-metadata-events}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8081/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  upload:
+    build:
+      context: .
+      dockerfile: upload/Dockerfile
+    container_name: shin-upload
+    hostname: upload-service
+    environment:
+     - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+     - CONFIG_SERVER_USERNAME=configuser
+     - CONFIG_SERVER_PASSWORD=configpass
+     - SPRING_DATA_REDIS_HOST=redis
+     - SPRING_DATA_REDIS_PORT=6379
+     - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+     - AWS_REGION=${AWS_REGION}
+     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+     - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8082/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 
   encoding:
     build:
@@ -184,7 +236,7 @@ services:
       AWS_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
     networks:
       - shin-network
 
@@ -205,7 +257,6 @@ services:
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
     networks:
       - shin-network
-
 
 networks:
   shin-network:

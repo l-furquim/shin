@@ -25,6 +25,15 @@ resource "aws_s3_bucket" "thumbnail_bucket" {
   }
 }
 
+resource "aws_s3_bucket" "creator_pictures_bucket" {
+  bucket = var.creator_pictures_bucket_name
+
+  tags = {
+    Name        = var.creator_pictures_bucket_name
+    Environment = var.env
+  }
+}
+
 resource "aws_s3_bucket_versioning" "raw_bucket" {
   bucket = aws_s3_bucket.raw_bucket.id
 

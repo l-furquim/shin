@@ -10,5 +10,6 @@
     <file url="file://$PROJECT_DIR$/parent-pom/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/upload/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/upload/src/main/kotlin" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/user/src/main/java" charset="UTF-8" />
   </component>
 </project>

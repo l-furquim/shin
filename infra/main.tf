@@ -22,10 +22,11 @@ provider "aws" {
 module "s3" {
   source = "./modules/s3"
 
-  env                   = var.env
-  raw_bucket_name       = var.raw_bucket_name
-  processed_bucket_name = var.processed_bucket_name
-  thumbnail_bucket_name = var.thumbnail_bucket_name
+  env                          = var.env
+  raw_bucket_name              = var.raw_bucket_name
+  processed_bucket_name        = var.processed_bucket_name
+  thumbnail_bucket_name        = var.thumbnail_bucket_name
+  creator_pictures_bucket_name = var.creator_pictures_bucket_name
 }
 
 module "sns" {

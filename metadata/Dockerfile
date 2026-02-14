@@ -1,16 +1,32 @@
-FROM eclipse-temurin:21-jre-alpine
+FROM maven:3.9.4-amazoncorretto-21 AS build
 
 WORKDIR /app
 
-# Copy the JAR file
-COPY target/metadata-service-*.jar app.jar
+COPY parent-pom/pom.xml parent-pom/pom.xml
 
-# Expose metadata service port
-EXPOSE 8081
+RUN mvn -f parent-pom/pom.xml install -DskipTests
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=5 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
+COPY metadata/pom.xml metadata/pom.xml
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+WORKDIR /app/metadata
+
+RUN mvn dependency:go-offline -B
+
+COPY metadata/src/ src/
+
+RUN mvn clean package -DskipTests
+
+FROM amazoncorretto:21-alpine
+
+RUN adduser -S metadata -u 1001
+
+WORKDIR /app
+
+COPY --from=build --chown=metadata:metadata /app/metadata/target/*.jar metadata-service.jar
+
+RUN chmod 444 metadata-service.jar
+
+EXPOSE 8080
+USER metadata
+
+ENTRYPOINT ["java", "-jar", "metadata-service.jar"]

@@ -34,4 +34,15 @@ public class FallbackController {
                 "status", "degraded"
             )));
     }
+
+    @GetMapping("/user")
+    public Mono<ResponseEntity<Map<String, String>>> userFallback() {
+        return Mono.just(ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of(
+                "message", "User service is temporarily unavailable. Please try again later.",
+                "service", "user-service",
+                "status", "degraded"
+            )));
+    }
 }

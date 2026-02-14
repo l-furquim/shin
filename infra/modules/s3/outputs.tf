@@ -46,8 +46,9 @@ output "thumbnail_bucket_domain_name" {
 output "bucket_names" {
   description = "Map of all bucket names"
   value = {
-    raw       = aws_s3_bucket.raw_bucket.id
-    processed = aws_s3_bucket.processed_bucket.id
-    thumbnail = aws_s3_bucket.thumbnail_bucket.id
+    raw              = aws_s3_bucket.raw_bucket.id
+    processed        = aws_s3_bucket.processed_bucket.id
+    thumbnail        = aws_s3_bucket.thumbnail_bucket.id
+    creator-pictures = aws_s3_bucket.creator_pictures_bucket.id
   }
 }

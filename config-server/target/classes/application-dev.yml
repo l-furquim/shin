@@ -2,9 +2,8 @@ spring:
   cloud:
     config:
       server:
-        git:
-          uri: file:///app/config-repo
-          search-paths: /
+        native:
+          search-locations: file:///app/config-repo
 
 eureka:
   client:

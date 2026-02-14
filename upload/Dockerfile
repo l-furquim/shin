@@ -1,16 +1,32 @@
-FROM eclipse-temurin:21-jre-alpine
+FROM maven:3.9.4-amazoncorretto-21 AS build
 
 WORKDIR /app
 
-# Copy the JAR file
-COPY target/upload-service-*.jar app.jar
+COPY parent-pom/pom.xml parent-pom/pom.xml
 
-# Expose upload service port
-EXPOSE 8082
+RUN mvn -f parent-pom/pom.xml install -DskipTests
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=5 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8082/actuator/health || exit 1
+COPY upload/pom.xml upload/pom.xml
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+WORKDIR /app/upload
+
+RUN mvn dependency:go-offline -B
+
+COPY upload/src/ src/
+
+RUN mvn clean package -DskipTests
+
+FROM amazoncorretto:21-alpine
+
+RUN adduser -S upload -u 1001
+
+WORKDIR /app
+
+COPY --from=build --chown=upload:upload /app/upload/target/*.jar upload-service.jar
+
+RUN chmod 444 upload-service.jar
+
+EXPOSE 8080
+USER upload
+
+ENTRYPOINT ["java", "-jar", "upload-service.jar"]

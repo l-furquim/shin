@@ -17,7 +17,7 @@ public class EncodeFinishedConsumer {
     private final ObjectMapper objectMapper;
     private final VideoService videoService;
 
-    @SqsListener(queueNames = "${sqs.metadata-events.queue-name}")
+    @SqsListener(queueNames = "${spring.cloud.aws.queues.encode-finished-queue}")
     public void consume(
             String message
     ) {

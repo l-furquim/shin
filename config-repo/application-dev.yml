@@ -5,7 +5,6 @@
 #  instance:
 #    prefer-ip-address: false
 #    hostname: ${spring.application.name}
-
 logging:
   level:
     root: INFO

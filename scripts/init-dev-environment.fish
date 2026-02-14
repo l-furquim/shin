@@ -26,6 +26,7 @@ set -Ux DECODE_JOB_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_
 set -Ux PROCESSED_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."processed"')
 set -Ux RAW_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."raw"')
 set -Ux THUMBNAIL_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
+set -Ux CREATOR_PICTURES_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator-pictures"')
 set -Ux AWS_REGION (terraform -chdir=$TERRAFORM_PATH output -raw region)
 set -Ux DECODE_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 set -Ux THUMBNAIL_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
@@ -34,5 +35,7 @@ set -Ux ENCODE_FINISHED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json
 set -Ux AWS_ACCESS_KEY_ID (aws configure get aws_access_key_id)
 set -Ux AWS_SECRET_ACCESS_KEY (aws configure get aws_secret_access_key)
 set -Ux AWS_SESSION_TOKEN (aws configure get aws_session_token)
-set -Ux THUMBNAIL_GENERATED_TOPIC_ARN = (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')
+set -Ux THUMBNAIL_GENERATED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."thumbnail-generated"')
+set -Ux CLOUDFRONT_CDN_URL (terraform -chdir=$TERRAFORM_PATH output -raw cloud_front_cdn_url)
+set -Ux METADATA_EVENT_QUEUE (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_names | jq -r '.[1]')
 echo "Dev environment initialized successfully"

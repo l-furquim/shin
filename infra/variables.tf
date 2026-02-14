@@ -24,6 +24,11 @@ variable "thumbnail_bucket_name" {
   type        = string
 }
 
+variable "creator_pictures_bucket_name" {
+  description = "Name of the S3 bucket for creator pictures"
+  type        = string
+}
+
 variable "sns_topic_names" {
   description = "List of SNS topic names to create"
   type        = list(string)
