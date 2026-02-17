@@ -1,7 +1,10 @@
 package com.shin.upload.exceptions;
 
-public class InvalidVideoUploadException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.BadRequestException;
+
+public class InvalidVideoUploadException extends BadRequestException {
     public InvalidVideoUploadException(String message) {
-        super(message);
+        super(ErrorCodes.INVALID_VIDEO_UPLOAD, message);
     }
 }

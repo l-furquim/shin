@@ -1,7 +1,10 @@
 package com.shin.metadata.exception;
 
-public class VideoNotFoundException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.NotFoundException;
+
+public class VideoNotFoundException extends NotFoundException {
     public VideoNotFoundException(String message) {
-        super(message);
+        super(ErrorCodes.VIDEO_NOT_FOUND, message);
     }
 }

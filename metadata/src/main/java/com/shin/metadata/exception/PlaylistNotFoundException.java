@@ -1,7 +1,10 @@
 package com.shin.metadata.exception;
 
-public class PlaylistNotFoundException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.NotFoundException;
+
+public class PlaylistNotFoundException extends NotFoundException {
     public PlaylistNotFoundException(String message) {
-        super(message);
+        super(ErrorCodes.PLAYLIST_NOT_FOUND, message);
     }
 }

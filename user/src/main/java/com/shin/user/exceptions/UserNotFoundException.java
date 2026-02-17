@@ -1,7 +1,10 @@
 package com.shin.user.exceptions;
 
-public class UserNotFoundException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.NotFoundException;
+
+public class UserNotFoundException extends NotFoundException {
     public UserNotFoundException(String message) {
-        super(message);
+        super(ErrorCodes.USER_NOT_FOUND, message);
     }
 }

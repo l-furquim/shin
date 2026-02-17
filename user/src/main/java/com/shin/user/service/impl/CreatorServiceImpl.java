@@ -206,6 +206,28 @@ public class CreatorServiceImpl implements CreatorService {
         );
     }
 
+    @Override
+    public GetMeResponse getMe(UUID userId) {
+        var creator = findCreatorByIdOrThrow(userId);
+        var user = findUserByIdOrThrow(userId);
+        String[] pictures = storageService.getAvatarAndBannerUrls(userId);
+
+        return new GetMeResponse(
+                creator.getId(),
+                user.getDisplayName(),
+                creator.getUsername(),
+                user.getEmail(),
+                user.getShowAdultContent(),
+                user.getLanguageTag(),
+                creator.getDescription(),
+                creator.getChannelUrl(),
+                pictures[0],
+                pictures[1],
+                user.getLanguageTag(),
+                creator.getCreatedAt(),
+                user.getUpdatedAt()
+        );    }
+
     private Creator findCreatorByIdOrThrow(UUID id) {
         return creatorRepository.findById(id)
                 .orElseThrow(() -> new InvalidIdException("Creator not found with id: " + id));

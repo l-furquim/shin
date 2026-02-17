@@ -19,15 +19,20 @@ terraform -chdir=$TERRAFORM_PATH apply -var-file="environments/dev/terraform.tfv
 
 echo "Exporting Terraform outputs..."
 
+export RAW_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."raw"')
+export PROCESSED_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."processed"')
+export THUMBNAIL_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
+export CREATOR_PICTURES_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator-pictures"')
+
 export DECODE_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 export THUMBNAIL_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
-export METADATA_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."metadata-events"')
-export PROCESSED_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."processed"')
-export RAW_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."raw"')
-export THUMBNAIL_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
+export METADATA_EVENT_QUEUE=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_names | jq -r '."metadata-events"')
+
 export CHUNK_PROCESSED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
 export ENCODE_FINISHED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')
 export THUMBNAIL_GENERATED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."thumbnail-generated"')
+
+export CLOUDFRONT_CDN_URL=$(terraform -chdir=$TERRAFORM_PATH output -raw cloud_front_cdn_url)
 export AWS_REGION=$(terraform -chdir=$TERRAFORM_PATH output -raw region)
 
 export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
@@ -37,4 +42,4 @@ export AWS_SESSION_TOKEN=$(aws configure get aws_session_token)
 echo "Starting Docker services..."
 docker compose up -d
 
-echo "Development environment initialized successfully."
+echo "Dev environment initialized successfully"

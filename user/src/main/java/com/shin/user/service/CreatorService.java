@@ -30,4 +30,8 @@ public interface CreatorService {
                  UUID id
          );
 
+        GetMeResponse getMe(
+                 UUID userId
+         );
+
 }

@@ -6,6 +6,11 @@ COPY parent-pom/pom.xml parent-pom/pom.xml
 
 RUN mvn -f parent-pom/pom.xml install -DskipTests
 
+COPY commons/pom.xml commons/pom.xml
+COPY commons/src commons/src
+
+RUN mvn -f commons/pom.xml clean install -DskipTests
+
 COPY upload/pom.xml upload/pom.xml
 
 WORKDIR /app/upload

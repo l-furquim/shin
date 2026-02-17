@@ -17,12 +17,20 @@ public class UserController {
 
     private final UserService userService;
 
+    @PostMapping("/auth")
+    public ResponseEntity<AuthResponse> auth(
+            @RequestBody AuthRequest authRequest
+    ) {
+        var response =  userService.auth(authRequest);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<GetUserByIdResponse> getUser(
-        @PathVariable UUID id,
-        @RequestHeader("X-User-Id") UUID requesterId
+        @PathVariable UUID id
     ){
-         var response = userService.getUserById(id, requesterId);
+         var response = userService.getUserById(id);
 
         return ResponseEntity.ok(response);
     }

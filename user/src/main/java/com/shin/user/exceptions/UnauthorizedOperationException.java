@@ -1,8 +1,10 @@
 package com.shin.user.exceptions;
 
-public class UnauthorizedOperationException extends RuntimeException
-{
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.UnauthorizedException;
+
+public class UnauthorizedOperationException extends UnauthorizedException {
     public UnauthorizedOperationException(String message) {
-        super(message);
+        super(ErrorCodes.UNAUTHORIZED_OPERATION, message);
     }
 }

@@ -1,7 +1,10 @@
 package com.shin.metadata.exception;
 
-public class InvalidVideoRequestException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.BadRequestException;
+
+public class InvalidVideoRequestException extends BadRequestException {
     public InvalidVideoRequestException(String message) {
-        super(message);
+        super(ErrorCodes.INVALID_VIDEO_REQUEST, message);
     }
 }

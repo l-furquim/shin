@@ -1,7 +1,10 @@
 package com.shin.user.exceptions;
 
-public class InvalidLocaleException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.BadRequestException;
+
+public class InvalidLocaleException extends BadRequestException {
     public InvalidLocaleException(String message) {
-        super(message);
+        super(ErrorCodes.INVALID_LOCALE, message);
     }
 }

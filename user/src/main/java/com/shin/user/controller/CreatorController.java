@@ -65,5 +65,16 @@ public class CreatorController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<GetMeResponse> getMe(
+        @RequestHeader("X-User-Id") UUID userId
+    ) {
+        final var response = creatorService.getMe(userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }
 

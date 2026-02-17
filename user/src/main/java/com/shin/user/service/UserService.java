@@ -6,8 +6,10 @@ import java.util.UUID;
 
 public interface UserService {
 
+    AuthResponse auth(AuthRequest authRequest);
+
     UpdateUserResponse updateUser(UUID id, UUID requesterId, UpdateUserRequest updateUserRequest);
 
-    GetUserByIdResponse getUserById(UUID id, UUID requesterId);
+    GetUserByIdResponse getUserById(UUID id);
 
 }

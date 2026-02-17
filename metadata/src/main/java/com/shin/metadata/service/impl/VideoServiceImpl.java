@@ -264,9 +264,8 @@ public class VideoServiceImpl implements VideoService {
                 isCompleted ? ProcessingStatus.PROCESSED : ProcessingStatus.FAILED
         );
 
-        if(isCompleted) {
+        if(!isCompleted) {
             log.info("Video failed to be encoded {}", videoId);
-            return;
         }
 
         video.setResolutions(String.join(",", resolutions));

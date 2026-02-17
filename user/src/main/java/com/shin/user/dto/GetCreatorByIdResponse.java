@@ -5,13 +5,13 @@ import java.util.UUID;
 
 public record GetCreatorByIdResponse(
         UUID id,
-        String displayName,  // from User
-        String username,     // from Creator
-        String description,  // from Creator
-        String channelUrl,   // from Creator
-        String avatar,       // from Storage
-        String banner,       // from Storage
-        String languageTag,  // from User
-        LocalDateTime createdAt  // from Creator
+        String displayName,
+        String username,
+        String description,
+        String channelUrl,
+        String avatar,
+        String banner,
+        String languageTag,
+        LocalDateTime createdAt
 ) {
 }

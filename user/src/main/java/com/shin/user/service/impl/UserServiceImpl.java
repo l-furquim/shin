@@ -21,6 +21,22 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
+    public AuthResponse auth(AuthRequest authRequest) {
+        log.info("Auth attempt: {}", authRequest);
+
+        var user = this.findUserByEmail(authRequest.email());
+
+        if(user == null) {
+            throw new UserNotFoundException("Invalid credentials.");
+        }
+        return new AuthResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getPassword()
+        );
+    }
+
+    @Override
     public UpdateUserResponse updateUser(UUID id, UUID requesterId, UpdateUserRequest updateUserRequest) {
         if(!id.equals(requesterId)) {
             log.info("User with id {} attempted to update user with id {}", requesterId, id);
@@ -64,11 +80,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public GetUserByIdResponse getUserById(UUID id, UUID requesterId) {
-        if(!id.equals(requesterId)){
-            throw new UnauthorizedOperationException("Unauthorized operation");
-        }
-
+    public GetUserByIdResponse getUserById(UUID id) {
         var user = findUserByIdOrThrow(id);
 
         return new GetUserByIdResponse(
