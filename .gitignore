@@ -33,6 +33,8 @@ replay_pid*
 
 target/
 
+.DS_Store
+
 ## Config private repo
 
 ## Terraform stuff

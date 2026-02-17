@@ -54,7 +54,7 @@ public class AuthController {
 
         var response = authService.logout(refreshToken);
 
-        ResponseCookie clearCookie = ResponseCookie.from("refreshToken", "")
+            ResponseCookie clearCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
