@@ -27,6 +27,10 @@ export CREATOR_PICTURES_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -j
 export DECODE_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 export THUMBNAIL_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
 export METADATA_EVENT_QUEUE=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_names | jq -r '."metadata-events"')
+export SUBSCRIPTION_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."subscription-events"')
+export LIKE_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."like-events"')
+export SUBSCRIPTION_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."subscription-events"')
+export LIKE_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
 
 export CHUNK_PROCESSED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
 export ENCODE_FINISHED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')

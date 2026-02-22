@@ -11,6 +11,8 @@ public record GetCreatorByIdResponse(
         String channelUrl,
         String avatar,
         String banner,
+        Long subscribersCount,
+        Boolean isSubscribed,
         String languageTag,
         LocalDateTime joinedAt
 ) {

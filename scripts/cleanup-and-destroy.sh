@@ -25,6 +25,10 @@ SQS_QUEUES=(
     "shin-${ENV}-thumbnail-job-dlq"
     "shin-${ENV}-metadata-events"
     "shin-${ENV}-metadata-events-dlq"
+    "shin-${ENV}-subscription-events"
+    "shin-${ENV}-subscription-events-dlq"
+    "shin-${ENV}-like-events"
+    "shin-${ENV}-like-events-dlq"
 )
 
 SNS_TOPICS=(

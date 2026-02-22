@@ -14,6 +14,7 @@ public record GetMeResponse(
         String channelUrl,
         String avatar,
         String banner,
+        Long subscribersCount,
         String languageTag,
         LocalDateTime createdAt,
         LocalDateTime lastUpdate

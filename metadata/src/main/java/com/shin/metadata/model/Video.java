@@ -77,6 +77,8 @@ public class Video {
 
     private String resolutions;
 
+    private Long likeCount;
+
     private LocalDateTime publishedAt;
 
     private LocalDateTime scheduledPublishAt;

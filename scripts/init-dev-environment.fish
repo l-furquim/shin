@@ -8,11 +8,11 @@ cd $PROJECT_ROOT
 
 echo "Initializing development environment..."
 
-echo "Tearing down existing dev environment"
-docker compose down -v
-terraform -chdir=$TERRAFORM_PATH destroy \
-  -var-file="environments/dev/terraform.tfvars" \
-  -auto-approve
+# echo "Tearing down existing dev environment"
+# docker compose down -v
+# terraform -chdir=$TERRAFORM_PATH destroy \
+#   -var-file="environments/dev/terraform.tfvars" \
+#   -auto-approve
 
 echo "Recreating dev environment"
 terraform -chdir=$TERRAFORM_PATH init
@@ -30,6 +30,10 @@ set -Ux CREATOR_PICTURES_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -j
 set -Ux DECODE_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 set -Ux THUMBNAIL_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
 set -Ux METADATA_EVENT_QUEUE (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_names | jq -r '."metadata-events"')
+set -Ux SUBSCRIPTION_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."subscription-events"')
+set -Ux LIKE_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."like-events"')
+set -Ux SUBSCRIPTION_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."subscription-events"')
+set -Ux LIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
 
 set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
 set -Ux ENCODE_FINISHED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."encode-finished"')

@@ -9,6 +9,8 @@ import com.shin.user.repository.UserRepository;
 import com.shin.user.service.CreatorService;
 import com.shin.user.service.SecurityService;
 import com.shin.user.service.StorageService;
+import com.shin.user.service.SubscriptionService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class CreatorServiceImpl implements CreatorService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final SecurityService securityService;
+    private final SubscriptionService subscriptionService;
 
     @Override
     public CreateCreatorResponse createCreatorWithUser(
@@ -33,12 +36,12 @@ public class CreatorServiceImpl implements CreatorService {
             CreateCreatorRequest request,
             String locale
     ) {
-        if(locale == null || locale.isBlank()){
+        if (locale == null || locale.isBlank()) {
             log.info("Locale received empty during creator creation");
             throw new InvalidLocaleException("Locale cannot be null or empty.");
         }
 
-        if(userRepository.findByEmail(request.email()).isPresent()) {
+        if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new DuplicatedEmailException("A user already exists with this email.");
         }
 
@@ -65,16 +68,17 @@ public class CreatorServiceImpl implements CreatorService {
                 .username(username)
                 .description(request.description())
                 .channelUrl(userSaved.getId().toString())
+                .subscribersCount(0L)
                 .build();
 
         var creatorSaved = creatorRepository.save(creator);
         log.info("New creator profile created with id: {}", creatorSaved.getId());
 
-        if(avatar != null && !avatar.isEmpty()){
+        if (avatar != null && !avatar.isEmpty()) {
             storageService.uploadAvatar(avatar, userSaved.getId());
         }
 
-        if(banner != null && !banner.isEmpty()){
+        if (banner != null && !banner.isEmpty()) {
             storageService.uploadBanner(banner, userSaved.getId());
         }
 
@@ -102,7 +106,7 @@ public class CreatorServiceImpl implements CreatorService {
             MultipartFile avatar,
             MultipartFile banner
     ) {
-        if(!id.equals(requesterId)) {
+        if (!id.equals(requesterId)) {
             log.info("User with id {} attempted to update creator with id {}", requesterId, id);
             throw new UnauthorizedOperationException("Unauthorized operation");
         }
@@ -110,42 +114,42 @@ public class CreatorServiceImpl implements CreatorService {
         var creator = findCreatorByIdOrThrow(id);
         var user = findUserByIdOrThrow(id);
 
-        if(request != null) {
-            if(request.username() != null && !request.username().isBlank()) {
+        if (request != null) {
+            if (request.username() != null && !request.username().isBlank()) {
                 String newUsername = request.username().trim() + "@" + id.toString().substring(0, 4);
                 creator.setUsername(newUsername);
             }
 
-            if(request.description() != null) {
+            if (request.description() != null) {
                 creator.setDescription(request.description().trim());
             }
 
-            if(request.displayName() != null && !request.displayName().isBlank()) {
+            if (request.displayName() != null && !request.displayName().isBlank()) {
                 user.setDisplayName(request.displayName().trim());
             }
 
-            if(request.email() != null && !request.email().isBlank()) {
+            if (request.email() != null && !request.email().isBlank()) {
                 boolean emailAlreadyInUse = userRepository.findByEmail(request.email())
                         .map(existingUser -> !existingUser.getId().equals(id))
                         .orElse(false);
 
-                if(emailAlreadyInUse) {
+                if (emailAlreadyInUse) {
                     throw new DuplicatedEmailException("A user already exists with this email.");
                 }
 
                 user.setEmail(request.email().toLowerCase().trim());
             }
 
-            if(request.showAdultContent() != null) {
+            if (request.showAdultContent() != null) {
                 user.setShowAdultContent(request.showAdultContent());
             }
         }
 
-        if(avatar != null && !avatar.isEmpty()) {
+        if (avatar != null && !avatar.isEmpty()) {
             storageService.uploadAvatar(avatar, id);
         }
 
-        if(banner != null && !banner.isEmpty()) {
+        if (banner != null && !banner.isEmpty()) {
             storageService.uploadBanner(banner, id);
         }
 
@@ -172,7 +176,7 @@ public class CreatorServiceImpl implements CreatorService {
 
     @Override
     public void deleteCreator(UUID id, UUID requesterId) {
-        if(!id.equals(requesterId)) {
+        if (!id.equals(requesterId)) {
             log.info("User with id {} attempted to delete creator with id {}", requesterId, id);
             throw new UnauthorizedOperationException("Unauthorized operation");
         }
@@ -188,10 +192,21 @@ public class CreatorServiceImpl implements CreatorService {
     }
 
     @Override
-    public GetCreatorByIdResponse getCreatorById(UUID id) {
-        var creator = findCreatorByIdOrThrow(id);
-        var user = findUserByIdOrThrow(id);
-        String[] pictures = storageService.getAvatarAndBannerUrls(id);
+    public GetCreatorByIdResponse getCreatorById(UUID creatorId, UUID userId) {
+        var creator = findCreatorByIdOrThrow(creatorId);
+        var user = findUserByIdOrThrow(creatorId);
+        String[] pictures = storageService.getAvatarAndBannerUrls(creatorId);
+
+        Boolean isSubscribed = null;
+        if (userId != null) {
+            try {
+                isSubscribed = subscriptionService.getSubscriptionInfo(userId, creatorId).subscribed();
+            } catch (Exception e) {
+                log.warn("Could not resolve subscription status for user {} / channel {}: {}",
+                        userId, creatorId, e.getMessage());
+                isSubscribed = false;
+            }
+        }
 
         return new GetCreatorByIdResponse(
                 creator.getId(),
@@ -201,6 +216,8 @@ public class CreatorServiceImpl implements CreatorService {
                 creator.getChannelUrl(),
                 pictures[0],
                 pictures[1],
+                creator.getSubscribersCount(),
+                isSubscribed,
                 user.getLanguageTag(),
                 creator.getCreatedAt()
         );
@@ -223,10 +240,12 @@ public class CreatorServiceImpl implements CreatorService {
                 creator.getChannelUrl(),
                 pictures[0],
                 pictures[1],
+                creator.getSubscribersCount(),
                 user.getLanguageTag(),
                 creator.getCreatedAt(),
                 user.getUpdatedAt()
-        );    }
+        );
+    }
 
     private Creator findCreatorByIdOrThrow(UUID id) {
         return creatorRepository.findById(id)
@@ -237,5 +256,4 @@ public class CreatorServiceImpl implements CreatorService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
-
 }

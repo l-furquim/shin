@@ -49,9 +49,10 @@ public class CreatorController {
 
     @GetMapping("/{id}")
     public ResponseEntity<GetCreatorByIdResponse> getCreator(
-        @PathVariable UUID id
-    ){
-         var response = creatorService.getCreatorById(id);
+        @PathVariable UUID id,
+        @RequestHeader(value = "X-User-Id", required = false) UUID userId
+    ) {
+        var response = creatorService.getCreatorById(id, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -77,4 +78,3 @@ public class CreatorController {
 
 
 }
-

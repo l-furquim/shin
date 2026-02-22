@@ -27,7 +27,8 @@ public interface CreatorService {
          );
 
          GetCreatorByIdResponse getCreatorById(
-                 UUID id
+                 UUID creatorId,
+                 UUID userId
          );
 
         GetMeResponse getMe(

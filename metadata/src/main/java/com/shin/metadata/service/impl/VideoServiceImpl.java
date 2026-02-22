@@ -7,6 +7,7 @@ import com.shin.metadata.model.Video;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 import com.shin.metadata.repository.VideoRepository;
+import com.shin.metadata.service.LikeService;
 import com.shin.metadata.service.TagService;
 import com.shin.metadata.service.VideoService;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final VideoRepository videoRepository;
     private final TagService tagService;
+    private final LikeService likeService;
 
     @Override
     public InitVideoResponse initVideo(String userId) {
@@ -40,6 +42,7 @@ public class VideoServiceImpl implements VideoService {
             .status(ProcessingStatus.DRAFT)
             .visibility(VideoVisibility.PRIVATE)
             .onlyForAdults(false)
+            .likeCount(0L)
             .build();
 
         video = videoRepository.save(video);
@@ -59,6 +62,7 @@ public class VideoServiceImpl implements VideoService {
             .description(request.description())
             .visibility(request.visibility())
             .status(request.status())
+            .likeCount(0L)
             .creatorId(UUID.fromString(request.accountId()))
             .resolutions(request.resolutions())
             .build();
@@ -76,9 +80,19 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public GetVideoByIdResponse getVideoById(UUID id) {
+    public GetVideoByIdResponse getVideoById(UUID id, UUID userId) {
         Video video = videoRepository.findById(id)
             .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + id + " not found"));
+
+        Boolean likedByMe = null;
+        if (userId != null) {
+            try {
+                likedByMe = likeService.getLikeInfo(userId, id).likedByMe();
+            } catch (Exception e) {
+                log.warn("Could not resolve like status for user {} / video {}: {}", userId, id, e.getMessage());
+                likedByMe = false;
+            }
+        }
 
         return new GetVideoByIdResponse(
             video.getId(),
@@ -93,8 +107,10 @@ public class VideoServiceImpl implements VideoService {
             video.getDefaultLanguage(),
             video.getPublishedLocale(),
             video.getTags(),
-            video.getDuration() != null ? video.getDuration() : 0L,
+            video.getDuration() != null ? video.getDuration() : 0.0,
             video.getResolutions(),
+            video.getLikeCount(),
+            likedByMe,
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
             video.getCreatedAt(),
@@ -186,6 +202,7 @@ public class VideoServiceImpl implements VideoService {
             video.getTags(),
             video.getDuration() != null ? video.getDuration() : 0.0,
             video.getResolutions(),
+            video.getLikeCount(),
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
             video.getCreatedAt(),
@@ -274,6 +291,17 @@ public class VideoServiceImpl implements VideoService {
         videoRepository.save(video);
     }
 
+    @Transactional
+    @Override
+    public void applyLikeDelta(UUID videoId, Long delta) {
+        if (videoId == null || delta == null || delta == 0) {
+            log.warn("Received invalid data for applying like delta for video id: {}", videoId);
+            return;
+        }
+
+        videoRepository.applyLikeDelta(videoId, delta);
+    }
+
     private VideoDto toDto(Video video) {
         return new VideoDto(
             video.getId(),
@@ -290,6 +318,7 @@ public class VideoServiceImpl implements VideoService {
             video.getTags(),
             video.getDuration() != null ? video.getDuration() : 0L,
             video.getResolutions(),
+            video.getLikeCount(),
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
             video.getCreatedAt(),

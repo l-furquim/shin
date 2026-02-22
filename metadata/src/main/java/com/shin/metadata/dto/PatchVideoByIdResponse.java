@@ -25,6 +25,7 @@ public record PatchVideoByIdResponse(
     Set<Tag> tags,
     Double duration,
     String resolutions,
+    Long  likeCount,
     LocalDateTime publishedAt,
     LocalDateTime scheduledPublishAt,
     LocalDateTime createdAt,

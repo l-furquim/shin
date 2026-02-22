@@ -1,10 +1,10 @@
 #!/usr/bin/env fish
 
-set RED \033[0\;31m
-set GREEN \033[0\;32m
-set YELLOW \033[1\;33m
-set BLUE \033[0\;34m
-set NC \033[0m # No Color
+set RED '\033[0;31m'
+set GREEN '\033[0;32m'
+set YELLOW '\033[1;33m'
+set BLUE '\033[0;34m'
+set NC '\033[0m'
 
 set -x AWS_REGION (test -n "$SHIN_AWS_REGION" && echo $SHIN_AWS_REGION || echo "us-east-1")
 set ENV (test -n "$ENV" && echo $ENV || echo "dev")
@@ -21,7 +21,11 @@ set SQS_QUEUES \
     "shin-$ENV-thumbnail-job" \
     "shin-$ENV-thumbnail-job-dlq" \
     "shin-$ENV-metadata-events" \
-    "shin-$ENV-metadata-events-dlq"
+    "shin-$ENV-metadata-events-dlq" \
+    "shin-$ENV-subscription-events" \
+    "shin-$ENV-subscription-events-dlq" \
+    "shin-$ENV-like-events" \
+    "shin-$ENV-like-events-dlq"
 
 set SNS_TOPICS \
     "shin-$ENV-chunk-processed" \
@@ -30,19 +34,19 @@ set SNS_TOPICS \
     "shin-$ENV-encode-finished"
 
 function log_info
-    echo -e "$BLUE[INFO]$NC $argv"
+    printf "%b[INFO]%b %s\n" $BLUE $NC "$argv"
 end
 
 function log_success
-    echo -e "$GREEN[SUCCESS]$NC $argv"
+    printf "%b[SUCCESS]%b %s\n" $GREEN $NC "$argv"
 end
 
 function log_warning
-    echo -e "$YELLOW[WARNING]$NC $argv"
+    printf "%b[WARNING]%b %s\n" $YELLOW $NC "$argv"
 end
 
 function log_error
-    echo -e "$RED[ERROR]$NC $argv"
+    printf "%b[ERROR]%b %s\n" $RED $NC "$argv"
 end
 
 function check_aws_cli

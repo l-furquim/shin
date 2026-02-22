@@ -1,6 +1,7 @@
 package com.shin.user.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -28,6 +29,10 @@ public class Creator {
 
     @Column(nullable = false, unique = true, length = 255, name = "channel_url")
     private String channelUrl;
+
+    @Column(nullable = false)
+    @Positive
+    private Long subscribersCount;
 
     @CreationTimestamp
     @Column(nullable = false, name = "created_at")

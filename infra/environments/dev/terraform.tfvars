@@ -17,6 +17,8 @@ sqs_queue_names = [
   "decode-job",
   "thumbnail-job",
   "metadata-events",
+  "subscription-events",
+  "like-events",
 ]
 
 sqs_message_retention_seconds  = 345600 # 4 days

@@ -36,9 +36,10 @@ public class VideoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<GetVideoByIdResponse> getVideoById(
-        @PathVariable("id") UUID id
+        @PathVariable("id") UUID id,
+        @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
-        GetVideoByIdResponse response = videoService.getVideoById(id);
+        GetVideoByIdResponse response = videoService.getVideoById(id, userId);
         return ResponseEntity.ok(response);
     }
 

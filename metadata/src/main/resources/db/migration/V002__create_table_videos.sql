@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS videos (
     only_for_adults BOOLEAN NOT NULL,
     duration decimal,
     resolutions VARCHAR(100),
+    like_count INT NOT NULL,
     published_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE,
     scheduled_publish_at TIMESTAMP WITH TIME ZONE,

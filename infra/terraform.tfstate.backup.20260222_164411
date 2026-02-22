@@ -1,0 +1,1928 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.4",
+  "serial": 244,
+  "lineage": "7cfbbaea-05a8-a47a-40ab-97698ecdf504",
+  "outputs": {
+    "cloud_front_cdn_url": {
+      "value": "d1bdx17cpz5q2y.cloudfront.net",
+      "type": "string"
+    },
+    "environment": {
+      "value": "dev",
+      "type": "string"
+    },
+    "processed_bucket_arn": {
+      "value": "arn:aws:s3:::shin-dev-processed-videos",
+      "type": "string"
+    },
+    "raw_bucket_arn": {
+      "value": "arn:aws:s3:::shin-dev-raw-uploads",
+      "type": "string"
+    },
+    "region": {
+      "value": "us-east-1",
+      "type": "string"
+    },
+    "s3_bucket_names": {
+      "value": {
+        "creator-pictures": "shin-dev-creator-pictures",
+        "processed": "shin-dev-processed-videos",
+        "raw": "shin-dev-raw-uploads",
+        "thumbnail": "shin-dev-thumbnails"
+      },
+      "type": [
+        "object",
+        {
+          "creator-pictures": "string",
+          "processed": "string",
+          "raw": "string",
+          "thumbnail": "string"
+        }
+      ]
+    },
+    "sns_topic_arns": {
+      "value": {
+        "chunk-processed": "arn:aws:sns:us-east-1:304361287196:shin-dev-chunk-processed",
+        "encode-finished": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished",
+        "encode-started": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-started",
+        "thumbnail-generated": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated"
+      },
+      "type": [
+        "object",
+        {
+          "chunk-processed": "string",
+          "encode-finished": "string",
+          "encode-started": "string",
+          "thumbnail-generated": "string"
+        }
+      ]
+    },
+    "sns_topic_names": {
+      "value": [
+        "shin-dev-chunk-processed",
+        "shin-dev-encode-finished",
+        "shin-dev-encode-started",
+        "shin-dev-thumbnail-generated"
+      ],
+      "type": [
+        "tuple",
+        [
+          "string",
+          "string",
+          "string",
+          "string"
+        ]
+      ]
+    },
+    "sqs_dlq_arns": {
+      "value": {
+        "decode-job": "arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job-dlq",
+        "metadata-events": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events-dlq",
+        "thumbnail-job": "arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job-dlq"
+      },
+      "type": [
+        "object",
+        {
+          "decode-job": "string",
+          "metadata-events": "string",
+          "thumbnail-job": "string"
+        }
+      ]
+    },
+    "sqs_queue_arns": {
+      "value": {
+        "decode-job": "arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job",
+        "metadata-events": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events",
+        "thumbnail-job": "arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job"
+      },
+      "type": [
+        "object",
+        {
+          "decode-job": "string",
+          "metadata-events": "string",
+          "thumbnail-job": "string"
+        }
+      ]
+    },
+    "sqs_queue_names": {
+      "value": [
+        "shin-dev-decode-job",
+        "shin-dev-metadata-events",
+        "shin-dev-thumbnail-job"
+      ],
+      "type": [
+        "tuple",
+        [
+          "string",
+          "string",
+          "string"
+        ]
+      ]
+    },
+    "sqs_queue_urls": {
+      "value": {
+        "decode-job": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job",
+        "metadata-events": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+        "thumbnail-job": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job"
+      },
+      "type": [
+        "object",
+        {
+          "decode-job": "string",
+          "metadata-events": "string",
+          "thumbnail-job": "string"
+        }
+      ]
+    },
+    "thumbnail_bucket_arn": {
+      "value": "arn:aws:s3:::shin-dev-thumbnails",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "module": "module.cloudfront",
+      "mode": "data",
+      "type": "aws_iam_policy_document",
+      "name": "processed_bucket_policy",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "2738474292",
+            "json": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Sid\": \"AllowCloudFrontServicePrincipalReadOnly\",\n      \"Effect\": \"Allow\",\n      \"Action\": \"s3:GetObject\",\n      \"Resource\": \"arn:aws:s3:::shin-dev-processed-videos/*\",\n      \"Principal\": {\n        \"Service\": \"cloudfront.amazonaws.com\"\n      },\n      \"Condition\": {\n        \"StringEquals\": {\n          \"AWS:SourceArn\": \"arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8\"\n        }\n      }\n    }\n  ]\n}",
+            "minified_json": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowCloudFrontServicePrincipalReadOnly\",\"Effect\":\"Allow\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::shin-dev-processed-videos/*\",\"Principal\":{\"Service\":\"cloudfront.amazonaws.com\"},\"Condition\":{\"StringEquals\":{\"AWS:SourceArn\":\"arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8\"}}}]}",
+            "override_json": null,
+            "override_policy_documents": null,
+            "policy_id": null,
+            "source_json": null,
+            "source_policy_documents": null,
+            "statement": [
+              {
+                "actions": [
+                  "s3:GetObject"
+                ],
+                "condition": [
+                  {
+                    "test": "StringEquals",
+                    "values": [
+                      "arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8"
+                    ],
+                    "variable": "AWS:SourceArn"
+                  }
+                ],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [
+                  {
+                    "identifiers": [
+                      "cloudfront.amazonaws.com"
+                    ],
+                    "type": "Service"
+                  }
+                ],
+                "resources": [
+                  "arn:aws:s3:::shin-dev-processed-videos/*"
+                ],
+                "sid": "AllowCloudFrontServicePrincipalReadOnly"
+              }
+            ],
+            "version": "2012-10-17"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.cloudfront",
+      "mode": "managed",
+      "type": "aws_cloudfront_distribution",
+      "name": "s3_distribution",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "aliases": [],
+            "anycast_ip_list_id": "",
+            "arn": "arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8",
+            "caller_reference": "terraform-20260208190802546300000001",
+            "comment": null,
+            "connection_function_association": [],
+            "continuous_deployment_policy_id": "",
+            "custom_error_response": [],
+            "default_cache_behavior": [
+              {
+                "allowed_methods": [
+                  "GET",
+                  "HEAD",
+                  "OPTIONS"
+                ],
+                "cache_policy_id": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                "cached_methods": [
+                  "GET",
+                  "HEAD"
+                ],
+                "compress": true,
+                "default_ttl": 0,
+                "field_level_encryption_id": "",
+                "forwarded_values": [],
+                "function_association": [],
+                "grpc_config": [
+                  {
+                    "enabled": false
+                  }
+                ],
+                "lambda_function_association": [],
+                "max_ttl": 0,
+                "min_ttl": 0,
+                "origin_request_policy_id": "",
+                "realtime_log_config_arn": "",
+                "response_headers_policy_id": "",
+                "smooth_streaming": false,
+                "target_origin_id": "s3Origin",
+                "trusted_key_groups": [],
+                "trusted_signers": [],
+                "viewer_protocol_policy": "redirect-to-https"
+              }
+            ],
+            "default_root_object": "",
+            "domain_name": "d1bdx17cpz5q2y.cloudfront.net",
+            "enabled": true,
+            "etag": "E3JWKAKR8XB7XF",
+            "hosted_zone_id": "Z2FDTNDATAQYW2",
+            "http_version": "http2",
+            "id": "E35QWVPEMFIBK8",
+            "in_progress_validation_batches": 0,
+            "is_ipv6_enabled": true,
+            "last_modified_time": "2026-02-08 21:57:31.072 +0000 UTC",
+            "logging_config": [],
+            "logging_v1_enabled": false,
+            "ordered_cache_behavior": [],
+            "origin": [
+              {
+                "connection_attempts": 3,
+                "connection_timeout": 10,
+                "custom_header": [],
+                "custom_origin_config": [],
+                "domain_name": "shin-dev-processed-videos.s3.amazonaws.com",
+                "origin_access_control_id": "E3PTJX60HPCA8C",
+                "origin_id": "s3Origin",
+                "origin_path": "",
+                "origin_shield": [],
+                "response_completion_timeout": 0,
+                "s3_origin_config": [],
+                "vpc_origin_config": []
+              }
+            ],
+            "origin_group": [],
+            "price_class": "PriceClass_All",
+            "restrictions": [
+              {
+                "geo_restriction": [
+                  {
+                    "locations": [],
+                    "restriction_type": "none"
+                  }
+                ]
+              }
+            ],
+            "retain_on_delete": false,
+            "staging": false,
+            "status": "Deployed",
+            "tags": {
+              "Env": "dev"
+            },
+            "tags_all": {
+              "Env": "dev",
+              "Environment": "dev"
+            },
+            "trusted_key_groups": [
+              {
+                "enabled": false,
+                "items": []
+              }
+            ],
+            "trusted_signers": [
+              {
+                "enabled": false,
+                "items": []
+              }
+            ],
+            "viewer_certificate": [
+              {
+                "acm_certificate_arn": "",
+                "cloudfront_default_certificate": true,
+                "iam_certificate_id": "",
+                "minimum_protocol_version": "TLSv1",
+                "ssl_support_method": ""
+              }
+            ],
+            "viewer_mtls_config": [],
+            "wait_for_deployment": true,
+            "web_acl_id": "arn:aws:wafv2:us-east-1:304361287196:global/webacl/CreatedByCloudFront-fc8aac5b/723ef380-03e5-4cf2-9bd4-450f2485155f"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "module.cloudfront.aws_cloudfront_origin_access_control.default",
+            "module.s3.aws_s3_bucket.processed_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.cloudfront",
+      "mode": "managed",
+      "type": "aws_cloudfront_origin_access_control",
+      "name": "default",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:cloudfront::304361287196:origin-access-control/E3PTJX60HPCA8C",
+            "description": "Managed by Terraform",
+            "etag": "ETVPDKIKX0DER",
+            "id": "E3PTJX60HPCA8C",
+            "name": "processed-bucket-oac",
+            "origin_access_control_origin_type": "s3",
+            "signing_behavior": "always",
+            "signing_protocol": "sigv4"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.cloudfront",
+      "mode": "managed",
+      "type": "aws_s3_bucket_policy",
+      "name": "processed_policy",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-processed-videos",
+            "id": "shin-dev-processed-videos",
+            "policy": "{\"Statement\":[{\"Action\":\"s3:GetObject\",\"Condition\":{\"StringEquals\":{\"AWS:SourceArn\":\"arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"cloudfront.amazonaws.com\"},\"Resource\":\"arn:aws:s3:::shin-dev-processed-videos/*\",\"Sid\":\"AllowCloudFrontServicePrincipalReadOnly\"}],\"Version\":\"2012-10-17\"}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.cloudfront.aws_cloudfront_distribution.s3_distribution",
+            "module.cloudfront.aws_cloudfront_origin_access_control.default",
+            "module.cloudfront.data.aws_iam_policy_document.processed_bucket_policy",
+            "module.s3.aws_s3_bucket.processed_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "creator_pictures_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::shin-dev-creator-pictures",
+            "bucket": "shin-dev-creator-pictures",
+            "bucket_domain_name": "shin-dev-creator-pictures.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_region": "us-east-1",
+            "bucket_regional_domain_name": "shin-dev-creator-pictures.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "9027e90e1f92cf0b174fbaa050b73ba7d30f968135a41e8679d33cf1beeec0d7",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "shin-dev-creator-pictures",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-creator-pictures"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-creator-pictures"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": false,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-creator-pictures",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "processed_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::shin-dev-processed-videos",
+            "bucket": "shin-dev-processed-videos",
+            "bucket_domain_name": "shin-dev-processed-videos.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_region": "us-east-1",
+            "bucket_regional_domain_name": "shin-dev-processed-videos.s3.us-east-1.amazonaws.com",
+            "cors_rule": [
+              {
+                "allowed_headers": [
+                  "*"
+                ],
+                "allowed_methods": [
+                  "GET",
+                  "HEAD"
+                ],
+                "allowed_origins": [
+                  "*"
+                ],
+                "expose_headers": [
+                  "ETag"
+                ],
+                "max_age_seconds": 3600
+              }
+            ],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "9027e90e1f92cf0b174fbaa050b73ba7d30f968135a41e8679d33cf1beeec0d7",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "shin-dev-processed-videos",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "{\"Statement\":[{\"Action\":\"s3:GetObject\",\"Condition\":{\"StringEquals\":{\"AWS:SourceArn\":\"arn:aws:cloudfront::304361287196:distribution/E35QWVPEMFIBK8\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"cloudfront.amazonaws.com\"},\"Resource\":\"arn:aws:s3:::shin-dev-processed-videos/*\",\"Sid\":\"AllowCloudFrontServicePrincipalReadOnly\"}],\"Version\":\"2012-10-17\"}",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-processed-videos"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-processed-videos"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": false,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "raw_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::shin-dev-raw-uploads",
+            "bucket": "shin-dev-raw-uploads",
+            "bucket_domain_name": "shin-dev-raw-uploads.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_region": "us-east-1",
+            "bucket_regional_domain_name": "shin-dev-raw-uploads.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "9027e90e1f92cf0b174fbaa050b73ba7d30f968135a41e8679d33cf1beeec0d7",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "shin-dev-raw-uploads",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-raw-uploads"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-raw-uploads"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": true,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-raw-uploads",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "thumbnail_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::shin-dev-thumbnails",
+            "bucket": "shin-dev-thumbnails",
+            "bucket_domain_name": "shin-dev-thumbnails.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_region": "us-east-1",
+            "bucket_regional_domain_name": "shin-dev-thumbnails.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "9027e90e1f92cf0b174fbaa050b73ba7d30f968135a41e8679d33cf1beeec0d7",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "shin-dev-thumbnails",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnails"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnails"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": false,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-thumbnails",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_cors_configuration",
+      "name": "processed_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-processed-videos",
+            "cors_rule": [
+              {
+                "allowed_headers": [
+                  "*"
+                ],
+                "allowed_methods": [
+                  "GET",
+                  "HEAD"
+                ],
+                "allowed_origins": [
+                  "*"
+                ],
+                "expose_headers": [
+                  "ETag"
+                ],
+                "id": "",
+                "max_age_seconds": 3600
+              }
+            ],
+            "expected_bucket_owner": "",
+            "id": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.processed_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "processed_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "shin-dev-processed-videos",
+            "id": "shin-dev-processed-videos",
+            "ignore_public_acls": true,
+            "region": "us-east-1",
+            "restrict_public_buckets": true,
+            "skip_destroy": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.processed_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "raw_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "shin-dev-raw-uploads",
+            "id": "shin-dev-raw-uploads",
+            "ignore_public_acls": true,
+            "region": "us-east-1",
+            "restrict_public_buckets": true,
+            "skip_destroy": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-raw-uploads",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.raw_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "thumbnail_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "shin-dev-thumbnails",
+            "id": "shin-dev-thumbnails",
+            "ignore_public_acls": true,
+            "region": "us-east-1",
+            "restrict_public_buckets": true,
+            "skip_destroy": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-thumbnails",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.thumbnail_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "processed_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-processed-videos",
+            "expected_bucket_owner": "",
+            "id": "shin-dev-processed-videos",
+            "region": "us-east-1",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "",
+                    "sse_algorithm": "AES256"
+                  }
+                ],
+                "blocked_encryption_types": [],
+                "bucket_key_enabled": false
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-processed-videos",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.processed_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "raw_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-raw-uploads",
+            "expected_bucket_owner": "",
+            "id": "shin-dev-raw-uploads",
+            "region": "us-east-1",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "",
+                    "sse_algorithm": "AES256"
+                  }
+                ],
+                "blocked_encryption_types": [],
+                "bucket_key_enabled": false
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-raw-uploads",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.raw_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "thumbnail_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-thumbnails",
+            "expected_bucket_owner": "",
+            "id": "shin-dev-thumbnails",
+            "region": "us-east-1",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "",
+                    "sse_algorithm": "AES256"
+                  }
+                ],
+                "blocked_encryption_types": [],
+                "bucket_key_enabled": false
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-thumbnails",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.thumbnail_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.s3",
+      "mode": "managed",
+      "type": "aws_s3_bucket_versioning",
+      "name": "raw_bucket",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "shin-dev-raw-uploads",
+            "expected_bucket_owner": "",
+            "id": "shin-dev-raw-uploads",
+            "mfa": null,
+            "region": "us-east-1",
+            "versioning_configuration": [
+              {
+                "mfa_delete": "",
+                "status": "Enabled"
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "account_id": "304361287196",
+            "bucket": "shin-dev-raw-uploads",
+            "region": "us-east-1"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.s3.aws_s3_bucket.raw_bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.sns",
+      "mode": "managed",
+      "type": "aws_sns_topic",
+      "name": "topics",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "chunk-processed",
+          "schema_version": 0,
+          "attributes": {
+            "application_failure_feedback_role_arn": "",
+            "application_success_feedback_role_arn": "",
+            "application_success_feedback_sample_rate": 0,
+            "archive_policy": "",
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-chunk-processed",
+            "beginning_archive_time": "",
+            "content_based_deduplication": false,
+            "delivery_policy": "",
+            "display_name": "",
+            "fifo_throughput_scope": "",
+            "fifo_topic": false,
+            "firehose_failure_feedback_role_arn": "",
+            "firehose_success_feedback_role_arn": "",
+            "firehose_success_feedback_sample_rate": 0,
+            "http_failure_feedback_role_arn": "",
+            "http_success_feedback_role_arn": "",
+            "http_success_feedback_sample_rate": 0,
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-chunk-processed",
+            "kms_master_key_id": "",
+            "lambda_failure_feedback_role_arn": "",
+            "lambda_success_feedback_role_arn": "",
+            "lambda_success_feedback_sample_rate": 0,
+            "name": "shin-dev-chunk-processed",
+            "name_prefix": "",
+            "owner": "304361287196",
+            "policy": "{\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Action\":[\"SNS:GetTopicAttributes\",\"SNS:SetTopicAttributes\",\"SNS:AddPermission\",\"SNS:RemovePermission\",\"SNS:DeleteTopic\",\"SNS:Subscribe\",\"SNS:ListSubscriptionsByTopic\",\"SNS:Publish\"],\"Condition\":{\"StringEquals\":{\"AWS:SourceOwner\":\"304361287196\"}},\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Resource\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-chunk-processed\",\"Sid\":\"__default_statement_ID\"}],\"Version\":\"2008-10-17\"}",
+            "region": "us-east-1",
+            "signature_version": 0,
+            "sqs_failure_feedback_role_arn": "",
+            "sqs_success_feedback_role_arn": "",
+            "sqs_success_feedback_sample_rate": 0,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-chunk-processed"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-chunk-processed"
+            },
+            "tracing_config": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-chunk-processed"
+          },
+          "private": "bnVsbA=="
+        },
+        {
+          "index_key": "encode-finished",
+          "schema_version": 0,
+          "attributes": {
+            "application_failure_feedback_role_arn": "",
+            "application_success_feedback_role_arn": "",
+            "application_success_feedback_sample_rate": 0,
+            "archive_policy": "",
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished",
+            "beginning_archive_time": "",
+            "content_based_deduplication": false,
+            "delivery_policy": "",
+            "display_name": "",
+            "fifo_throughput_scope": "",
+            "fifo_topic": false,
+            "firehose_failure_feedback_role_arn": "",
+            "firehose_success_feedback_role_arn": "",
+            "firehose_success_feedback_sample_rate": 0,
+            "http_failure_feedback_role_arn": "",
+            "http_success_feedback_role_arn": "",
+            "http_success_feedback_sample_rate": 0,
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished",
+            "kms_master_key_id": "",
+            "lambda_failure_feedback_role_arn": "",
+            "lambda_success_feedback_role_arn": "",
+            "lambda_success_feedback_sample_rate": 0,
+            "name": "shin-dev-encode-finished",
+            "name_prefix": "",
+            "owner": "304361287196",
+            "policy": "{\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Action\":[\"SNS:GetTopicAttributes\",\"SNS:SetTopicAttributes\",\"SNS:AddPermission\",\"SNS:RemovePermission\",\"SNS:DeleteTopic\",\"SNS:Subscribe\",\"SNS:ListSubscriptionsByTopic\",\"SNS:Publish\"],\"Condition\":{\"StringEquals\":{\"AWS:SourceOwner\":\"304361287196\"}},\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Resource\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished\",\"Sid\":\"__default_statement_ID\"}],\"Version\":\"2008-10-17\"}",
+            "region": "us-east-1",
+            "signature_version": 0,
+            "sqs_failure_feedback_role_arn": "",
+            "sqs_success_feedback_role_arn": "",
+            "sqs_success_feedback_sample_rate": 0,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-encode-finished"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-encode-finished"
+            },
+            "tracing_config": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished"
+          },
+          "private": "bnVsbA=="
+        },
+        {
+          "index_key": "encode-started",
+          "schema_version": 0,
+          "attributes": {
+            "application_failure_feedback_role_arn": "",
+            "application_success_feedback_role_arn": "",
+            "application_success_feedback_sample_rate": 0,
+            "archive_policy": "",
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-started",
+            "beginning_archive_time": "",
+            "content_based_deduplication": false,
+            "delivery_policy": "",
+            "display_name": "",
+            "fifo_throughput_scope": "",
+            "fifo_topic": false,
+            "firehose_failure_feedback_role_arn": "",
+            "firehose_success_feedback_role_arn": "",
+            "firehose_success_feedback_sample_rate": 0,
+            "http_failure_feedback_role_arn": "",
+            "http_success_feedback_role_arn": "",
+            "http_success_feedback_sample_rate": 0,
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-started",
+            "kms_master_key_id": "",
+            "lambda_failure_feedback_role_arn": "",
+            "lambda_success_feedback_role_arn": "",
+            "lambda_success_feedback_sample_rate": 0,
+            "name": "shin-dev-encode-started",
+            "name_prefix": "",
+            "owner": "304361287196",
+            "policy": "{\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Action\":[\"SNS:GetTopicAttributes\",\"SNS:SetTopicAttributes\",\"SNS:AddPermission\",\"SNS:RemovePermission\",\"SNS:DeleteTopic\",\"SNS:Subscribe\",\"SNS:ListSubscriptionsByTopic\",\"SNS:Publish\"],\"Condition\":{\"StringEquals\":{\"AWS:SourceOwner\":\"304361287196\"}},\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Resource\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-encode-started\",\"Sid\":\"__default_statement_ID\"}],\"Version\":\"2008-10-17\"}",
+            "region": "us-east-1",
+            "signature_version": 0,
+            "sqs_failure_feedback_role_arn": "",
+            "sqs_success_feedback_role_arn": "",
+            "sqs_success_feedback_sample_rate": 0,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-encode-started"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-encode-started"
+            },
+            "tracing_config": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-started"
+          },
+          "private": "bnVsbA=="
+        },
+        {
+          "index_key": "thumbnail-generated",
+          "schema_version": 0,
+          "attributes": {
+            "application_failure_feedback_role_arn": "",
+            "application_success_feedback_role_arn": "",
+            "application_success_feedback_sample_rate": 0,
+            "archive_policy": "",
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated",
+            "beginning_archive_time": "",
+            "content_based_deduplication": false,
+            "delivery_policy": "",
+            "display_name": "",
+            "fifo_throughput_scope": "",
+            "fifo_topic": false,
+            "firehose_failure_feedback_role_arn": "",
+            "firehose_success_feedback_role_arn": "",
+            "firehose_success_feedback_sample_rate": 0,
+            "http_failure_feedback_role_arn": "",
+            "http_success_feedback_role_arn": "",
+            "http_success_feedback_sample_rate": 0,
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated",
+            "kms_master_key_id": "",
+            "lambda_failure_feedback_role_arn": "",
+            "lambda_success_feedback_role_arn": "",
+            "lambda_success_feedback_sample_rate": 0,
+            "name": "shin-dev-thumbnail-generated",
+            "name_prefix": "",
+            "owner": "304361287196",
+            "policy": "{\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Action\":[\"SNS:GetTopicAttributes\",\"SNS:SetTopicAttributes\",\"SNS:AddPermission\",\"SNS:RemovePermission\",\"SNS:DeleteTopic\",\"SNS:Subscribe\",\"SNS:ListSubscriptionsByTopic\",\"SNS:Publish\"],\"Condition\":{\"StringEquals\":{\"AWS:SourceOwner\":\"304361287196\"}},\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Resource\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated\",\"Sid\":\"__default_statement_ID\"}],\"Version\":\"2008-10-17\"}",
+            "region": "us-east-1",
+            "signature_version": 0,
+            "sqs_failure_feedback_role_arn": "",
+            "sqs_success_feedback_role_arn": "",
+            "sqs_success_feedback_sample_rate": 0,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-generated"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-generated"
+            },
+            "tracing_config": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.sqs",
+      "mode": "managed",
+      "type": "aws_sqs_queue",
+      "name": "dlq",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "decode-job",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job-dlq",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 1209600,
+            "name": "shin-dev-decode-job-dlq",
+            "name_prefix": "",
+            "policy": "",
+            "receive_wait_time_seconds": 0,
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job\"]}",
+            "redrive_policy": "",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-decode-job-dlq",
+              "Type": "DLQ"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-decode-job-dlq",
+              "Type": "DLQ"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq",
+            "visibility_timeout_seconds": 30
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "metadata-events",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events-dlq",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 1209600,
+            "name": "shin-dev-metadata-events-dlq",
+            "name_prefix": "",
+            "policy": "",
+            "receive_wait_time_seconds": 0,
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\"]}",
+            "redrive_policy": "",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-metadata-events-dlq",
+              "Type": "DLQ"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-metadata-events-dlq",
+              "Type": "DLQ"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq",
+            "visibility_timeout_seconds": 30
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "thumbnail-job",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job-dlq",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 1209600,
+            "name": "shin-dev-thumbnail-job-dlq",
+            "name_prefix": "",
+            "policy": "",
+            "receive_wait_time_seconds": 0,
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job\"]}",
+            "redrive_policy": "",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-job-dlq",
+              "Type": "DLQ"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-job-dlq",
+              "Type": "DLQ"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq",
+            "visibility_timeout_seconds": 30
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.sqs",
+      "mode": "managed",
+      "type": "aws_sqs_queue",
+      "name": "queues",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "decode-job",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 345600,
+            "name": "shin-dev-decode-job",
+            "name_prefix": "",
+            "policy": "",
+            "receive_wait_time_seconds": 20,
+            "redrive_allow_policy": "",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-decode-job"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-decode-job"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job",
+            "visibility_timeout_seconds": 300
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "metadata-events",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 345600,
+            "name": "shin-dev-metadata-events",
+            "name_prefix": "",
+            "policy": "{\"Statement\":[{\"Action\":\"sqs:SendMessage\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Resource\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\"Sid\":\"AllowSNSPublish\"}],\"Version\":\"2012-10-17\"}",
+            "receive_wait_time_seconds": 20,
+            "redrive_allow_policy": "",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-metadata-events"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-metadata-events"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "visibility_timeout_seconds": 300
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "thumbnail-job",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job",
+            "content_based_deduplication": false,
+            "deduplication_scope": "",
+            "delay_seconds": 0,
+            "fifo_queue": false,
+            "fifo_throughput_limit": "",
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job",
+            "kms_data_key_reuse_period_seconds": 300,
+            "kms_master_key_id": "",
+            "max_message_size": 262144,
+            "message_retention_seconds": 345600,
+            "name": "shin-dev-thumbnail-job",
+            "name_prefix": "",
+            "policy": "",
+            "receive_wait_time_seconds": 20,
+            "redrive_allow_policy": "",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1",
+            "sqs_managed_sse_enabled": true,
+            "tags": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-job"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "Name": "shin-dev-thumbnail-job"
+            },
+            "timeouts": null,
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job",
+            "visibility_timeout_seconds": 300
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.sqs",
+      "mode": "managed",
+      "type": "aws_sqs_queue_redrive_allow_policy",
+      "name": "dlq",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "decode-job",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq",
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job\"]}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job-dlq"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        },
+        {
+          "index_key": "metadata-events",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq",
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\"]}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events-dlq"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        },
+        {
+          "index_key": "thumbnail-job",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq",
+            "redrive_allow_policy": "{\"redrivePermission\":\"byQueue\",\"sourceQueueArns\":[\"arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job\"]}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job-dlq"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.sqs",
+      "mode": "managed",
+      "type": "aws_sqs_queue_redrive_policy",
+      "name": "queues",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "decode-job",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-decode-job-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-decode-job"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        },
+        {
+          "index_key": "metadata-events",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        },
+        {
+          "index_key": "thumbnail-job",
+          "schema_version": 0,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job",
+            "redrive_policy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-thumbnail-job-dlq\",\"maxReceiveCount\":3}",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-thumbnail-job"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sqs.aws_sqs_queue.dlq",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.subscriptions",
+      "mode": "data",
+      "type": "aws_iam_policy_document",
+      "name": "subscription_policy",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "metadata-encode-finished",
+          "schema_version": 0,
+          "attributes": {
+            "id": "3430242186",
+            "json": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Sid\": \"AllowSNSPublish\",\n      \"Effect\": \"Allow\",\n      \"Action\": \"sqs:SendMessage\",\n      \"Resource\": \"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\n      \"Principal\": {\n        \"Service\": \"sns.amazonaws.com\"\n      },\n      \"Condition\": {\n        \"ArnEquals\": {\n          \"aws:SourceArn\": \"arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished\"\n        }\n      }\n    }\n  ]\n}",
+            "minified_json": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowSNSPublish\",\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished\"}}}]}",
+            "override_json": null,
+            "override_policy_documents": null,
+            "policy_id": null,
+            "source_json": null,
+            "source_policy_documents": null,
+            "statement": [
+              {
+                "actions": [
+                  "sqs:SendMessage"
+                ],
+                "condition": [
+                  {
+                    "test": "ArnEquals",
+                    "values": [
+                      "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished"
+                    ],
+                    "variable": "aws:SourceArn"
+                  }
+                ],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [
+                  {
+                    "identifiers": [
+                      "sns.amazonaws.com"
+                    ],
+                    "type": "Service"
+                  }
+                ],
+                "resources": [
+                  "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events"
+                ],
+                "sid": "AllowSNSPublish"
+              }
+            ],
+            "version": "2012-10-17"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        },
+        {
+          "index_key": "metadata-thumbnail-generated",
+          "schema_version": 0,
+          "attributes": {
+            "id": "1043241022",
+            "json": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Sid\": \"AllowSNSPublish\",\n      \"Effect\": \"Allow\",\n      \"Action\": \"sqs:SendMessage\",\n      \"Resource\": \"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\n      \"Principal\": {\n        \"Service\": \"sns.amazonaws.com\"\n      },\n      \"Condition\": {\n        \"ArnEquals\": {\n          \"aws:SourceArn\": \"arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated\"\n        }\n      }\n    }\n  ]\n}",
+            "minified_json": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowSNSPublish\",\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated\"}}}]}",
+            "override_json": null,
+            "override_policy_documents": null,
+            "policy_id": null,
+            "source_json": null,
+            "source_policy_documents": null,
+            "statement": [
+              {
+                "actions": [
+                  "sqs:SendMessage"
+                ],
+                "condition": [
+                  {
+                    "test": "ArnEquals",
+                    "values": [
+                      "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated"
+                    ],
+                    "variable": "aws:SourceArn"
+                  }
+                ],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [
+                  {
+                    "identifiers": [
+                      "sns.amazonaws.com"
+                    ],
+                    "type": "Service"
+                  }
+                ],
+                "resources": [
+                  "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events"
+                ],
+                "sid": "AllowSNSPublish"
+              }
+            ],
+            "version": "2012-10-17"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.subscriptions",
+      "mode": "managed",
+      "type": "aws_sns_topic_subscription",
+      "name": "subscriptions",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "metadata-encode-finished",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished:8d42e757-1947-47e9-9773-19eba6c8e2ae",
+            "confirmation_timeout_in_minutes": 1,
+            "confirmation_was_authenticated": true,
+            "delivery_policy": "",
+            "endpoint": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events",
+            "endpoint_auto_confirms": false,
+            "filter_policy": "",
+            "filter_policy_scope": "",
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished:8d42e757-1947-47e9-9773-19eba6c8e2ae",
+            "owner_id": "304361287196",
+            "pending_confirmation": false,
+            "protocol": "sqs",
+            "raw_message_delivery": false,
+            "redrive_policy": "",
+            "region": "us-east-1",
+            "replay_policy": "",
+            "subscription_role_arn": "",
+            "topic_arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished:8d42e757-1947-47e9-9773-19eba6c8e2ae"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sns.aws_sns_topic.topics",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        },
+        {
+          "index_key": "metadata-thumbnail-generated",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated:4ab93d48-6ced-4e1b-994b-aa1c2c1db9f8",
+            "confirmation_timeout_in_minutes": 1,
+            "confirmation_was_authenticated": true,
+            "delivery_policy": "",
+            "endpoint": "arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events",
+            "endpoint_auto_confirms": false,
+            "filter_policy": "",
+            "filter_policy_scope": "",
+            "id": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated:4ab93d48-6ced-4e1b-994b-aa1c2c1db9f8",
+            "owner_id": "304361287196",
+            "pending_confirmation": false,
+            "protocol": "sqs",
+            "raw_message_delivery": false,
+            "redrive_policy": "",
+            "region": "us-east-1",
+            "replay_policy": "",
+            "subscription_role_arn": "",
+            "topic_arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "arn": "arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated:4ab93d48-6ced-4e1b-994b-aa1c2c1db9f8"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.sns.aws_sns_topic.topics",
+            "module.sqs.aws_sqs_queue.queues"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.subscriptions",
+      "mode": "managed",
+      "type": "aws_sqs_queue_policy",
+      "name": "subscription_policies",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "metadata-encode-finished",
+          "schema_version": 1,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "policy": "{\"Statement\":[{\"Action\":\"sqs:SendMessage\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-encode-finished\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Resource\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\"Sid\":\"AllowSNSPublish\"}],\"Version\":\"2012-10-17\"}",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "module.sns.aws_sns_topic.topics",
+            "module.sqs.aws_sqs_queue.queues",
+            "module.subscriptions.data.aws_iam_policy_document.subscription_policy"
+          ]
+        },
+        {
+          "index_key": "metadata-thumbnail-generated",
+          "schema_version": 1,
+          "attributes": {
+            "id": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "policy": "{\"Statement\":[{\"Action\":\"sqs:SendMessage\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:304361287196:shin-dev-thumbnail-generated\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Resource\":\"arn:aws:sqs:us-east-1:304361287196:shin-dev-metadata-events\",\"Sid\":\"AllowSNSPublish\"}],\"Version\":\"2012-10-17\"}",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events",
+            "region": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/304361287196/shin-dev-metadata-events"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "module.sns.aws_sns_topic.topics",
+            "module.sqs.aws_sqs_queue.queues",
+            "module.subscriptions.data.aws_iam_policy_document.subscription_policy"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

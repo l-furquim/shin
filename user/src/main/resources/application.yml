@@ -7,3 +7,12 @@ spring:
     config:
       username: ${CONFIG_SERVER_USERNAME:configuser}
       password: ${CONFIG_SERVER_PASSWORD:configpass}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis}
+      client-type: lettuce
+      lettuce:
+        pool:
+          enabled: true

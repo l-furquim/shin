@@ -13,21 +13,21 @@
         <module name="metadata-service" />
         <module name="eureka-server" />
       </profile>
-      <profile name="Annotation profile for interaction-service" enabled="true">
+      <profile name="Annotation profile for user-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
         </processorPath>
+        <module name="gateway" />
         <module name="auth-service" />
         <module name="user-service" />
-        <module name="gateway" />
-        <module name="interaction-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="auth-service (1)" target="21" />
+      <module name="interaction-service" target="21" />
       <module name="metadata-service (1)" target="21" />
     </bytecodeTargetLevel>
   </component>
