@@ -12,6 +12,6 @@ public record GetCreatorByIdResponse(
         String avatar,
         String banner,
         String languageTag,
-        LocalDateTime createdAt
+        LocalDateTime joinedAt
 ) {
 }

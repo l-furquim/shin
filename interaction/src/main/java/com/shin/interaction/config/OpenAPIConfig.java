@@ -1,4 +1,4 @@
-package com.shin.upload.config;
+package com.shin.interaction.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -13,11 +13,10 @@ public class OpenAPIConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Upload Service API")
+                        .title("Interaction Service API")
                         .version("v1")
-                        .description("Upload service API - handles video uploads, chunking, and processing")
+                        .description("Interaction management service API - handles comments, likes, and subscriptions")
                         .contact(new Contact()
-                                .name("Shin API Support")
                                 .url("https://github.com/l-furquim/shin")));
     }
 }

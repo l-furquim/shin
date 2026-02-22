@@ -18,6 +18,6 @@ public class OpenAPIConfig {
                         .description("Metadata management service API - handles videos, playlists, and metadata")
                         .contact(new Contact()
                                 .name("Shin API Support")
-                                .url("https://github.com/yourorg/shin")));
+                                .url("https://github.com/l-furquim/shin")));
     }
 }

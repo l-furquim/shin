@@ -17,6 +17,6 @@ public class OpenAPIConfig {
                         .version("v1")
                         .description("User management service API - handles user accounts, profiles, and creators")
                         .contact(new Contact()
-                                .url("https://github.com/yourorg/shin")));
+                                .url("https://github.com/l-furquim/shin")));
     }
 }

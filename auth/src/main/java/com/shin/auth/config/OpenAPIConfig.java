@@ -13,10 +13,10 @@ public class OpenAPIConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("User Service API")
+                        .title("Auth Service API")
                         .version("v1")
-                        .description("User management service API - handles user accounts, profiles, and creators")
+                        .description("Auth service API - handles session management, authentication and tokens.")
                         .contact(new Contact()
-                                .url("https://github.com/yourorg/shin")));
+                                .url("https://github.com/l-furquim/shin")));
     }
 }
