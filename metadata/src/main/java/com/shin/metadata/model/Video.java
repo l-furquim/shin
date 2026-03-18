@@ -79,6 +79,8 @@ public class Video {
 
     private Long likeCount;
 
+    private Long viewCount;
+
     private LocalDateTime publishedAt;
 
     private LocalDateTime scheduledPublishAt;

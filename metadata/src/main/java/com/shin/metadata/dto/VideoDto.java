@@ -26,6 +26,7 @@ public record VideoDto(
     Double duration,
     String resolutions,
     Long likeCount,
+    Long viewCount,
     LocalDateTime publishedAt,
     LocalDateTime scheduledPublishAt,
     LocalDateTime createdAt,

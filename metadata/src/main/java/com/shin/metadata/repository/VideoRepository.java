@@ -36,4 +36,11 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
     """)
     int applyLikeDelta(@Param("videoId") UUID videoId, @Param("delta") Long delta);
 
+    @Modifying
+    @Query("""
+            UPDATE Video v
+            SET v.viewCount = GREATEST(0, v.viewCount + 1)
+            WHERE v.id = :videoId
+    """)
+    int increaseVideoView(@Param("videoId") UUID videoId);
 }

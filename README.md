@@ -1,6 +1,6 @@
 # shin
 
-Plataforma de streaming de videos em tempo real inspirada no youtube.
+Plataforma de streaming de videos
 
 ## Estrutura do projeto
 

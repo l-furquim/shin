@@ -9,6 +9,7 @@ creator_pictures_bucket_name = "shin-dev-creator-pictures"
 sns_topic_names = [
   "chunk-processed",
   "thumbnail-generated",
+  "view-counted",
   "encode-started",
   "encode-finished",
 ]

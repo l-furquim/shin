@@ -27,4 +27,6 @@ public interface VideoService {
 
     void applyLikeDelta(UUID videoId, Long delta);
 
+    void increaseVideoView(UUID videoId, UUID userId);
+
 }

@@ -10,12 +10,14 @@ import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.LikeService;
 import com.shin.metadata.service.TagService;
 import com.shin.metadata.service.VideoService;
+import com.shin.metadata.service.ViewService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,6 +29,7 @@ public class VideoServiceImpl implements VideoService {
     private final VideoRepository videoRepository;
     private final TagService tagService;
     private final LikeService likeService;
+    private final ViewService viewService;
 
     @Override
     public InitVideoResponse initVideo(String userId) {
@@ -94,6 +97,8 @@ public class VideoServiceImpl implements VideoService {
             }
         }
 
+        Optional<Long> viewCount = viewService.getVideoViews(video.getId());
+
         return new GetVideoByIdResponse(
             video.getId(),
             video.getTitle(),
@@ -109,6 +114,7 @@ public class VideoServiceImpl implements VideoService {
             video.getTags(),
             video.getDuration() != null ? video.getDuration() : 0.0,
             video.getResolutions(),
+            this.getVideoViews(video),
             video.getLikeCount(),
             likedByMe,
             video.getPublishedAt(),
@@ -203,6 +209,7 @@ public class VideoServiceImpl implements VideoService {
             video.getDuration() != null ? video.getDuration() : 0.0,
             video.getResolutions(),
             video.getLikeCount(),
+            this.getVideoViews(video),
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
             video.getCreatedAt(),
@@ -302,6 +309,24 @@ public class VideoServiceImpl implements VideoService {
         videoRepository.applyLikeDelta(videoId, delta);
     }
 
+    @Override
+    public void increaseVideoView(UUID videoId, UUID userId) {
+        if (videoId == null || userId == null) {
+            throw new InvalidVideoRequestException("Video ID and user ID must not be null");
+        }
+        // TODO: RUN THIS IN BATCH
+        // videoRepository.increaseVideoView(videoId);
+
+        // ANALYTICS HERE
+
+        viewService.increaseView(videoId);
+
+    }
+
+    private Long getVideoViews(Video video) {
+        return  viewService.getVideoViews(video.getId()).orElseGet(video::getViewCount);
+    }
+
     private VideoDto toDto(Video video) {
         return new VideoDto(
             video.getId(),
@@ -319,6 +344,7 @@ public class VideoServiceImpl implements VideoService {
             video.getDuration() != null ? video.getDuration() : 0L,
             video.getResolutions(),
             video.getLikeCount(),
+            this.getVideoViews(video),
             video.getPublishedAt(),
             video.getScheduledPublishAt(),
             video.getCreatedAt(),

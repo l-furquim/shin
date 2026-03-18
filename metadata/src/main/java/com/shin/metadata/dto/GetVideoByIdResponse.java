@@ -26,6 +26,7 @@ public record GetVideoByIdResponse(
     Double duration,
     String resolutions,
     Long  likeCount,
+    Long viewCount,
     Boolean likedByMe,
     LocalDateTime publishedAt,
     LocalDateTime scheduledPublishAt,

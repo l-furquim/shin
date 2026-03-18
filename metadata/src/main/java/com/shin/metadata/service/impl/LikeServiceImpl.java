@@ -25,9 +25,7 @@ public class LikeServiceImpl implements LikeService {
     private final VideoRepository videoRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
-    // like:{userId}:{videoId} -> "true" | "false"  (TTL: 10 min)
     private static final String LIKE_STATUS_KEY = "like:{userId}:{videoId}";
-    // video:{videoId}:like:count -> Long as string  (TTL: 5 min)
     private static final String LIKE_COUNT_KEY  = "video:{videoId}:like:count";
 
     private static final Duration LIKE_STATUS_TTL = Duration.ofMinutes(10);
@@ -91,10 +89,6 @@ public class LikeServiceImpl implements LikeService {
         return new VideoLikesResponse(count, liked);
     }
 
-    /**
-     * Resolves whether {@code userId} has liked {@code videoId}.
-     * Checks Redis first; on cache-miss falls back to the DB and warms the cache.
-     */
     private boolean isLikedResolved(VideoLikeId likeId, String statusKey) {
         final String cached = redisTemplate.opsForValue().get(statusKey);
 
@@ -102,16 +96,11 @@ public class LikeServiceImpl implements LikeService {
             return "true".equals(cached);
         }
 
-        // Cache miss – query the DB and warm the cache
         final boolean liked = likeRepository.existsById(likeId);
         redisTemplate.opsForValue().set(statusKey, liked ? "true" : "false", LIKE_STATUS_TTL);
         return liked;
     }
 
-    /**
-     * Resolves the like count for {@code videoId}.
-     * Checks Redis first; on cache-miss falls back to the Video read-model and warms the cache.
-     */
     private long resolveCount(UUID videoId, String countKey) {
         final String cached = redisTemplate.opsForValue().get(countKey);
 
@@ -124,7 +113,6 @@ public class LikeServiceImpl implements LikeService {
             }
         }
 
-        // Cache miss – read the denormalised count from the videos table
         final long count = videoRepository.findById(videoId)
                 .map(v -> v.getLikeCount() != null ? v.getLikeCount() : 0L)
                 .orElse(0L);
