@@ -1,4 +1,5 @@
 import { AuthService } from '@/features/auth/auth.service';
+import { AuthResponse } from '@/features/auth/auth.types';
 import { TokenService } from '@/features/auth/token.service';
 import {
   HttpErrorResponse,
@@ -29,7 +30,7 @@ export class AuthInterceptor implements HttpInterceptor {
       ? req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } })
       : req;
 
-    return next.handle(req).pipe(
+    return next.handle(authReq).pipe(
       catchError((err: HttpErrorResponse) => {
         if (err.status === 401) {
           return this.handleUnauthorized(req, next);
@@ -45,10 +46,14 @@ export class AuthInterceptor implements HttpInterceptor {
       this.refreshSubject.next(null);
 
       return this.authService.refreshToken().pipe(
-        switchMap((response: any) => {
+        switchMap((response: AuthResponse | null) => {
+          if (!response) {
+            throw new Error('Unauthorized');
+          }
+
           this.isRefreshing = false;
 
-          const newAccessToken = response.access_token;
+          const newAccessToken = response.token;
           this.tokenService.setAccessToken(newAccessToken);
 
           this.refreshSubject.next(newAccessToken);
@@ -58,6 +63,8 @@ export class AuthInterceptor implements HttpInterceptor {
           );
         }),
         catchError((err) => {
+          console.error(`Erro: ${err}`);
+
           this.isRefreshing = false;
           this.tokenService.clear();
 

@@ -1,56 +1,102 @@
-# shin
+# Shin
 
-Plataforma de streaming de videos
+Plataforma de streaming de videos 
+
+## Visao geral
+
+O repositorio agrupa os servicos de negocio, componentes de infraestrutura local (Docker) e infraestrutura cloud (Terraform). O fluxo principal cobre:
+
+- Upload de video
+- Processamento/encoding assincrono
+- Geracao de thumbnails
+- Persistencia de metadados
+- Entrega de conteudo via CloudFront
 
 ## Estrutura do projeto
 
-```bash
+```text
 shin/
-├── docker-compose.yml # Docker compose local para subir os containers locais. 
-├── auth/          # Servico responsavel pela autenticacao e gerenciamento de sessoes do usuario 
-├── commons/       # Projeto com utilitarios compartilhados entre os microservicos
-├── config-repo/   # Template do config repo a ser utilizado pelos servicos
-├── config-server/ # Servico responsavel por lidar com as requisicoes de configuracoes dos servicos
-├── encoding/      # Servico responsavel por receber jobs de uma fila sqs e realizar o encoding dos videos nas resolucoes solicitadas 
-├── eureka-server/ # Servico responsavel pelo service discovery e registration  
-├── frontend # Client web construido com AngularJS
-├── gateway # API Gateway resposavel pelo roteamento, rate limiting, auth filter, circuit breaker e gerenciamento de sessoes  
-├── infra # Infraestrutura AWS provisionada pelo terraform
-├── metadata # Servico responsavel por lidar com o metadata de videos, playlists e categorias. 
-├── scripts # Scripts utilitarios para configuracao de ambientes 
-├── thumbnail # Servico responsavel por receber jobs de uma fila sqs e gerar thumbnail para o video 
-├── upload # Servico responsavel pelo upload bruto ou particionado de videos, e gerenciamento das chunks. 
-└── user # Servico responsavel pelos usuarios e criadores do sistema. 
+|-- auth/            # Autenticacao, autorizacao e sessoes
+|-- commons/         # Bibliotecas compartilhadas entre servicos Java
+|-- config-repo/     # Configuracoes externas consumidas pelo Config Server
+|-- config-server/   # Spring Cloud Config Server
+|-- eureka-server/   # Service discovery (Spring Cloud Netflix Eureka)
+|-- gateway/         # API Gateway (roteamento, filtros, rate limit, resiliencia)
+|-- metadata/        # Metadados de videos, playlists e categorias
+|-- upload/          # Upload bruto/particionado e orquestracao de chunks
+|-- user/            # Gestao de usuarios e criadores
+|-- encoding/        # Worker de encoding consumindo filas SQS
+|-- thumbnail/       # Worker de thumbnails consumindo filas SQS
+|-- frontend/        # Aplicacao web em Angular
+|-- infra/           # Provisionamento AWS com Terraform
+|-- scripts/         # Scripts para bootstrap e cleanup de ambiente dev
+|-- docker-compose.yml
+`-- .env             # Variaveis locais para containers e servicos
 ```
 
-## Rodando o projeto localmente
+## Tecnologias utilizadas
 
-Este projeto utiliza docker e scripts para facilitar o desenvolvimento e execução local da infraestrutura e servicos da AWS, incluindo o banco de dados, servicos e cloudfront.
+- **Backend**: Java 21, Spring Boot 3, Spring Cloud, Spring Cloud AWS
+- **Frontend**: Angular (v21), TypeScript, Tailwind CSS
+- **Dados e cache local**: PostgreSQL, Redis
+- **Infraestrutura**: Docker, Docker Compose, Terraform
+- **Cloud AWS**: S3, SQS, SNS, CloudFront
 
-### Iniciando o projeto
+## Pre-requisitos
+
+- Docker e Docker Compose
+- Terraform (>= 1.0)
+- AWS CLI configurada (`aws configure`)
+- `jq` (usado para ler outputs do Terraform)
+- Shell `bash` ou `fish`
+
+## Subir ambiente local com infraestrutura AWS (fluxo recomendado)
+
+Este fluxo executa Terraform para provisionar infra e depois sobe os servicos no Docker Compose.
+
+### Bash
 
 ```bash
-# Se estiver utilizando bash 
 chmod +x ./scripts/init-dev-environment.sh
-
 ./scripts/init-dev-environment.sh
-
-# Se estiver utilizando fish
-chmod +x ./scripts/init-dev-environment.fish
-
-source scripts/init-dev-environment.fish
 ```
 
-## Derrubando as aplicacoes e infraestrutura AWS
+### Fish
+
+```fish
+chmod +x ./scripts/init-dev-environment.fish
+source ./scripts/init-dev-environment.fish
+```
+
+## Subir apenas os containers locais (sem reprovisionar infra)
+
+Se a infraestrutura ja estiver criada, voce pode apenas iniciar os servicos locais:
 
 ```bash
-# Se estiver utilizando bash 
+docker compose up -d
+```
+
+Para acompanhar status e logs:
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+## Encerrar ambiente e destruir infraestrutura
+
+Os scripts abaixo realizam limpeza de filas/buckets e `terraform destroy` no ambiente `dev`.
+
+### Bash
+
+```bash
 chmod +x ./scripts/cleanup-and-destroy.sh
-
 ./scripts/cleanup-and-destroy.sh
+```
 
-# Se estiver utilizando fish
+### Fish
+
+```fish
 chmod +x ./scripts/cleanup-and-destroy.fish
-
-source scripts/cleanup-and-destroy.fish
+source ./scripts/cleanup-and-destroy.fish
 ```

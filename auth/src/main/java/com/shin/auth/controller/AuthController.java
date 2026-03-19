@@ -40,6 +40,7 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
                 .body(new AuthResponse(
                 response.token(),
+                response.deviceId(),
                 response.tokenExpiresIn()));
     }
 
@@ -90,6 +91,7 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
                 .body(new AuthResponse(
                         response.token(),
+                        response.deviceId(),
                         response.tokenExpiresIn()));
     }
 

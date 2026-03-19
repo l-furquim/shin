@@ -60,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
 
                 return new TokenResponse(
                         token,
+                        authRequest.deviceId(),
                         refreshToken,
                         this.tokenService.getExpirationDate(token).getEpochSecond()
                 );
@@ -79,6 +80,7 @@ public class AuthServiceImpl implements AuthService {
 
         return new TokenResponse(
                 token,
+                deviceId,
                 refreshToken,
                 this.tokenService.getExpirationDate(token).getEpochSecond()
         );
@@ -115,6 +117,7 @@ public class AuthServiceImpl implements AuthService {
 
             return new TokenResponse(
                     newAccessToken,
+                    session.deviceId(),
                     newRefreshToken,
                     this.tokenService.getExpirationDate(newAccessToken).getEpochSecond()
             );
