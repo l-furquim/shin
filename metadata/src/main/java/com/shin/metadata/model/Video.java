@@ -77,9 +77,17 @@ public class Video {
 
     private String resolutions;
 
-    private Long likeCount;
+    private String fileName;
 
-    private Long viewCount;
+    private Long fileSize;
+
+    private String fileType;
+
+    @Builder.Default
+    private Long likeCount = 0L;
+
+    @Builder.Default
+    private Long viewCount = 0L;
 
     private LocalDateTime publishedAt;
 

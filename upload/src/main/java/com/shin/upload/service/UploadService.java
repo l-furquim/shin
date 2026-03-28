@@ -9,7 +9,9 @@ public interface UploadService {
 
     InitiateUploadResponse initiateUpload(String userId, InitiateUploadRequest request);
 
-    ChunkUploadResponse uploadChunk(String uploadId, Integer chunkNumber, Integer totalChunks, byte[] data);
+    ChunkUploadResponse uploadChunk(String uploadId, Integer chunkNumber, byte[] data);
+
+    RawUploadResponse completeUpload(String uploadId);
 
     CancelUploadResponse cancelUpload(String uploadId);
 }

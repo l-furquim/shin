@@ -21,15 +21,15 @@ import java.util.Base64;
 @Service
 public class JwtTokenServiceImpl implements TokenService {
 
-    @Value("${jwt.secret}")
-    private String TOKEN_SECRET;
+    @Value("${jwt.secret:shin-dev-secret}")
+    private String tokenSecret;
 
     private static final Long TOKEN_EXPIRES_SECONDS = 15L * 60L; // 15 minutes;
 
     @Override
     public String generateToken(String userId) {
         try{
-            Algorithm algorithm = Algorithm.HMAC256(TOKEN_SECRET);
+            Algorithm algorithm = Algorithm.HMAC256(tokenSecret);
 
             return JWT.create()
                     .withIssuer("shin")
@@ -60,7 +60,7 @@ public class JwtTokenServiceImpl implements TokenService {
     @Override
     public String validateToken(String token) {
         try {
-            Algorithm algorithm = Algorithm.HMAC256(TOKEN_SECRET);
+            Algorithm algorithm = Algorithm.HMAC256(tokenSecret);
             return JWT.require(algorithm)
                     .withIssuer("shin")
                     .build()
@@ -73,7 +73,7 @@ public class JwtTokenServiceImpl implements TokenService {
 
     @Override
     public Instant getExpirationDate(String token) {
-        Algorithm algorithm = Algorithm.HMAC256(TOKEN_SECRET);
+        Algorithm algorithm = Algorithm.HMAC256(tokenSecret);
 
         return JWT.require(algorithm)
                 .withIssuer("shin")

@@ -40,21 +40,16 @@ func main() {
 		log.Println("Warning: CHUNK_PROCESSED_TOPIC_ARN not set, progress notifications disabled")
 	}
 
-	var completionPublisher *sns.Publisher
-	if cfg.EncodeFinishedTopicARN != "" {
-		completionPublisher = sns.NewPublisher(snsClient, cfg.EncodeFinishedTopicARN)
-		log.Printf("Completion publisher initialized with topic: %s", cfg.EncodeFinishedTopicARN)
-	} else {
-		log.Println("Warning: ENCODE_FINISHED_TOPIC_ARN not set, completion notifications disabled")
-	}
+	sqsClient := sqs.New(awsCfg)
+	completionProducer := sqs.NewTranscodingCompletedProducer(sqsClient, cfg.EncodingFinishedQueueURL)
+	log.Printf("Completion producer initialized with queue: %s", cfg.EncodingFinishedQueueURL)
 
 	ts := &service.TranscodingService{
-		Storage:             storage,
-		ChunkPublisher:      chunkProgressPublisher,
-		CompletionPublisher: completionPublisher,
+		Storage:            storage,
+		ChunkPublisher:     chunkProgressPublisher,
+		CompletionProducer: completionProducer,
 	}
 
-	sqsClient := sqs.New(awsCfg)
 	consumer := sqs.NewConsumer(sqsClient, cfg.JobRequestQueueURL)
 	worker := sqs.NewTranscodingWorker(ts)
 

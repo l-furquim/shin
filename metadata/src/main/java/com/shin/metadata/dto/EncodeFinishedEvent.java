@@ -8,6 +8,9 @@ public record EncodeFinishedEvent(
         String[] resolutions,
         Double duration,
         Integer totalFiles,
+        String fileName,
+        Long fileSize,
+        String fileType,
         LocalDateTime timestamp
 ) {
 }

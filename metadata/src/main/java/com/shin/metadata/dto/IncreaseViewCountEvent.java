@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record IncreaseViewCountEvent(
         UUID videoId,
-        UUID userId
+        UUID userId,
+        String viewerKey
 ) {
 }

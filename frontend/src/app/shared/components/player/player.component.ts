@@ -111,7 +111,7 @@ import { ZardSelectImports } from '@/shared/components/select';
   `,
 })
 export class PlayerComponent {
-  @Input() protected videoId!: string;
+  @Input() videoId!: string;
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly videoPlayerService = inject(VideoPlayerService);

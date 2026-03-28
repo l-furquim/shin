@@ -18,5 +18,8 @@ type CompletionNotification struct {
 	Resolutions []string  `json:"resolutions"`
 	Duration    float64   `json:"duration"`
 	TotalFiles  int       `json:"totalFiles"`
+	FileName    string    `json:"fileName"`
+	FileSize    int64     `json:"fileSize"`
+	FileType    string    `json:"fileType"`
 	Timestamp   time.Time `json:"timestamp"`
 }

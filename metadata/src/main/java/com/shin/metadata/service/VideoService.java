@@ -1,8 +1,8 @@
 package com.shin.metadata.service;
 
 import com.shin.metadata.dto.*;
-import com.shin.metadata.model.Video;
 
+import java.util.Set;
 import java.util.UUID;
 
 public interface VideoService {
@@ -11,22 +11,20 @@ public interface VideoService {
 
     CreateVideoResponse createVideo(CreateVideoRequest request);
 
-    GetVideoByIdResponse getVideoById(UUID id, UUID userId);
+    VideoDto getVideoById(UUID id, UUID userId, Set<VideoField> fields);
 
-    PatchVideoByIdResponse patchVideoById(UUID id, PatchVideoByIdRequest request);
+    VideoDto patchVideoById(UUID id, PatchVideoByIdRequest request);
 
     void deleteVideoById(UUID id);
 
-    SearchVideosResponse searchByAccountId(String accountId, int start, int end);
+    void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType);
 
-    SearchVideosResponse searchByCategory(String categoryName, int start, int end);
+    void updateVideoThumbnail(String videoId, String thumbnailUrl);
 
-    SearchVideosResponse searchAll(int start, int end);
-
-    void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration);
-
-    void applyLikeDelta(UUID videoId, Long delta);
+    SearchVideosResponse search(SearchVideosRequest request, UUID userId, Set<VideoField> fields);
 
     void increaseVideoView(UUID videoId, UUID userId);
+
+    void increaseVideoView(UUID videoId, String viewerKey);
 
 }

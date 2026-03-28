@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -21,40 +22,37 @@ public class VideoController {
     public ResponseEntity<InitVideoResponse> initVideo(
             @RequestHeader("X-User-Id") String userId
     ) {
-        var response = videoService.initVideo(userId);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(videoService.initVideo(userId));
     }
 
     @PostMapping
     public ResponseEntity<CreateVideoResponse> createVideo(
-        @Valid @RequestBody CreateVideoRequest request
+            @Valid @RequestBody CreateVideoRequest request
     ) {
-        CreateVideoResponse response = videoService.createVideo(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(videoService.createVideo(request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GetVideoByIdResponse> getVideoById(
-        @PathVariable("id") UUID id,
-        @RequestHeader(value = "X-User-Id", required = false) UUID userId
+    public ResponseEntity<VideoDto> getVideoById(
+            @PathVariable("id") UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestParam(name = "fields", required = false) String fields
     ) {
-        GetVideoByIdResponse response = videoService.getVideoById(id, userId);
-        return ResponseEntity.ok(response);
+        Set<VideoField> requestedFields = VideoField.parse(fields);
+        return ResponseEntity.ok(videoService.getVideoById(id, userId, requestedFields));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<PatchVideoByIdResponse> patchVideoById(
-        @PathVariable("id") UUID id,
-        @Valid @RequestBody PatchVideoByIdRequest request
+    public ResponseEntity<VideoDto> patchVideoById(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody PatchVideoByIdRequest request
     ) {
-        PatchVideoByIdResponse response = videoService.patchVideoById(id, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(videoService.patchVideoById(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVideoById(
-        @PathVariable("id") UUID id
+            @PathVariable("id") UUID id
     ) {
         videoService.deleteVideoById(id);
         return ResponseEntity.noContent().build();
@@ -62,25 +60,16 @@ public class VideoController {
 
     @GetMapping
     public ResponseEntity<SearchVideosResponse> search(
-        @RequestParam(name = "accountId", required = false) String accountId,
-        @RequestParam(name = "category", required = false) String category,
-        @RequestParam(name = "start", defaultValue = "0") int start,
-        @RequestParam(name = "end", defaultValue = "10") int end
+            @RequestParam(name = "id", required = false) String id,
+            @RequestParam(name = "fields", required = true) String fields,
+            @RequestParam(name = "myRating", required = false) String myRating,
+            @RequestParam(name = "categoryId", required = false) String categoryId,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "limit", required = false, defaultValue = "10") int limit,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
-        SearchVideosResponse response;
-
-        if (accountId != null) {
-            response = videoService.searchByAccountId(accountId, start, end);
-        } else if (category != null) {
-            response = videoService.searchByCategory(category, start, end);
-        } else {
-            response = videoService.searchAll(start, end);
-        }
-
-        if (response.videos().isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.ok(response);
+        Set<VideoField> requestedFields = VideoField.parse(fields);
+        SearchVideosRequest request = new SearchVideosRequest(id, fields, myRating, categoryId, cursor, limit);
+        return ResponseEntity.ok(videoService.search(request, userId, requestedFields));
     }
 }

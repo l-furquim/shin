@@ -1,7 +1,7 @@
 import type { Resolution } from '@/features/videos/video.types';
 
 export interface InitiateUploadRequest {
-  videoId: string;
+  videoId?: string;
   fileName: string;
   fileSize: number;
   contentType: string;
@@ -11,7 +11,10 @@ export interface InitiateUploadRequest {
 
 export interface InitiateUploadResponse {
   uploadId: string;
+  videoId: string;
+  chunkSize: number;
   totalChunks: number;
+  resolutions: Resolution[];
 }
 
 export interface UploadChunksRequest {
@@ -21,7 +24,15 @@ export interface UploadChunksRequest {
 }
 
 export interface UploadChunkResponse {
+  uploadId: string;
+  chunkNumber: number;
+  uploaded: boolean;
   progress: number;
+}
+
+export interface CompleteUploadResponse {
+  videoId: string;
+  status: string;
 }
 
 export interface UploadChunkProgress {

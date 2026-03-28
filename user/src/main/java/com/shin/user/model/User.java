@@ -10,7 +10,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", schema = "\"user\"")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"thumbnail-service/internal/aws"
 	"thumbnail-service/internal/config"
-	"thumbnail-service/internal/queue/sns"
 	"thumbnail-service/internal/queue/sqs"
 	"thumbnail-service/internal/service"
 	s3storage "thumbnail-service/internal/storage/s3"
@@ -30,19 +29,15 @@ func main() {
 	s3Client := s3storage.New(awsCfg)
 	storage := s3storage.NewStorageService(s3Client)
 
-	var publisher *sns.Publisher
-	if cfg.ThumbnailGeneratedTopicARN != "" {
-		snsClient := sns.New(awsCfg)
-		publisher = sns.NewPublisher(snsClient, cfg.ThumbnailGeneratedTopicARN)
-		log.Printf("SNS publisher initialized for topic: %s", cfg.ThumbnailGeneratedTopicARN)
-	}
+	sqsClient := sqs.New(awsCfg)
+	completionProducer := sqs.NewCompletionProducer(sqsClient, cfg.ThumbnailFinishedQueueURL)
+	log.Printf("Completion producer initialized with queue: %s", cfg.ThumbnailFinishedQueueURL)
 
 	ts := &service.ThumbnailService{
-		Storage:   storage,
-		Publisher: publisher,
+		Storage:            storage,
+		CompletionProducer: completionProducer,
 	}
 
-	sqsClient := sqs.New(awsCfg)
 	consumer := sqs.NewConsumer(sqsClient, cfg.JobRequestQueueURL)
 	worker := sqs.NewThumbnailWorker(ts)
 

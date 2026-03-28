@@ -13,24 +13,24 @@ const (
 )
 
 type Config struct {
-	Port                       string
-	JobRequestQueueURL         string
-	ThumbnailGeneratedTopicARN string
-	RawBucketName              string
-	ThumbnailBucketName        string
-	Env                        Env
-	Region                     string
+	Port                      string
+	JobRequestQueueURL        string
+	ThumbnailFinishedQueueURL string
+	RawBucketName             string
+	ThumbnailBucketName       string
+	Env                       Env
+	Region                    string
 }
 
 func LoadConfig(env Env) *Config {
 	cfg := &Config{
-		Port:                       getEnv("PORT", "8080"),
-		JobRequestQueueURL:         mustGetEnv("THUMBNAIL_JOB_QUEUE_URL"),
-		ThumbnailGeneratedTopicARN: getEnv("THUMBNAIL_GENERATED_TOPIC_ARN", ""),
-		RawBucketName:              mustGetEnv("RAW_BUCKET_NAME"),
-		ThumbnailBucketName:        mustGetEnv("THUMBNAIL_BUCKET_NAME"),
-		Region:                     getEnv("AWS_REGION", "us-east-1"),
-		Env:                        env,
+		Port:                      getEnv("PORT", "8080"),
+		JobRequestQueueURL:        mustGetEnv("THUMBNAIL_JOB_QUEUE_URL"),
+		ThumbnailFinishedQueueURL: mustGetEnv("THUMBNAIL_FINISHED_EVENTS_QUEUE_URL"),
+		RawBucketName:             mustGetEnv("RAW_BUCKET_NAME"),
+		ThumbnailBucketName:       mustGetEnv("THUMBNAIL_BUCKET_NAME"),
+		Region:                    getEnv("AWS_REGION", "us-east-1"),
+		Env:                       env,
 	}
 
 	return cfg

@@ -8,19 +8,20 @@ creator_pictures_bucket_name = "shin-dev-creator-pictures"
 
 sns_topic_names = [
   "chunk-processed",
-  "thumbnail-generated",
   "view-counted",
-  "encode-started",
-  "encode-finished",
 ]
 
 sqs_queue_names = [
   "decode-job",
   "thumbnail-job",
-  "metadata-events",
+  "encoding-finished-events",
+  "thumbnail-finished-events",
   "subscription-events",
   "like-events",
+  "view-events",
 ]
+
+enable_view_eventbridge_pipeline = false
 
 sqs_message_retention_seconds  = 345600 # 4 days
 sqs_visibility_timeout_seconds = 300    # 5 minutes

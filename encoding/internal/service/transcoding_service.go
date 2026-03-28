@@ -17,10 +17,14 @@ import (
 	"transcoding-service/internal/queue/sns"
 )
 
+type CompletionSender interface {
+	Send(ctx context.Context, payload any) error
+}
+
 type TranscodingService struct {
-	Storage             StorageService
-	ChunkPublisher      *sns.Publisher
-	CompletionPublisher *sns.Publisher
+	Storage            StorageService
+	ChunkPublisher     *sns.Publisher
+	CompletionProducer CompletionSender
 }
 
 type ResolutionConfig struct {
@@ -36,13 +40,13 @@ var resolutionMap = map[string]ResolutionConfig{
 	"360p":  {Height: 360, Bitrate: "800k", Profile: "baseline"},
 }
 
-func (s *TranscodingService) ProcessJob(ctx context.Context, event *model.TranscodingJob, cfg *config.Config) (string, float64, error) {
+func (s *TranscodingService) ProcessJob(ctx context.Context, event *model.TranscodingJob, cfg *config.Config) (string, float64, *model.VideoFileInfo, error) {
 
 	log.Printf("Received a process job, videoId: %s, key: %s, userId: %s", event.VideoId, event.S3Key, event.UserId)
 
-	filePath, err := s.Storage.GetRawVideo(ctx, event.S3Key, event.FileName, cfg.RawBucketName)
+	filePath, fileInfo, err := s.Storage.GetRawVideo(ctx, event.S3Key, event.FileName, cfg.RawBucketName)
 	if err != nil {
-		return "", 0, err
+		return "", 0, nil, err
 	}
 
 	duration, err := getVideoDuration(filePath)
@@ -57,7 +61,7 @@ func (s *TranscodingService) ProcessJob(ctx context.Context, event *model.Transc
 	log.Printf("Creating job directory: %s", jobDir)
 	err = os.MkdirAll(jobDir, 0755)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to create job directory: %w", err)
+		return "", 0, nil, fmt.Errorf("failed to create job directory: %w", err)
 	}
 
 	for _, res := range event.Resolutions {
@@ -65,19 +69,19 @@ func (s *TranscodingService) ProcessJob(ctx context.Context, event *model.Transc
 		log.Printf("Creating resolution directory: %s", resolutionDir)
 		err = os.MkdirAll(resolutionDir, 0755)
 		if err != nil {
-			return "", 0, fmt.Errorf("failed to create resolution directory %s: %w", resolutionDir, err)
+			return "", 0, nil, fmt.Errorf("failed to create resolution directory %s: %w", resolutionDir, err)
 		}
 	}
 
 	for _, args := range BuildDashCommands(filePath, jobDir, event.Resolutions) {
 		if err := runFFmpeg(args); err != nil {
-			return "", 0, fmt.Errorf("ffmpeg failed: %w", err)
+			return "", 0, nil, fmt.Errorf("ffmpeg failed: %w", err)
 		}
 	}
 
 	log.Printf("Transcoding job processed successfully for file: %s\n", filePath)
 
-	return jobDir, duration, nil
+	return jobDir, duration, fileInfo, nil
 }
 
 func BuildDashCommands(
@@ -172,7 +176,7 @@ func getVideoDuration(videoPath string) (float64, error) {
 	return duration, nil
 }
 
-func (s *TranscodingService) SendChunksToStorage(ctx context.Context, path string, event *model.TranscodingJob, duration float64, cfg *config.Config) error {
+func (s *TranscodingService) SendChunksToStorage(ctx context.Context, path string, event *model.TranscodingJob, duration float64, fileInfo *model.VideoFileInfo, cfg *config.Config) error {
 	totalFiles := countTotalFiles(path, event.Resolutions)
 	if totalFiles == 0 {
 		return fmt.Errorf("no files found to upload")
@@ -251,7 +255,7 @@ func (s *TranscodingService) SendChunksToStorage(ctx context.Context, path strin
 		}
 	}
 
-	s.sendCompletionNotification(ctx, event.VideoId, event.Resolutions, duration, totalFiles)
+	s.sendCompletionNotification(ctx, event.VideoId, event.Resolutions, duration, totalFiles, fileInfo)
 
 	return nil
 }
@@ -294,8 +298,8 @@ func (s *TranscodingService) sendProgressNotification(ctx context.Context, video
 	}
 }
 
-func (s *TranscodingService) sendCompletionNotification(ctx context.Context, videoId string, resolutions []string, duration float64, totalFiles int) {
-	if s.CompletionPublisher == nil {
+func (s *TranscodingService) sendCompletionNotification(ctx context.Context, videoId string, resolutions []string, duration float64, totalFiles int, fileInfo *model.VideoFileInfo) {
+	if s.CompletionProducer == nil {
 		return
 	}
 
@@ -313,7 +317,13 @@ func (s *TranscodingService) sendCompletionNotification(ctx context.Context, vid
 		Timestamp:   time.Now(),
 	}
 
-	if err := s.CompletionPublisher.Publish(ctx, notification); err != nil {
+	if fileInfo != nil {
+		notification.FileName = fileInfo.FileName
+		notification.FileSize = fileInfo.FileSize
+		notification.FileType = fileInfo.ContentType
+	}
+
+	if err := s.CompletionProducer.Send(ctx, notification); err != nil {
 		log.Printf("Failed to send completion notification for video %s: %v", videoId, err)
 	} else {
 		log.Printf("Sent completion notification for video %s", videoId)
@@ -321,7 +331,7 @@ func (s *TranscodingService) sendCompletionNotification(ctx context.Context, vid
 }
 
 func (s *TranscodingService) SendFailureNotification(ctx context.Context, videoId string, errorMessage string) {
-	if s.CompletionPublisher == nil {
+	if s.CompletionProducer == nil {
 		return
 	}
 
@@ -331,7 +341,7 @@ func (s *TranscodingService) SendFailureNotification(ctx context.Context, videoI
 		Timestamp: time.Now(),
 	}
 
-	if err := s.CompletionPublisher.Publish(ctx, notification); err != nil {
+	if err := s.CompletionProducer.Send(ctx, notification); err != nil {
 		log.Printf("Failed to send failure notification for video %s: %v", videoId, err)
 	} else {
 		log.Printf("Sent failure notification for video %s: %s", videoId, errorMessage)

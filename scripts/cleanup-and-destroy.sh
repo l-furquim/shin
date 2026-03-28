@@ -23,19 +23,21 @@ SQS_QUEUES=(
     "shin-${ENV}-decode-job-dlq"
     "shin-${ENV}-thumbnail-job"
     "shin-${ENV}-thumbnail-job-dlq"
-    "shin-${ENV}-metadata-events"
-    "shin-${ENV}-metadata-events-dlq"
+    "shin-${ENV}-encoding-finished-events"
+    "shin-${ENV}-encoding-finished-events-dlq"
+    "shin-${ENV}-thumbnail-finished-events"
+    "shin-${ENV}-thumbnail-finished-events-dlq"
     "shin-${ENV}-subscription-events"
     "shin-${ENV}-subscription-events-dlq"
     "shin-${ENV}-like-events"
     "shin-${ENV}-like-events-dlq"
+    "shin-${ENV}-view-events"
+    "shin-${ENV}-view-events-dlq"
 )
 
 SNS_TOPICS=(
     "shin-${ENV}-chunk-processed"
-    "shin-${ENV}-thumbnail-generated"
-    "shin-${ENV}-encode-started"
-    "shin-${ENV}-encode-finished"
+    "shin-${ENV}-view-counted"
 )
 
 log_info() {

@@ -1,7 +1,12 @@
 package com.shin.metadata.dto;
 
+import com.shin.commons.models.PageInfo;
+
 import java.util.List;
 
 public record SearchVideosResponse(
-    List<VideoDto> videos
+        String nextPageToken,
+        String prevPageToken,
+        PageInfo pageInfo,
+        List<VideoDto> items
 ) {}

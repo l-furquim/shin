@@ -8,8 +8,8 @@ import com.shin.metadata.repository.LikeRepository;
 import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.LikeService;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,13 +17,18 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
-@RequiredArgsConstructor
 @Service
 public class LikeServiceImpl implements LikeService {
 
     private final LikeRepository likeRepository;
     private final VideoRepository videoRepository;
     private final RedisTemplate<String, String> redisTemplate;
+
+    public LikeServiceImpl(LikeRepository likeRepository, VideoRepository videoRepository, @Qualifier("stringTemplate") RedisTemplate<String, String> redisTemplate) {
+        this.likeRepository = likeRepository;
+        this.videoRepository = videoRepository;
+        this.redisTemplate = redisTemplate;
+    }
 
     private static final String LIKE_STATUS_KEY = "like:{userId}:{videoId}";
     private static final String LIKE_COUNT_KEY  = "video:{videoId}:like:count";
@@ -41,7 +46,10 @@ public class LikeServiceImpl implements LikeService {
         final var countKey  = buildCountKey(videoId);
 
         if (!isLikedResolved(likeId, statusKey)) {
-            likeRepository.save(VideoLike.builder().id(likeId).build());
+
+            var like = VideoLike.builder().id(likeId).build();
+
+            likeRepository.save(like);
             videoRepository.applyLikeDelta(videoId, 1L);
 
             redisTemplate.opsForValue().set(statusKey, "true", LIKE_STATUS_TTL);

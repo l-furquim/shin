@@ -1,7 +1,8 @@
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { concatMap, from, map, Observable, catchError, throwError } from 'rxjs';
 import type {
+  CompleteUploadResponse,
   InitiateUploadRequest,
   InitiateUploadResponse,
   UploadChunkProgress,
@@ -18,7 +19,7 @@ export class UploadService {
     const { userId, ...body } = request;
 
     return this.http
-      .post<InitiateUploadResponse>('/api/v1/uploads/video/initiate', body, {
+      .post<InitiateUploadResponse>('/api/v1/uploads/sessions', body, {
         headers: {
           'X-User-Id': userId,
         },
@@ -45,12 +46,12 @@ export class UploadService {
     const formData = new FormData();
     formData.append('file', chunkBlob);
 
-    const params = new HttpParams()
-      .set('uploadId', request.uploadId)
-      .set('chunkNumber', String(chunkNumber))
-      .set('totalChunks', String(request.totalChunks));
-
-    return this.http.post<UploadChunkResponse>('/api/v1/uploads/video/chunk', formData, { params }).pipe(
+    return this.http
+      .put<UploadChunkResponse>(
+        `/api/v1/uploads/sessions/${request.uploadId}/chunks/${chunkNumber}`,
+        formData,
+      )
+      .pipe(
       map((response) => ({
         chunkNumber,
         totalChunks: request.totalChunks,
@@ -58,6 +59,12 @@ export class UploadService {
       })),
       catchError((error) => this.handleHttpError(error, `enviar chunk ${chunkNumber}`)),
     );
+  }
+
+  completeChunkedUpload(uploadId: string): Observable<CompleteUploadResponse> {
+    return this.http
+      .post<CompleteUploadResponse>(`/api/v1/uploads/sessions/${uploadId}/complete`, null)
+      .pipe(catchError((error) => this.handleHttpError(error, 'finalizar upload')));
   }
 
   private normalizeProgress(

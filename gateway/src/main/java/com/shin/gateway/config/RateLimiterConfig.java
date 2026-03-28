@@ -48,17 +48,18 @@ public class RateLimiterConfig {
         };
     }
 
-    @Bean
+    @Bean(name = "authRateLimiter")
     public RedisRateLimiter authRateLimiter() {
         return new RedisRateLimiter(5, 10, 1);
     }
 
-    @Bean
+    @Bean(name = "apiRateLimiter")
+    @Primary
     public RedisRateLimiter apiRateLimiter() {
         return new RedisRateLimiter(50, 100, 1);
     }
 
-    @Bean
+    @Bean(name = "uploadRateLimiter")
     public RedisRateLimiter uploadRateLimiter() {
         return new RedisRateLimiter(10, 20, 1);
     }

@@ -6,7 +6,6 @@ import { ZardButtonComponent } from '../button';
 import { ZardSelectComponent, ZardSelectItemComponent } from '../select';
 import { ZardAlertComponent } from '../alert';
 import { ZardIconComponent } from '../icon';
-import { VideoService } from '@/features/videos/video.service';
 import { CreatorStore } from '@/core/stores/creator.store';
 import { UploadService } from '@/features/uploads/upload.service';
 
@@ -30,7 +29,7 @@ import { UploadService } from '@/features/uploads/upload.service';
     <z-card
       class="h-full border-stone-200/70 bg-white/70 backdrop-blur-sm"
       zTitle="Upload de Video"
-      zDescription="Envia arquivo em partes para /api/v1/uploads/video/chunk"
+      zDescription="Envia arquivo em partes para /api/v1/uploads/sessions/{uploadId}/chunks/{chunkNumber}"
     >
       <div class="space-y-4">
         <div class="space-y-2">
@@ -123,7 +122,6 @@ export class UploadComponent {
     () => this.selectedFile()?.name ?? 'Nenhum arquivo selecionado',
   );
 
-  private readonly videoService = inject(VideoService);
   private readonly uploadService = inject(UploadService);
   private readonly store = inject(CreatorStore);
   private readonly user = computed(() => this.store.$creator());
@@ -139,7 +137,7 @@ export class UploadComponent {
     this.uploadProgress.set(0);
 
     try {
-      this.uploadStatus.set('Criando entrada de video...');
+      this.uploadStatus.set('Iniciando upload em chunks...');
 
       const { id } = this.user() ?? {};
 
@@ -149,15 +147,8 @@ export class UploadComponent {
         return;
       }
 
-      const initVideo = await firstValueFrom(this.videoService.initVideo(id));
-
-      this.uploadInfoVideoId.set(initVideo.videoId);
-      this.uploadInfoVideoStatus.set(initVideo.status);
-
-      this.uploadStatus.set('Iniciando upload em chunks...');
       const uploadData = await firstValueFrom(
         this.uploadService.initiateChunkedUpload({
-          videoId: initVideo.videoId,
           fileName: file.name,
           fileSize: file.size,
           contentType: file.type,
@@ -165,6 +156,9 @@ export class UploadComponent {
           userId: id,
         }),
       );
+
+      this.uploadInfoVideoId.set(uploadData.videoId);
+      this.uploadInfoVideoStatus.set('UPLOADING');
 
       await lastValueFrom(
         this.uploadService
@@ -180,6 +174,13 @@ export class UploadComponent {
             }),
           ),
       );
+
+      const completedUpload = await firstValueFrom(
+        this.uploadService.completeChunkedUpload(uploadData.uploadId),
+      );
+
+      this.uploadInfoVideoId.set(completedUpload.videoId);
+      this.uploadInfoVideoStatus.set(completedUpload.status);
 
       this.uploadStatus.set('Upload finalizado. O video foi enviado para processamento.');
     } catch (error) {

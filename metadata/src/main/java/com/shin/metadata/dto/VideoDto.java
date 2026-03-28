@@ -1,12 +1,9 @@
 package com.shin.metadata.dto;
 
-import com.shin.metadata.model.Tag;
-import com.shin.metadata.model.VideoCategory;
-import com.shin.metadata.model.enums.ProcessingStatus;
-import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,21 +12,17 @@ public record VideoDto(
     String title,
     String description,
     VideoVisibility visibility,
-    String creatorId,
-    Boolean onlyForAdults,
-    String uploadKey,
-    String thumbnailUrl,
-    VideoCategory videoCategory,
-    VideoLanguage defaultLanguage,
-    String publishedLocale,
-    Set<Tag> tags,
-    Double duration,
-    String resolutions,
-    Long likeCount,
-    Long viewCount,
+    String categoryId,
+    Map<String, Thumbnail>  thumbnails,
+    ContentDetails contentDetails,
+    Statistics statistics,
+    Boolean likedByMe,
+    FileDetails fileDetails,
+    ProcessingDetails processingDetails,
+    Channel channel,
+    Set<String> tags,
     LocalDateTime publishedAt,
     LocalDateTime scheduledPublishAt,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt,
-    ProcessingStatus status
+    LocalDateTime updatedAt
 ) {}

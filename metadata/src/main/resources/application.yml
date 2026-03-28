@@ -8,18 +8,10 @@ spring:
       username: ${CONFIG_SERVER_USERNAME:configuser}
       password: ${CONFIG_SERVER_PASSWORD:configpass}
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis}
-      client-type: lettuce
-      lettuce:
-        pool:
-          enabled: true
+views:
+  dedupe-ttl: ${VIEW_DEDUPE_TTL:PT1H}
+  flush-interval-ms: ${VIEW_FLUSH_INTERVAL_MS:10000}
+  flush-batch-size: ${VIEW_FLUSH_BATCH_SIZE:500}
 
-debug: true
-
-logging:
-  level:
-    org.flywaydb: DEBUG
+media:
+  thumbnail-base-url: ${THUMBNAIL_BASE_URL:}

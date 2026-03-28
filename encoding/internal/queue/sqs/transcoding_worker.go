@@ -21,22 +21,22 @@ func NewTranscodingWorker(service *service.TranscodingService) *TranscodingWorke
 }
 
 func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.Config) error {
-	var event event.TranscodingEvent
+	var transcodingEvent event.TranscodingEvent
 
-	if err := json.Unmarshal(msg, &event); err != nil {
+	if err := json.Unmarshal(msg, &transcodingEvent); err != nil {
 		return err
 	}
 
-	model := event.ToModel()
+	job := transcodingEvent.ToModel()
 	var processingErr error
 
 	defer func() {
 		if processingErr != nil {
-			w.service.SendFailureNotification(ctx, model.VideoId, processingErr.Error())
+			w.service.SendFailureNotification(ctx, job.VideoId, processingErr.Error())
 		}
 	}()
 
-	processedPath, duration, err := w.service.ProcessJob(ctx, model, cfg)
+	processedPath, duration, fileInfo, err := w.service.ProcessJob(ctx, job, cfg)
 	if err != nil {
 		processingErr = err
 		return err
@@ -49,13 +49,12 @@ func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.
 		}
 	}()
 
-	err = w.service.SendChunksToStorage(ctx, processedPath, model, duration, cfg)
+	err = w.service.SendChunksToStorage(ctx, processedPath, job, duration, fileInfo, cfg)
 	if err != nil {
 		processingErr = err
 		return err
 	}
 
-	log.Printf("Transcoding job completed successfully for video: %s", model.VideoId)
+	log.Printf("Transcoding job completed successfully for video: %s", job.VideoId)
 	return nil
 }
-

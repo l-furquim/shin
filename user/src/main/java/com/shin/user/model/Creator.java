@@ -1,7 +1,7 @@
 package com.shin.user.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "creators")
+@Table(name = "creators", schema = "\"user\"")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,7 +31,7 @@ public class Creator {
     private String channelUrl;
 
     @Column(nullable = false)
-    @Positive
+    @PositiveOrZero
     private Long subscribersCount;
 
     @CreationTimestamp

@@ -1,6 +1,7 @@
 package com.shin.upload.client;
 
 import com.shin.upload.dto.CreateVideoRequest;
+import com.shin.upload.dto.CreateVideoResponse;
 import com.shin.upload.dto.UpdateVideoRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import java.util.UUID;
 public interface MetadataClient {
 
     @PostMapping("/api/v1/videos")
-    ResponseEntity<Object> createVideo(@RequestBody CreateVideoRequest request);
+    ResponseEntity<CreateVideoResponse> createVideo(@RequestBody CreateVideoRequest request);
 
     @PatchMapping("/api/v1/videos/{id}")
     ResponseEntity<Object> updateVideo(

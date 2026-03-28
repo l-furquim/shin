@@ -1,39 +1,58 @@
 package com.shin.metadata.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.shin.metadata.dto.UploadState;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
 
-    @Value("${spring.data.redis.host:localhost}")
-    private String redisHost;
+    @Bean(name = "uploadTemplate")
+    public RedisTemplate<String, UploadState> redisUploadTemplate(RedisConnectionFactory connectionFactory) {
+        ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    @Value("${spring.data.redis.port:6379}")
-    private int redisPort;
+        RedisTemplate<String, UploadState> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
 
-    @Value("${spring.data.redis.password:}")
-    private String redisPassword;
+        Jackson2JsonRedisSerializer<UploadState> jsonSerializer =
+                new Jackson2JsonRedisSerializer<>(mapper, UploadState.class);
 
-    @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisHost);
-        config.setPort(redisPort);
-        if (redisPassword != null && !redisPassword.isBlank()) {
-            config.setPassword(redisPassword);
-        }
-        return new LettuceConnectionFactory(config);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(jsonSerializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(jsonSerializer);
+
+        template.afterPropertiesSet();
+        return template;
     }
 
-    @Bean
-    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+    @Bean(name = "longTemplate")
+    public RedisTemplate<String, Long> redisLongTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Long> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        StringRedisSerializer serializer = new StringRedisSerializer();
+
+        template.setKeySerializer(serializer);
+        template.setValueSerializer(serializer); // Long vira string
+        template.setHashKeySerializer(serializer);
+        template.setHashValueSerializer(serializer);
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean(name = "stringTemplate")
+    public RedisTemplate<String, String> redisStringTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 

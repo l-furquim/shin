@@ -7,18 +7,22 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 	"thumbnail-service/internal/config"
 	"thumbnail-service/internal/model"
-	"thumbnail-service/internal/queue/sns"
+	"time"
 )
 
 type ThumbnailService struct {
-	Storage   StorageService
-	Publisher *sns.Publisher
+	Storage            StorageService
+	CompletionProducer CompletionSender
+}
+
+type CompletionSender interface {
+	Send(ctx context.Context, payload any) error
 }
 
 type ThumbnailGeneratedEvent struct {
+	EventType string    `json:"eventType"`
 	VideoId   string    `json:"videoId"`
 	S3Key     string    `json:"s3Key"`
 	Timestamp time.Time `json:"timestamp"`
@@ -52,14 +56,15 @@ func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJ
 
 	log.Printf("Thumbnail uploaded successfully: %s", thumbnailKey)
 
-	if s.Publisher != nil {
+	if s.CompletionProducer != nil {
 		notification := ThumbnailGeneratedEvent{
+			EventType: "thumbnailGenerated",
 			VideoId:   job.VideoId,
 			S3Key:     thumbnailKey,
 			Timestamp: time.Now(),
 		}
 
-		if err := s.Publisher.Publish(ctx, notification); err != nil {
+		if err := s.CompletionProducer.Send(ctx, notification); err != nil {
 			log.Printf("Failed to publish thumbnail-generated notification: %v", err)
 		} else {
 			log.Printf("Published thumbnail-generated notification for video %s", job.VideoId)

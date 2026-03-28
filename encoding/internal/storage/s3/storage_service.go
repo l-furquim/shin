@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
+	"transcoding-service/internal/model"
 )
 
 type StorageService struct {
@@ -58,7 +59,7 @@ func (s *StorageService) UploadChunk(
 	return nil
 }
 
-func (s *StorageService) GetRawVideo(ctx context.Context, key string, fileName string, bucketName string) (string, error) {
+func (s *StorageService) GetRawVideo(ctx context.Context, key string, fileName string, bucketName string) (string, *model.VideoFileInfo, error) {
 	result, err := s.c.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
@@ -66,28 +67,38 @@ func (s *StorageService) GetRawVideo(ctx context.Context, key string, fileName s
 	if err != nil {
 		var noKey *types.NoSuchKey
 		if errors.As(err, &noKey) {
-			return "", fmt.Errorf("object %s not found in bucket %s: %w", key, bucketName, err)
+			return "", nil, fmt.Errorf("object %s not found in bucket %s: %w", key, bucketName, err)
 		}
-		return "", fmt.Errorf("failed to get object %s from bucket %s: %w", key, bucketName, err)
+		return "", nil, fmt.Errorf("failed to get object %s from bucket %s: %w", key, bucketName, err)
 	}
 	defer result.Body.Close()
 
+	fileInfo := &model.VideoFileInfo{
+		FileName: fileName,
+	}
+	if result.ContentLength != nil {
+		fileInfo.FileSize = *result.ContentLength
+	}
+	if result.ContentType != nil {
+		fileInfo.ContentType = *result.ContentType
+	}
+
 	if err := os.MkdirAll(OUTPUT_DIR, 0755); err != nil {
-		return "", fmt.Errorf("failed to create output directory %s: %w", OUTPUT_DIR, err)
+		return "", nil, fmt.Errorf("failed to create output directory %s: %w", OUTPUT_DIR, err)
 	}
 
 	filePath := filepath.Join(OUTPUT_DIR, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create file %s: %w", filePath, err)
+		return "", nil, fmt.Errorf("failed to create file %s: %w", filePath, err)
 	}
 	defer file.Close()
 
 	if _, err := io.Copy(file, result.Body); err != nil {
 		os.Remove(filePath)
-		return "", fmt.Errorf("failed to write video data to %s: %w", filePath, err)
+		return "", nil, fmt.Errorf("failed to write video data to %s: %w", filePath, err)
 	}
 
 	log.Printf("Successfully downloaded %s from %s to %s", key, bucketName, filePath)
-	return filePath, nil
+	return filePath, fileInfo, nil
 }

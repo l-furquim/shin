@@ -34,9 +34,7 @@ variable "sns_topic_names" {
   type        = list(string)
   default = [
     "chunk-processed",
-    "thumbnail-generated",
-    "encode-started",
-    "encode-finished",
+    "view-counted",
   ]
 }
 
@@ -46,7 +44,16 @@ variable "sqs_queue_names" {
   default = [
     "decode-job",
     "thumbnail-job",
+    "encoding-finished-events",
+    "thumbnail-finished-events",
+    "view-events",
   ]
+}
+
+variable "enable_view_eventbridge_pipeline" {
+  description = "Enable EventBridge pipeline for CloudFront/S3 view events"
+  type        = bool
+  default     = false
 }
 
 variable "sqs_message_retention_seconds" {

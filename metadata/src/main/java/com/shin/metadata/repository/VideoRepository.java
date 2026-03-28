@@ -10,23 +10,104 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface VideoRepository extends JpaRepository<Video, UUID> {
 
-    Page<Video> findByCreatorIdAndVisibility(
-        UUID creatorId,
-        VideoVisibility visibility,
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findAllPublicWithoutCursorDesc(Pageable pageable);
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findAllPublicWithCursorDesc(
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
         Pageable pageable
     );
 
-    Page<Video> findByVideoCategory_NameContainsIgnoreCase(
-        String categoryName,
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findAllPublicWithoutCursorAsc(Pageable pageable);
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findAllPublicWithCursorAsc(
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
         Pageable pageable
     );
 
-    Page<Video> findAllByOrderByPublishedAtDesc(Pageable pageable);
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByCategoryWithoutCursorDesc(
+        @Param("categoryId") Long categoryId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByCategoryWithCursorDesc(
+        @Param("categoryId") Long categoryId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByCategoryWithoutCursorAsc(
+        @Param("categoryId") Long categoryId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByCategoryWithCursorAsc(
+        @Param("categoryId") Long categoryId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
 
     @Modifying
     @Query("""
@@ -38,9 +119,17 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
 
     @Modifying
     @Query("""
-            UPDATE Video v
-            SET v.viewCount = GREATEST(0, v.viewCount + 1)
-            WHERE v.id = :videoId
+        UPDATE Video v
+        SET v.viewCount = GREATEST(0, COALESCE(v.viewCount, 0) + :delta)
+        WHERE v.id = :videoId
     """)
-    int increaseVideoView(@Param("videoId") UUID videoId);
+    int applyViewDelta(@Param("videoId") UUID videoId, @Param("delta") Long delta);
+
+    @Modifying
+    @Query("""
+        UPDATE Video v
+        SET v.thumbnailUrl = :thumbnailUrl
+        WHERE v.id = :videoId
+    """)
+    int updateVideoThumbnail(@Param("videoId") UUID videoId, @Param("thumbnailUrl") String thumbnailUrl);
 }

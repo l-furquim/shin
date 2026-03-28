@@ -3,12 +3,14 @@ package com.shin.gateway.config;
 import com.shin.gateway.filter.AuthContextGatewayFilterFactory;
 import com.shin.gateway.filter.ClientIpResolverGatewayFilterFactory;
 import com.shin.gateway.filter.CorrelationIdGatewayFilterFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class RouteConfig {
@@ -28,11 +30,11 @@ public class RouteConfig {
         ClientIpResolverGatewayFilterFactory clientIpResolverFilter,
         CorrelationIdGatewayFilterFactory correlationIdFilter,
         AuthContextGatewayFilterFactory authContextFilter,
-        KeyResolver ipKeyResolver,
-        KeyResolver userKeyResolver,
-        RedisRateLimiter authRateLimiter,
-        RedisRateLimiter apiRateLimiter,
-        RedisRateLimiter uploadRateLimiter
+        @Qualifier("ipKeyResolver") KeyResolver ipKeyResolver,
+        @Qualifier("userKeyResolver") KeyResolver userKeyResolver,
+        @Qualifier("authRateLimiter") RedisRateLimiter authRateLimiter,
+        @Qualifier("apiRateLimiter") RedisRateLimiter apiRateLimiter,
+        @Qualifier("uploadRateLimiter") RedisRateLimiter uploadRateLimiter
     ) {
         this.clientIpResolverFilter = clientIpResolverFilter;
         this.correlationIdFilter = correlationIdFilter;
@@ -47,6 +49,40 @@ public class RouteConfig {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("user-auth-public", r -> r
+                        .path("/api/v1/users/auth")
+                        .and()
+                        .method(HttpMethod.POST)
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(authRateLimiter)
+                                        .setKeyResolver(ipKeyResolver))
+                                .circuitBreaker(config -> config
+                                        .setName("userCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/user"))
+                        )
+                        .uri("lb://user-service")
+                )
+
+                .route("user-creators-create-public", r -> r
+                        .path("/api/v1/creators")
+                        .and()
+                        .method(HttpMethod.POST)
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(authRateLimiter)
+                                        .setKeyResolver(ipKeyResolver))
+                                .circuitBreaker(config -> config
+                                        .setName("userCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/user"))
+                        )
+                        .uri("lb://user-service")
+                )
+
                 .route("metadata-videos", r -> r
                         .path("/api/v1/videos/**")
                         .filters(f -> f

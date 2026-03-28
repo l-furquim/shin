@@ -17,3 +17,9 @@ type TranscodingJob struct {
 	Status      Status   `json:"status"`
 	Resolutions []string `json:"resolutions"`
 }
+
+type VideoFileInfo struct {
+	FileName    string
+	FileSize    int64
+	ContentType string
+}

@@ -229,8 +229,9 @@ public class PlaylistServiceImpl implements PlaylistService {
         }
 
         try {
-            var video = videoService.getVideoById(videoIds.getFirst());
-            return video.thumbnailUrl() != null ? video.thumbnailUrl() : "";
+            var video = videoService.getVideoById(videoIds.getFirst(), null, java.util.EnumSet.of(com.shin.metadata.dto.VideoField.THUMBNAILS));
+            var defaultThumbnail = video.thumbnails() != null ? video.thumbnails().get("default") : null;
+            return defaultThumbnail != null && defaultThumbnail.url() != null ? defaultThumbnail.url() : "";
         } catch (Exception e) {
             log.warn("Failed to get thumbnail from video: {}", videoIds.getFirst(), e);
             return "";

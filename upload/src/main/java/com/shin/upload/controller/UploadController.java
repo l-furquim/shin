@@ -3,7 +3,6 @@ package com.shin.upload.controller;
 import com.shin.upload.dto.*;
 import com.shin.upload.service.UploadService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,27 +12,36 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("${api.version}/uploads")
-@RequiredArgsConstructor
 public class UploadController {
 
     private final UploadService uploadService;
 
-    @PostMapping("/video/raw")
+    public UploadController(UploadService uploadService) {
+        this.uploadService = uploadService;
+    }
+
+    @PostMapping
     public ResponseEntity<RawUploadResponse> uploadRawVideo(
         @RequestHeader("X-User-Id") String userId,
+        @RequestHeader(value = "X-Video-Id", required = false) String videoId,
         @RequestPart("data") RawUploadData data,
         @RequestPart("file") MultipartFile file
     ) {
+        RawUploadData requestData = new RawUploadData(
+            videoId != null && !videoId.isBlank() ? videoId : data.videoId(),
+            data.resolutions()
+        );
+
         RawUploadResponse response = uploadService.uploadRawVideo(
             userId,
-            data,
+            requestData,
             file
         );
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
-    @PostMapping("/video/initiate")
+    @PostMapping("/sessions")
     public ResponseEntity<InitiateUploadResponse> initiateUpload(
         @RequestHeader("X-User-Id") String userId,
         @Valid @RequestBody InitiateUploadRequest request
@@ -42,25 +50,29 @@ public class UploadController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/video/chunk")
+    @PutMapping("/sessions/{uploadId}/chunks/{chunkNumber}")
     public ResponseEntity<ChunkUploadResponse> uploadChunk(
-        @RequestParam String uploadId,
-        @RequestParam Integer chunkNumber,
-        @RequestParam Integer totalChunks,
-        @RequestParam MultipartFile file
+        @PathVariable String uploadId,
+        @PathVariable Integer chunkNumber,
+        @RequestPart("file") MultipartFile file
     ) throws IOException {
         ChunkUploadResponse response = uploadService.uploadChunk(
             uploadId,
             chunkNumber,
-            totalChunks,
             file.getBytes()
         );
 
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/video/cancel")
-    public CancelUploadResponse cancelUpload(@RequestParam String uploadId) {
+    @PostMapping("/sessions/{uploadId}/complete")
+    public ResponseEntity<RawUploadResponse> completeUpload(@PathVariable String uploadId) {
+        RawUploadResponse response = uploadService.completeUpload(uploadId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @DeleteMapping("/sessions/{uploadId}")
+    public CancelUploadResponse cancelUpload(@PathVariable String uploadId) {
         return uploadService.cancelUpload(uploadId);
     }
 }

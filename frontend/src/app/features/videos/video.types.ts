@@ -1,7 +1,6 @@
-import type { Tag } from '@/features/tags/tag.types';
+import type { PageInfo } from '@/shared/core/request.types';
 
 export type Resolution = '360p' | '480p' | '720p' | '1080p';
-
 export type VideoVisibility = 'PUBLIC' | 'PRIVATE' | 'NOT_LISTED';
 
 export type ProcessingStatus =
@@ -14,6 +13,44 @@ export type ProcessingStatus =
   | 'FAILED'
   | string;
 
+interface Thumbnail {
+  url: string;
+  width: number;
+  height: number;
+}
+
+interface ContentDetails {
+  resolutions: string;
+  duration: number;
+  defaultLanguage: string;
+  publishedLocale: string;
+  onlyForAdults: boolean;
+}
+
+interface FileDetails {
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+}
+
+interface ProcessingDetails {
+  processingStatus: ProcessingStatus;
+  processingFailureReason?: string;
+  processingProgress: number;
+}
+
+interface Statistics {
+  likeCount: number;
+  viewCount: number;
+  commentCount: number;
+}
+
+export interface ChannelDetails {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
 export interface InitVideoResponse {
   videoId: string;
   status: string;
@@ -25,30 +62,37 @@ export interface VideoCategory {
   imageUrl: string;
 }
 
-export interface SearchVideoItem {
+export interface VideoItem {
   id: string;
   title: string;
   description: string;
   visibility: VideoVisibility;
-  creatorId: string;
-  onlyForAdults: boolean;
-  uploadKey: string;
-  thumbnailUrl: string;
-  videoCategory: VideoCategory;
-  defaultLanguage: string;
-  publishedLocale: string;
-  tags: Tag[];
-  duration: number;
-  resolutions: string;
-  likeCount: number;
-  viewCount: number;
-  publishedAt: string | null;
-  scheduledPublishAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  status: ProcessingStatus;
+  categoryId: string;
+  thumbnails: Map<string, Thumbnail>;
+  contentDetails?: ContentDetails;
+  statistics?: Statistics;
+  likedByMe: boolean;
+  fileDetails?: FileDetails;
+  processingDetails?: ProcessingDetails;
+  channel: ChannelDetails;
+  tags: Set<string>;
+  publishedAt: Date;
+  scheduledPublishAt: Date;
+  createdAt: Date;
+}
+
+export interface SearchVideosRequest {
+  id?: string;
+  fields?: string;
+  myRating?: 'liked' | 'desliked';
+  categoryId?: string;
+  cursor?: string;
+  limit?: number;
 }
 
 export interface SearchVideosResponse {
-  videos: SearchVideoItem[];
+  nextPageToken: string;
+  prevPageToken: string;
+  pageInfo: PageInfo;
+  items: VideoItem[];
 }

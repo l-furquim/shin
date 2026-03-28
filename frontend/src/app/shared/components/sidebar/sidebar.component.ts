@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { Search, SquareTerminal, Video } from 'lucide-angular';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
@@ -6,10 +8,43 @@ import { Component } from '@angular/core';
     <aside>
       <nav>
         <ul>
-          <li><a routerLink="/"></a></li>
+          @for (item of sidebarItems; track item.id) {
+            <li [routerLink]="item.url">
+              <span>{{ item.icon ? <item.icon/> : '❓' }}</span>
+              <span>{{ item.label }}</span>
+            </li>
+          }
         </ul>
       </nav>
     </aside>
   `,
+  imports: [RouterLink],
 })
-export class SidebarComponent {}
+export class SidebarComponent {
+  readonly sidebarItems = [
+    {
+      id: 'feed',
+      label: 'Feed',
+      icon: SquareTerminal,
+      url: '',
+    },
+    {
+      id: 'explore',
+      label: 'Explore',
+      icon: Search,
+      url: '/explore',
+    },
+    {
+      id: 'my-channels',
+      label: 'My Channels',
+      icon: Video,
+      url: '/my-channels',
+    },
+    {
+      id: 'me',
+      label: 'Me',
+      icon: null,
+      url: '/me',
+    },
+  ];
+}
