@@ -70,7 +70,7 @@ public class UploadServiceImpl implements UploadService {
         final var extension = FilenameUtils.getExtension(originalName);
 
         final var resolutions = sanitizeResolutions(data.resolutions());
-        final var videoId = resolveVideoId(userId, data.videoId(), resolutions);
+        final var videoId = resolveVideoId(userId, resolutions);
 
         log.info("Initiating raw upload: uploadId={}, videoId={}", uploadId, videoId);
 
@@ -100,7 +100,7 @@ public class UploadServiceImpl implements UploadService {
     public InitiateUploadResponse initiateUpload(String userId, InitiateUploadRequest request) {
         validateVideoFile(request.fileName(), request.fileSize(), request.contentType());
         final var resolutions = sanitizeResolutions(request.resolutions());
-        final var videoId = resolveVideoId(userId, request.videoId(), resolutions);
+        final var videoId = resolveVideoId(userId, resolutions);
 
         UUID uploadId = UUID.randomUUID();
 
@@ -307,11 +307,7 @@ public class UploadServiceImpl implements UploadService {
         redisTemplate.delete("upload:" + state.id());
     }
 
-    private UUID resolveVideoId(String userId, String providedVideoId, List<String> resolutions) {
-        if (providedVideoId != null && !providedVideoId.isBlank()) {
-            return UUID.fromString(providedVideoId);
-        }
-
+    private UUID resolveVideoId(String userId, List<String> resolutions) {
         CreateVideoResponse createdVideo = metadataClient.createVideo(
             new CreateVideoRequest(
                 "Untitled",

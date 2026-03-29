@@ -5,6 +5,7 @@ import com.shin.metadata.client.UserServiceClient;
 import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidVideoRequestException;
 import com.shin.metadata.model.Tag;
+import com.shin.metadata.model.ThumbnailProfile;
 import com.shin.metadata.model.Video;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
@@ -33,6 +34,13 @@ public class VideoServiceImpl implements VideoService {
 
     private static final String CURSOR_NEXT = "N";
     private static final String CURSOR_PREV = "P";
+    private static final List<ThumbnailProfile> THUMBNAIL_PROFILES = List.of(
+            new ThumbnailProfile("default", 120, 90),
+            new ThumbnailProfile("medium", 320, 180),
+            new ThumbnailProfile("high", 480, 360),
+            new ThumbnailProfile("standard", 640, 480),
+            new ThumbnailProfile("maxres", 1280, 720)
+    );
 
     private final VideoRepository videoRepository;
     private final TagService tagService;
@@ -302,7 +310,7 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType) {
+    public void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType) {
         Video video = videoRepository.findById(UUID.fromString(videoId))
                 .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + videoId + " not found"));
 
@@ -318,6 +326,9 @@ public class VideoServiceImpl implements VideoService {
 
         if (resolutions != null) {
             video.setResolutions(String.join(",", resolutions));
+        }
+        if (processedPath != null && !processedPath.isBlank()) {
+            video.setUploadKey(processedPath);
         }
         video.setDuration(duration);
         video.setFileName(fileName);
@@ -342,29 +353,50 @@ public class VideoServiceImpl implements VideoService {
         if (thumbnailValue == null || thumbnailValue.isBlank()) {
             return thumbnailValue;
         }
-        if (thumbnailValue.startsWith("http://") || thumbnailValue.startsWith("https://")) {
-            return thumbnailValue;
+
+        String normalizedValue = thumbnailValue.trim();
+        if (normalizedValue.startsWith("http://") || normalizedValue.startsWith("https://")) {
+            return normalizedValue;
         }
+
         if (thumbnailBaseUrl == null || thumbnailBaseUrl.isBlank()) {
-            return thumbnailValue;
+            return normalizedValue;
         }
         if (thumbnailBaseUrl.contains("${")) {
-            return thumbnailValue;
+            return normalizedValue;
         }
-        String normalizedBase = thumbnailBaseUrl.endsWith("/") ? thumbnailBaseUrl.substring(0, thumbnailBaseUrl.length() - 1) : thumbnailBaseUrl;
-        String normalizedPath = thumbnailValue.startsWith("/") ? thumbnailValue.substring(1) : thumbnailValue;
+
+        String normalizedBase = thumbnailBaseUrl.trim();
+        while (normalizedBase.startsWith("https://https://") || normalizedBase.startsWith("http://http://")) {
+            normalizedBase = normalizedBase.replaceFirst("^https?://", "");
+        }
+
+        normalizedBase = normalizedBase.endsWith("/")
+                ? normalizedBase.substring(0, normalizedBase.length() - 1)
+                : normalizedBase;
+
+        if (!normalizedBase.startsWith("http://") && !normalizedBase.startsWith("https://")) {
+            normalizedBase = "https://" + normalizedBase;
+        }
+
+        String normalizedPath = normalizedValue.startsWith("/") ? normalizedValue.substring(1) : normalizedValue;
+        if (!normalizedPath.startsWith("thumbnails/")) {
+            normalizedPath = "thumbnails/" + normalizedPath;
+        }
+
         return normalizedBase + "/" + normalizedPath;
     }
 
     private VideoDto toDto(Video video, Boolean likedByMe, Set<VideoField> fields, boolean isOwner, Long effectiveViewCount) {
         Map<String, Thumbnail> thumbnails = fields.contains(VideoField.THUMBNAILS) && video.getThumbnailUrl() != null
-                ? Map.of("default", new Thumbnail(video.getThumbnailUrl(), null, null))
+                ? buildThumbnailMap(video.getThumbnailUrl())
                 : null;
 
         ContentDetails contentDetails = fields.contains(VideoField.CONTENT_DETAILS)
                 ? new ContentDetails(
                 video.getResolutions(),
                 video.getDuration() != null ? video.getDuration() : 0.0,
+                video.getUploadKey(),
                 video.getDefaultLanguage(),
                 video.getPublishedLocale(),
                 video.getOnlyForAdults())
@@ -436,6 +468,26 @@ public class VideoServiceImpl implements VideoService {
 
     private boolean isOwner(Video video, UUID userId) {
         return userId != null && userId.equals(video.getCreatorId());
+    }
+
+    private Map<String, Thumbnail> buildThumbnailMap(String baseThumbnailUrl) {
+        String normalizedBase = baseThumbnailUrl.endsWith("/")
+                ? baseThumbnailUrl.substring(0, baseThumbnailUrl.length() - 1)
+                : baseThumbnailUrl;
+
+        Map<String, Thumbnail> thumbnails = new LinkedHashMap<>();
+        for (ThumbnailProfile profile : THUMBNAIL_PROFILES) {
+            thumbnails.put(
+                    profile.profile(),
+                    new Thumbnail(
+                            normalizedBase + "/" + profile.profile() + ".jpg",
+                            profile.width(),
+                            profile.height()
+                    )
+            );
+        }
+
+        return thumbnails;
     }
 
     private String encodeCursor(LocalDateTime timestamp, UUID id, String direction) {

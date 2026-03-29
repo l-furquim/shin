@@ -43,12 +43,27 @@ output "thumbnail_bucket_domain_name" {
   value       = aws_s3_bucket.thumbnail_bucket.bucket_domain_name
 }
 
+output "creator_pictures_bucket_id" {
+  description = "The ID of the creator pictures S3 bucket"
+  value       = aws_s3_bucket.creator_pictures_bucket.id
+}
+
+output "creator_pictures_bucket_arn" {
+  description = "The ARN of the creator pictures S3 bucket"
+  value       = aws_s3_bucket.creator_pictures_bucket.arn
+}
+
+output "creator_pictures_bucket_domain_name" {
+  description = "The bucket domain name of the creator pictures S3 bucket"
+  value       = aws_s3_bucket.creator_pictures_bucket.bucket_domain_name
+}
+
 output "bucket_names" {
   description = "Map of all bucket names"
   value = {
     raw              = aws_s3_bucket.raw_bucket.id
     processed        = aws_s3_bucket.processed_bucket.id
     thumbnail        = aws_s3_bucket.thumbnail_bucket.id
-    creator-pictures = aws_s3_bucket.creator_pictures_bucket.id
+    creator_pictures = aws_s3_bucket.creator_pictures_bucket.id
   }
 }

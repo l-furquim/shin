@@ -112,6 +112,7 @@ import { ZardSelectImports } from '@/shared/components/select';
 })
 export class PlayerComponent {
   @Input() videoId!: string;
+  @Input() processedPath?: string;
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly videoPlayerService = inject(VideoPlayerService);
@@ -130,7 +131,7 @@ export class PlayerComponent {
   protected readonly manifestUrl = computed(() =>
     this.videoPlayerService.buildManifestUrl({
       cdnUrl: this.cloudfrontUrl(),
-      videoId: this.videoId,
+      processedPath: this.processedPath ?? this.videoId,
       resolution: this.resolution(),
     }),
   );

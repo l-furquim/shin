@@ -79,7 +79,7 @@ export class AuthService {
   }
 
   auth(request: AuthRequest): Observable<AuthResponse | null> {
-    return this.http.post<AuthResponse>('/auth', request).pipe(
+    return this.http.post<AuthResponse>('/api/v1/auth', request).pipe(
       map((response) => {
         this.deviceId = response.deviceId;
         return response;

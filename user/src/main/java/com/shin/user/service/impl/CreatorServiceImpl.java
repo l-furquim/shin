@@ -175,12 +175,7 @@ public class CreatorServiceImpl implements CreatorService {
     }
 
     @Override
-    public void deleteCreator(UUID id, UUID requesterId) {
-        if (!id.equals(requesterId)) {
-            log.info("User with id {} attempted to delete creator with id {}", requesterId, id);
-            throw new UnauthorizedOperationException("Unauthorized operation");
-        }
-
+    public void deleteCreator(UUID id) {
         findCreatorByIdOrThrow(id);
         findUserByIdOrThrow(id);
 

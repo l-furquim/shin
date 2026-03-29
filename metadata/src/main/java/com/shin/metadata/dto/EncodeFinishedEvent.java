@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record EncodeFinishedEvent(
         String videoId,
         String status,
+        String processedPath,
         String[] resolutions,
         Double duration,
         Integer totalFiles,

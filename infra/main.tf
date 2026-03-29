@@ -46,10 +46,19 @@ module "sqs" {
 module "cloudfront" {
   source = "./modules/cloudfront"
 
-  s3_id          = module.s3.processed_bucket_id
-  s3_arn         = module.s3.processed_bucket_arn
-  s3_domain_name = module.s3.processed_bucket_domain_name
-  env            = var.env
+  env = var.env
+
+  processed_s3_id          = module.s3.processed_bucket_id
+  processed_s3_arn         = module.s3.processed_bucket_arn
+  processed_s3_domain_name = module.s3.processed_bucket_domain_name
+
+  thumbnail_s3_id          = module.s3.thumbnail_bucket_id
+  thumbnail_s3_arn         = module.s3.thumbnail_bucket_arn
+  thumbnail_s3_domain_name = module.s3.thumbnail_bucket_domain_name
+
+  creators_s3_id          = module.s3.creator_pictures_bucket_id
+  creators_s3_arn         = module.s3.creator_pictures_bucket_arn
+  creators_s3_domain_name = module.s3.creator_pictures_bucket_domain_name
 }
 
 module "subscriptions" {

@@ -22,7 +22,6 @@ public interface CreatorService {
          );
 
          void deleteCreator(
-                 UUID id,
                  UUID requesterId
          );
 

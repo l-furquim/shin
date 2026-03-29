@@ -309,12 +309,13 @@ func (s *TranscodingService) sendCompletionNotification(ctx context.Context, vid
 	}
 
 	notification := event.CompletionNotification{
-		VideoId:     videoId,
-		Status:      "completed",
-		Resolutions: cleanResolutions,
-		Duration:    duration,
-		TotalFiles:  totalFiles,
-		Timestamp:   time.Now(),
+		VideoId:       videoId,
+		Status:        "completed",
+		ProcessedPath: "videos/" + videoId,
+		Resolutions:   cleanResolutions,
+		Duration:      duration,
+		TotalFiles:    totalFiles,
+		Timestamp:     time.Now(),
 	}
 
 	if fileInfo != nil {
@@ -336,9 +337,10 @@ func (s *TranscodingService) SendFailureNotification(ctx context.Context, videoI
 	}
 
 	notification := event.CompletionNotification{
-		VideoId:   videoId,
-		Status:    "failed",
-		Timestamp: time.Now(),
+		VideoId:       videoId,
+		Status:        "failed",
+		ProcessedPath: "videos/" + videoId,
+		Timestamp:     time.Now(),
 	}
 
 	if err := s.CompletionProducer.Send(ctx, notification); err != nil {

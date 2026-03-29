@@ -12,6 +12,7 @@ import {
   withFetch,
 } from '@angular/common/http';
 import { AuthInterceptor } from '@/interceptors/auth.interceptor';
+import { ApiBaseUrlInterceptor } from '@/interceptors/api-base-url.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,6 +21,11 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
     provideZard(),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ApiBaseUrlInterceptor,
+      multi: true,
+    },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

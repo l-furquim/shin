@@ -10,8 +10,7 @@ import { RouterLink } from '@angular/router';
         <ul>
           @for (item of sidebarItems; track item.id) {
             <li [routerLink]="item.url">
-              <span>{{ item.icon ? <item.icon/> : '❓' }}</span>
-              <span>{{ item.label }}</span>
+              <span>lucas</span>
             </li>
           }
         </ul>

@@ -23,12 +23,10 @@ public class UploadController {
     @PostMapping
     public ResponseEntity<RawUploadResponse> uploadRawVideo(
         @RequestHeader("X-User-Id") String userId,
-        @RequestHeader(value = "X-Video-Id", required = false) String videoId,
         @RequestPart("data") RawUploadData data,
         @RequestPart("file") MultipartFile file
     ) {
         RawUploadData requestData = new RawUploadData(
-            videoId != null && !videoId.isBlank() ? videoId : data.videoId(),
             data.resolutions()
         );
 

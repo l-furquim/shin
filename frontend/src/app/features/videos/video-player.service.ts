@@ -26,14 +26,14 @@ export class VideoPlayerService {
 
   buildManifestUrl(source: PlayerSource): string {
     const normalizedCdnUrl = this.normalizeCdnUrl(source?.cdnUrl);
-    const trimmedVideoId = typeof source?.videoId === 'string' ? source.videoId.trim() : '';
+    const normalizedProcessedPath = this.normalizeProcessedPath(source?.processedPath);
     const resolution = source?.resolution ?? '720p';
 
-    if (!normalizedCdnUrl || !trimmedVideoId) {
+    if (!normalizedCdnUrl || !normalizedProcessedPath) {
       return '';
     }
 
-    return `${normalizedCdnUrl}/${trimmedVideoId}/${resolution}/manifest.mpd`;
+    return `${normalizedCdnUrl}/${normalizedProcessedPath}/${resolution}/manifest.mpd`;
   }
 
   isResolution(value: string): value is Resolution {
@@ -116,5 +116,22 @@ export class VideoPlayerService {
     }
 
     return `https://${trimmed}`;
+  }
+
+  private normalizeProcessedPath(path: string | undefined): string {
+    if (!path) {
+      return '';
+    }
+
+    const trimmed = path.trim().replace(/^\/+|\/+$/g, '');
+    if (!trimmed) {
+      return '';
+    }
+
+    if (trimmed.startsWith('videos/')) {
+      return trimmed;
+    }
+
+    return `videos/${trimmed}`;
   }
 }

@@ -7,10 +7,25 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"thumbnail-service/internal/config"
 	"thumbnail-service/internal/model"
 	"time"
 )
+
+type QualityConfig struct {
+	Profile string
+	Width   int
+	Height  int
+}
+
+var thumbnailResolutions [5]QualityConfig = [5]QualityConfig{
+	{Profile: "default", Width: 120, Height: 90},
+	{Profile: "medium", Width: 320, Height: 180},
+	{Profile: "high", Width: 480, Height: 360},
+	{Profile: "standard", Width: 640, Height: 480},
+	{Profile: "maxres", Width: 1280, Height: 720},
+}
 
 type ThumbnailService struct {
 	Storage            StorageService
@@ -28,6 +43,11 @@ type ThumbnailGeneratedEvent struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+type GeneratedThumbnail struct {
+	Profile   string
+	LocalPath string
+}
+
 func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJob, cfg *config.Config) error {
 	log.Printf("Received thumbnail job, videoId: %s, s3Key: %s", job.VideoId, job.S3Key)
 
@@ -37,30 +57,35 @@ func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJ
 	}
 	defer os.Remove(videoPath)
 
-	thumbnailPath, err := generateThumbnail(videoPath, job.VideoId)
+	thumbnails, tempDir, err := generateThumbnails(videoPath, job.VideoId)
 	if err != nil {
-		return fmt.Errorf("failed to generate thumbnail: %w", err)
+		if tempDir != "" {
+			_ = os.RemoveAll(tempDir)
+		}
+		return fmt.Errorf("failed to generate thumbnails: %w", err)
 	}
-	defer os.Remove(thumbnailPath)
+	defer os.RemoveAll(tempDir)
 
-	thumbnailKey := fmt.Sprintf("%s/thumbnail.jpg", job.VideoId)
+	thumbnailBaseKey := fmt.Sprintf("thumbnails/%s", job.VideoId)
 
-	data, err := os.ReadFile(thumbnailPath)
-	if err != nil {
-		return fmt.Errorf("failed to read thumbnail: %w", err)
+	for _, thumbnail := range thumbnails {
+		data, readErr := os.ReadFile(thumbnail.LocalPath)
+		if readErr != nil {
+			return fmt.Errorf("failed to read generated thumbnail %s: %w", thumbnail.Profile, readErr)
+		}
+
+		uploadKey := fmt.Sprintf("%s/%s.jpg", thumbnailBaseKey, thumbnail.Profile)
+		if uploadErr := s.Storage.UploadThumbnail(ctx, &data, uploadKey, cfg.ThumbnailBucketName); uploadErr != nil {
+			return fmt.Errorf("failed to upload thumbnail profile %s: %w", thumbnail.Profile, uploadErr)
+		}
 	}
-
-	if err := s.Storage.UploadThumbnail(ctx, &data, thumbnailKey, cfg.ThumbnailBucketName); err != nil {
-		return fmt.Errorf("failed to upload thumbnail: %w", err)
-	}
-
-	log.Printf("Thumbnail uploaded successfully: %s", thumbnailKey)
+	log.Printf("Thumbnails uploaded successfully: %s", thumbnailBaseKey)
 
 	if s.CompletionProducer != nil {
 		notification := ThumbnailGeneratedEvent{
 			EventType: "thumbnailGenerated",
 			VideoId:   job.VideoId,
-			S3Key:     thumbnailKey,
+			S3Key:     thumbnailBaseKey,
 			Timestamp: time.Now(),
 		}
 
@@ -74,29 +99,50 @@ func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJ
 	return nil
 }
 
-func generateThumbnail(videoPath, videoId string) (string, error) {
-	outputPath := filepath.Join(os.TempDir(), fmt.Sprintf("%s-thumbnail.jpg", videoId))
+func generateThumbnails(videoPath, videoId string) ([]GeneratedThumbnail, string, error) {
+	tempDir := filepath.Join(os.TempDir(), "thumbnails", videoId)
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return nil, "", fmt.Errorf("failed to create thumbnail temp directory %s: %w", tempDir, err)
+	}
 
-	args := []string{
-		"-i", videoPath,
+	thumbnails := make([]GeneratedThumbnail, 0, len(thumbnailResolutions))
+	for _, profile := range thumbnailResolutions {
+		outputPath := filepath.Join(tempDir, fmt.Sprintf("%s.jpg", profile.Profile))
+		args := buildThumbnailCommand(videoPath, profile, outputPath)
+		if err := runFFmpeg(args); err != nil {
+			return nil, tempDir, fmt.Errorf("ffmpeg failed for profile %s: %w", profile.Profile, err)
+		}
+		thumbnails = append(thumbnails, GeneratedThumbnail{Profile: profile.Profile, LocalPath: outputPath})
+	}
+
+	return thumbnails, tempDir, nil
+}
+
+func buildThumbnailCommand(input string, profile QualityConfig, outputPath string) []string {
+	scale := fmt.Sprintf("scale=%dx%d", profile.Width, profile.Height)
+	log.Printf("Built ffmpeg command for profile: %s", profile.Profile)
+
+	return []string{
+		"-i", input,
 		"-ss", "00:00:01",
 		"-vframes", "1",
-		"-vf", "scale=1280:720",
+		"-vf", scale,
 		"-q:v", "2",
 		"-y",
 		outputPath,
 	}
+}
 
+func runFFmpeg(args []string) error {
 	cmd := exec.Command("ffmpeg", args...)
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	log.Printf("Generating thumbnail: %s", outputPath)
-
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("ffmpeg thumbnail generation failed: %w", err)
+		return fmt.Errorf("ffmpeg command failed (%s): %w", strings.Join(args, " "), err)
 	}
 
-	log.Printf("Thumbnail generated successfully: %s", outputPath)
-	return outputPath, nil
+	log.Printf("FFmpeg completed successfully")
+	return nil
 }

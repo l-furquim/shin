@@ -57,12 +57,11 @@ public class CreatorController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping
     public ResponseEntity<Void> delete(
-            @PathVariable UUID id,
             @RequestHeader("X-User-Id") UUID userId
     ) {
-        creatorService.deleteCreator(id, userId);
+        creatorService.deleteCreator(userId);
 
         return ResponseEntity.noContent().build();
     }

@@ -24,7 +24,9 @@ import { ZardInputDirective } from '@/shared/components/input';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-10 md:px-8">
+    <main
+      class="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-10 md:px-8"
+    >
       <z-card
         class="w-full max-w-md border-stone-200/70 bg-white/80 backdrop-blur-sm"
         zTitle="Entrar"
@@ -33,25 +35,41 @@ import { ZardInputDirective } from '@/shared/components/input';
         <form class="space-y-4" [formGroup]="form" (ngSubmit)="onSubmit()">
           <div class="space-y-2">
             <label for="email" class="text-sm font-medium">Email</label>
-            <input id="email" z-input type="email" formControlName="email" placeholder="m@example.com" />
+            <input
+              id="email"
+              z-input
+              type="email"
+              formControlName="email"
+              placeholder="m@example.com"
+            />
           </div>
 
           <div class="space-y-2">
             <label for="password" class="text-sm font-medium">Senha</label>
-            <input id="password" z-input type="password" formControlName="password" placeholder="********" />
+            <input
+              id="password"
+              z-input
+              type="password"
+              formControlName="password"
+              placeholder="********"
+            />
           </div>
 
           @if (errorMessage()) {
-            <z-alert zType="destructive" zTitle="Falha no login" [zDescription]="errorMessage()"></z-alert>
+            <z-alert zType="destructive" [zDescription]="errorMessage()"></z-alert>
           }
 
           <div card-footer class="w-full items-start gap-3 px-0">
-            <z-button zType="default" [zDisabled]="isSubmitting() || form.invalid" [zLoading]="isSubmitting()">
+            <button [disabled]="isSubmitting() || form.invalid" type="submit">
               {{ isSubmitting() ? 'Entrando...' : 'Entrar' }}
-            </z-button>
+            </button>
             <p class="text-muted-foreground text-sm">
               Nao possui conta?
-              <a routerLink="/register" class="text-foreground font-medium underline underline-offset-4">Criar conta</a>
+              <a
+                routerLink="/register"
+                class="text-foreground font-medium underline underline-offset-4"
+                >Criar conta</a
+              >
             </p>
           </div>
         </form>
@@ -77,6 +95,7 @@ export class LoginComponent {
   async onSubmit(): Promise<void> {
     if (this.form.invalid || this.isSubmitting()) {
       this.form.markAllAsTouched();
+
       return;
     }
 
@@ -100,7 +119,9 @@ export class LoginComponent {
 
       this.tokenService.setAccessToken(response.token);
 
-      const user = await firstValueFrom(this.authService.getUserByEmail(this.form.controls.email.value));
+      const user = await firstValueFrom(
+        this.authService.getUserByEmail(this.form.controls.email.value),
+      );
 
       if (!user) {
         this.errorMessage.set('Nao foi possivel carregar perfil do usuario.');

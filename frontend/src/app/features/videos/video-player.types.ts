@@ -2,7 +2,7 @@ import type { Resolution } from './video.types';
 
 export interface PlayerSource {
   cdnUrl: string;
-  videoId: string;
+  processedPath: string;
   resolution: Resolution;
 }
 

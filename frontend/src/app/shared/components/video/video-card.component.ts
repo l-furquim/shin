@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
     <z-card (click)="onClick()" class="w-sm flex flex-col hover:cursor-pointer">
       <img
         class="rounded-md"
-        [src]="video.thumbnails.get('small')?.url"
+        [src]="video.thumbnails.get('medium')?.url"
         alt="{{ video.title }}"
         [width]="350"
         [height]="200"
@@ -19,7 +19,7 @@ import { Router } from '@angular/router';
         class="flex items-center gap-2 pt-4 text-sm hover:cursor-pointer hover:text-gray-60"
         (click)="onChannelClick()"
       >
-        <img class="rounded-full w-9 h-8" [src]="video.thumbnails.get('small')?.url" />
+        <img class="rounded-full w-9 h-8" [src]="video.thumbnails.get('medium')?.url" />
         <p>Nome do canal</p>
       </div>
       <div class="flex items-center gap-2 pt-4 text-sm">

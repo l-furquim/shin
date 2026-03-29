@@ -25,6 +25,7 @@ public class EncodingFinishedConsumer {
             videoService.updateVideoProcessingStatus(
                     encodeEvent.videoId(),
                     encodeEvent.status(),
+                    encodeEvent.processedPath(),
                     encodeEvent.resolutions(),
                     encodeEvent.duration(),
                     encodeEvent.fileName(),

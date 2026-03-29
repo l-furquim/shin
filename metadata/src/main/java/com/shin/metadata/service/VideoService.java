@@ -17,7 +17,7 @@ public interface VideoService {
 
     void deleteVideoById(UUID id);
 
-    void updateVideoProcessingStatus(String videoId, String status, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType);
+    void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType);
 
     void updateVideoThumbnail(String videoId, String thumbnailUrl);
 

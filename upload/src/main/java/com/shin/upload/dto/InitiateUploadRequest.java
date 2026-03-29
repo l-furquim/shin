@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 
 
 public record InitiateUploadRequest(
-    String videoId,
     @NotBlank String fileName,
     @NotNull Long fileSize,
     @NotBlank String contentType,

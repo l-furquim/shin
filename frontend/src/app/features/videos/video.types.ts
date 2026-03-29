@@ -22,6 +22,7 @@ interface Thumbnail {
 interface ContentDetails {
   resolutions: string;
   duration: number;
+  processedPath?: string;
   defaultLanguage: string;
   publishedLocale: string;
   onlyForAdults: boolean;

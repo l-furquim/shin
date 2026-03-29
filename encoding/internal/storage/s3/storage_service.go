@@ -34,7 +34,7 @@ func (s *StorageService) UploadChunk(
 	ctx context.Context, data *[]byte, fileName string,
 	bucketName string, videoId string, resolution string,
 ) error {
-	objectKey := fmt.Sprintf("%s/%s/%s", videoId, resolution, fileName)
+	objectKey := fmt.Sprintf("videos/%s/%s/%s", videoId, resolution, fileName)
 
 	_, err := s.c.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
