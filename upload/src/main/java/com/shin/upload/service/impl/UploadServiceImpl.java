@@ -7,10 +7,11 @@ import com.shin.upload.exceptions.UploadNotFoundException;
 import com.shin.upload.model.UploadState;
 import com.shin.upload.model.enums.UploadStatus;
 import com.shin.upload.producers.EncodingJobProducer;
-import com.shin.upload.producers.ThumbnailJobProducer;
+import com.shin.upload.producers.RawUploadMetadataProducer;
 import com.shin.upload.service.MetadataClientService;
 import com.shin.upload.service.StorageService;
 import com.shin.upload.service.UploadService;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+@RequiredArgsConstructor
 @Service
 public class UploadServiceImpl implements UploadService {
 
@@ -37,22 +38,8 @@ public class UploadServiceImpl implements UploadService {
     private final StorageService storageService;
     private final MetadataClientService metadataClient;
     private final EncodingJobProducer encodingProducer;
-    private final ThumbnailJobProducer thumbnailProducer;
+    private final RawUploadMetadataProducer rawUploadMetadataProducer;
     private final RedisTemplate<String, UploadState> redisTemplate;
-
-    public UploadServiceImpl(
-        StorageService storageService,
-        MetadataClientService metadataClient,
-        EncodingJobProducer encodingProducer,
-        ThumbnailJobProducer thumbnailProducer,
-        RedisTemplate<String, UploadState> redisTemplate
-    ) {
-        this.storageService = storageService;
-        this.metadataClient = metadataClient;
-        this.encodingProducer = encodingProducer;
-        this.thumbnailProducer = thumbnailProducer;
-        this.redisTemplate = redisTemplate;
-    }
 
     @Override
     public RawUploadResponse uploadRawVideo(String userId, RawUploadData data, MultipartFile file) {
@@ -76,23 +63,33 @@ public class UploadServiceImpl implements UploadService {
 
         final String finalKey = videoId + "/original." + extension;
 
-        try {
-            storageService.upload("raw", finalKey, file.getBytes(), file.getContentType());
-        } catch (IOException e) {
-            throw new InvalidVideoUploadException(e.getMessage());
-        }
-
-        this.integrateEvents(
-                videoId.toString(),
+        final var presignedUpload = this.storageService.generaePresignedUpload(
+                "raw",
                 finalKey,
+                file.getContentType(),
+                videoId.toString(),
                 userId,
                 originalName,
+                file.getSize(),
                 resolutions
+        );
+
+        rawUploadMetadataProducer.createEvent(
+                new RawUploadCreatedEvent(
+                        videoId.toString(),
+                        userId,
+                        finalKey,
+                        originalName,
+                        String.join(",", resolutions),
+                        file.getContentType(),
+                        file.getSize()
+                )
         );
 
         return new RawUploadResponse(
                 videoId.toString(),
-                "PROCESSING"
+                presignedUpload,
+                "WAITING_UPLOAD"
         );
     }
 
@@ -213,10 +210,15 @@ public class UploadServiceImpl implements UploadService {
 
         redisTemplate.opsForValue().set("upload:" + uploadId, processingState, Duration.ofHours(24));
 
-        assembleAndProcess(processingState);
+        String finalKey = state.videoId() + "/original.mp4";
+
+        assembleAndProcess(processingState, finalKey);
+
+        final var presignedUpload = this.storageService.generaePresignedUpload("raw", finalKey, "video/mp4");
 
         return new RawUploadResponse(
             state.videoId().toString(),
+            presignedUpload,
             "PROCESSING"
         );
     }
@@ -247,14 +249,13 @@ public class UploadServiceImpl implements UploadService {
         );
     }
 
-    private void assembleAndProcess(UploadState state) {
-        String finalKey = state.videoId() + "/original.mp4";
+    private void assembleAndProcess(UploadState state, String finalKey) {
 
         List<String> chunks = IntStream.rangeClosed(1, state.totalChunks())
             .mapToObj(i -> state.videoId() + "/temp" + "/chunk-" + i)
             .toList();
 
-        storageService.assembleChunks(chunks, "raw", finalKey);
+        storageService.assembleChunks(chunks, "raw", finalKey, buildRawObjectMetadata(state, finalKey));
 
         chunks.forEach(chunkKey -> storageService.delete("raw", chunkKey));
 
@@ -307,6 +308,18 @@ public class UploadServiceImpl implements UploadService {
         redisTemplate.delete("upload:" + state.id());
     }
 
+    private java.util.Map<String, String> buildRawObjectMetadata(UploadState state, String finalKey) {
+        return java.util.Map.of(
+                "videoid", state.videoId().toString(),
+                "userid", state.userId(),
+                "filename", state.fileName(),
+                "resolutions", state.resolutions(),
+                "s3key", finalKey,
+                "contenttype", "video/mp4",
+                "filesize", String.valueOf(state.fileSize())
+        );
+    }
+
     private UUID resolveVideoId(String userId, List<String> resolutions) {
         CreateVideoResponse createdVideo = metadataClient.createVideo(
             new CreateVideoRequest(
@@ -340,36 +353,4 @@ public class UploadServiceImpl implements UploadService {
 
         return normalized;
     }
-
-    private void integrateEvents(
-            String videoId,
-            String finalKey,
-            String userId,
-            String originalName,
-            List<String> resolutions
-    ) {
-        encodingProducer.createJob(
-                new TranscodeJobEvent(
-                        videoId,
-                        finalKey,
-                        userId,
-                        originalName,
-                        resolutions
-                )
-        );
-
-        thumbnailProducer.createJob(
-                new ThumbnailJobEvent(
-                        videoId,
-                        finalKey
-                )
-        );
-
-        metadataClient.updateVideo(
-                new UpdateVideoRequest(null, null, null, String.join(",", resolutions), null, null, null, null, null, null, null, null, null, "PROCESSING"),
-                videoId
-        );
-    }
-
-
 }

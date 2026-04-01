@@ -11,12 +11,12 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("${api.version}/videos/{id}/likes")
+@RequestMapping("${api.version}/likes")
 public class LikeController {
 
     private final LikeService likeService;
 
-    @PostMapping
+    @PostMapping("/{id}")
     public ResponseEntity<VideoLikesResponse> like(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("id") UUID videoId
@@ -25,7 +25,7 @@ public class LikeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResponseEntity<VideoLikesResponse> unlike(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("id") UUID videoId
@@ -34,7 +34,7 @@ public class LikeController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
+    @GetMapping("/{id}")
     public ResponseEntity<VideoLikesResponse> getLikeInfo(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("id") UUID videoId

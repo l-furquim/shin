@@ -52,8 +52,10 @@ export DECODE_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_
 export THUMBNAIL_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
 export ENCODING_FINISHED_EVENTS_QUEUE_URL=$ENCODING_FINISHED_EVENTS_QUEUE_URL
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_URL=$THUMBNAIL_FINISHED_EVENTS_QUEUE_URL
+export RAW_UPLOAD_METADATA_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."raw-upload-metadata-queue"')
 export ENCODING_FINISHED_EVENTS_QUEUE_NAME=$(basename "$ENCODING_FINISHED_EVENTS_QUEUE_URL")
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME=$(basename "$THUMBNAIL_FINISHED_EVENTS_QUEUE_URL")
+export RAW_UPLOAD_METADATA_QUEUE_NAME=$(basename "$RAW_UPLOAD_METADATA_QUEUE_URL")
 export SUBSCRIPTION_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."subscription-events"')
 export LIKE_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."like-events"')
 export VIEW_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."view-events"')
@@ -61,6 +63,7 @@ export DECODE_JOB_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_
 export THUMBNAIL_JOB_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-job"')
 export ENCODING_FINISHED_EVENTS_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."encoding-finished-events"')
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-finished-events"')
+export RAW_UPLOAD_METADATA_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."raw-upload-metadata-queue"')
 export SUBSCRIPTION_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."subscription-events"')
 export LIKE_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
 export VIEW_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."view-events"')

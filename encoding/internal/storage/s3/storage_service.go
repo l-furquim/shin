@@ -102,3 +102,20 @@ func (s *StorageService) GetRawVideo(ctx context.Context, key string, fileName s
 	log.Printf("Successfully downloaded %s from %s to %s", key, bucketName, filePath)
 	return filePath, fileInfo, nil
 }
+
+func (s *StorageService) GetObjectMetadata(ctx context.Context, key string, bucketName string) (map[string]string, error) {
+	result, err := s.c.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to head object %s from bucket %s: %w", key, bucketName, err)
+	}
+
+	metadata := make(map[string]string)
+	for k, v := range result.Metadata {
+		metadata[k] = v
+	}
+
+	return metadata, nil
+}

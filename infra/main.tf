@@ -27,6 +27,11 @@ module "s3" {
   processed_bucket_name        = var.processed_bucket_name
   thumbnail_bucket_name        = var.thumbnail_bucket_name
   creator_pictures_bucket_name = var.creator_pictures_bucket_name
+  encode_queue_arn             = module.sqs.queue_arns["decode-job"]
+  thumbnail_queue_arn          = module.sqs.queue_arns["thumbnail-job"]
+  metadata_queue_arn           = module.sqs.queue_arns["raw-upload-metadata-queue"]
+
+  depends_on = [module.sqs]
 }
 
 module "sns" {
@@ -41,6 +46,44 @@ module "sqs" {
 
   env         = var.env
   queue_names = var.sqs_queue_names
+}
+
+locals {
+  s3_notification_queues = [
+    "decode-job",
+    "thumbnail-job",
+    "raw-upload-metadata-queue"
+  ]
+}
+
+data "aws_iam_policy_document" "s3_to_sqs" {
+  for_each = toset(local.s3_notification_queues)
+
+  statement {
+    sid    = "AllowS3SendMessage"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [module.sqs.queue_arns[each.key]]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [module.s3.raw_bucket_arn]
+    }
+  }
+}
+
+resource "aws_sqs_queue_policy" "s3_to_sqs" {
+  for_each = toset(local.s3_notification_queues)
+
+  queue_url = module.sqs.queue_urls[each.key]
+  policy    = data.aws_iam_policy_document.s3_to_sqs[each.key].json
 }
 
 module "cloudfront" {

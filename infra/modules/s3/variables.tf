@@ -28,3 +28,15 @@ variable "enable_lifecycle_rules" {
   type        = bool
   default     = false
 }
+
+variable "encode_queue_arn" {
+  type = string
+}
+
+variable "thumbnail_queue_arn" {
+  type = string
+}
+
+variable "metadata_queue_arn" {
+  type = string
+}

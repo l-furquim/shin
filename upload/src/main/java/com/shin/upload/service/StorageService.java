@@ -1,6 +1,9 @@
 package com.shin.upload.service;
 
+import com.shin.upload.dto.PresignedUpload;
+
 import java.util.List;
+import java.util.Map;
 
 public interface StorageService {
 
@@ -17,6 +20,13 @@ public interface StorageService {
         String destKey
     );
 
+    void assembleChunks(
+        List<String> sourceKeys,
+        String destBucket,
+        String destKey,
+        Map<String, String> metadata
+    );
+
     void delete(
         String bucket,
         String key
@@ -26,4 +36,22 @@ public interface StorageService {
         String bucket,
         List<String> keys
     );
+
+    PresignedUpload generaePresignedUpload(
+        String bucket,
+        String key,
+        String contentType
+    );
+
+    PresignedUpload generaePresignedUpload(
+        String bucket,
+        String key,
+        String contentType,
+        String videoId,
+        String userId,
+        String originalName,
+        Long fileSize,
+        List<String> resolutions
+    );
+
 }

@@ -111,22 +111,41 @@ resource "aws_s3_bucket_cors_configuration" "processed_bucket" {
   }
 }
 
-# resource "aws_s3_bucket_lifecycle_configuration" "processed_bucket" {
-#   bucket = aws_s3_bucket.processed_bucket.id
+resource "aws_s3_bucket_notification" "raw_bucket_notifications" {
+  bucket = aws_s3_bucket.raw_bucket.id
 
-#   # Transition old files to cheaper classes
-#   rule {
-#     id     = "transition-old-files"
-#     status = var.enable_lifecycle_rules ? "Enabled" : "Disabled"
+  queue {
+    events    = ["s3:ObjectCreated:*"]
+    queue_arn = var.encode_queue_arn
+  }
 
-#     transition {
-#       days          = 90
-#       storage_class = "STANDARD_IA"
-#     }
+  queue {
+    events    = ["s3:ObjectCreated:*"]
+    queue_arn = var.thumbnail_queue_arn
+  }
 
-#     transition {
-#       days          = 180
-#       storage_class = "GLACIER"
-#     }
-#   }
-# }
+  queue {
+    events    = ["s3:ObjectCreated:*"]
+    queue_arn = var.metadata_queue_arn
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "processed_bucket" {
+  bucket = aws_s3_bucket.processed_bucket.id
+
+  # Transition old files to cheaper classes
+  rule {
+    id     = "transition-old-files"
+    status = var.enable_lifecycle_rules ? "Enabled" : "Disabled"
+
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 180
+      storage_class = "GLACIER"
+    }
+  }
+}

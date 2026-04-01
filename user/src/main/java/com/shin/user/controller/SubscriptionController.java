@@ -13,12 +13,12 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("${api.version}/creators")
+@RequestMapping("${api.version}/subscriptions")
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
 
-    @PostMapping("/{channelId}/subscriptions")
+    @PostMapping("/{channelId}")
     public ResponseEntity<CreateSubscriptionResponse> subscribe(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("channelId") UUID channelId
@@ -27,7 +27,7 @@ public class SubscriptionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @DeleteMapping("/{channelId}/subscriptions")
+    @DeleteMapping("/{channelId}")
     public ResponseEntity<RemoveSubscriptionResponse> unsubscribe(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("channelId") UUID channelId
@@ -36,7 +36,7 @@ public class SubscriptionController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{channelId}/subscriptions/me")
+    @GetMapping("/{channelId}/me")
     public ResponseEntity<GetCreatorSubscriptionsResponse> getSubscriptionInfo(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable("channelId") UUID channelId

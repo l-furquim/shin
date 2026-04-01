@@ -21,6 +21,8 @@ public interface VideoService {
 
     void updateVideoThumbnail(String videoId, String thumbnailUrl);
 
+    void updateVideoRawUploadMetadata(RawUploadCreatedEvent event);
+
     SearchVideosResponse search(SearchVideosRequest request, UUID userId, Set<VideoField> fields);
 
     void increaseVideoView(UUID videoId, UUID userId);

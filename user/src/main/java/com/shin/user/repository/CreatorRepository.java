@@ -12,6 +12,13 @@ import java.util.UUID;
 @Repository
 public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
+    @Query("""
+        SELECT COALESCE(c.subscribersCount, 0)
+        FROM Creator c
+        WHERE c.id = :creatorId
+    """)
+    Long findSubscribersCount(@Param("creatorId") UUID creatorId);
+
     @Modifying
     @Query("""
         UPDATE Creator c

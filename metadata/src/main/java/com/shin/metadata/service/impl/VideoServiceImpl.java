@@ -48,6 +48,7 @@ public class VideoServiceImpl implements VideoService {
     private final ViewService viewService;
     private final UserServiceClient userServiceClient;
     private final ProcessingProgressService processingProgressService;
+
     @Value("${media.thumbnail-base-url:}")
     private String thumbnailBaseUrl;
 
@@ -347,6 +348,36 @@ public class VideoServiceImpl implements VideoService {
         if (updated <= 0) {
             throw new InvalidVideoRequestException("Video with ID " + videoId + " not found");
         }
+    }
+
+    @Override
+    @Transactional
+    public void updateVideoRawUploadMetadata(RawUploadCreatedEvent event) {
+        if (event == null || event.videoId() == null || event.videoId().isBlank()) {
+            throw new InvalidVideoRequestException("Invalid raw upload event payload");
+        }
+
+        UUID id = UUID.fromString(event.videoId());
+        Video video = videoRepository.findById(id)
+                .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + event.videoId() + " not found"));
+
+        video.setStatus(ProcessingStatus.PROCESSING);
+        video.setUploadKey(event.s3Key());
+
+        if (event.resolutions() != null && !event.resolutions().isBlank()) {
+            video.setResolutions(event.resolutions());
+        }
+        if (event.fileName() != null && !event.fileName().isBlank()) {
+            video.setFileName(event.fileName());
+        }
+        if (event.contentType() != null && !event.contentType().isBlank()) {
+            video.setFileType(event.contentType());
+        }
+        if (event.fileSize() != null) {
+            video.setFileSize(event.fileSize());
+        }
+
+        videoRepository.save(video);
     }
 
     private String resolveThumbnailUrl(String thumbnailValue) {

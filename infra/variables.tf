@@ -44,6 +44,7 @@ variable "sqs_queue_names" {
   default = [
     "decode-job",
     "thumbnail-job",
+    "raw-upload-metadata-queue",
     "encoding-finished-events",
     "thumbnail-finished-events",
     "view-events",

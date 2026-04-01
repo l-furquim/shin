@@ -14,6 +14,7 @@ sns_topic_names = [
 sqs_queue_names = [
   "decode-job",
   "thumbnail-job",
+  "raw-upload-metadata-queue",
   "encoding-finished-events",
   "thumbnail-finished-events",
   "subscription-events",
