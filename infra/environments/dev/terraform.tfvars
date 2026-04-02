@@ -17,9 +17,18 @@ sqs_queue_names = [
   "raw-upload-metadata-queue",
   "encoding-finished-events",
   "thumbnail-finished-events",
-  "subscription-events",
-  "like-events",
-  "view-events",
+  "user-subscribed-channel",
+  "user-unsubscribed-channel",
+  "video-liked",
+  "video-desliked",
+  "thread-created",
+  "comment-reply-created",
+  "comment-updated",
+  "comment-deleted",
+  "video-playback-started",
+  "video-playback-progress",
+  "video-published",
+  "view-events"
 ]
 
 enable_view_eventbridge_pipeline = false

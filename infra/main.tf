@@ -116,6 +116,12 @@ module "subscriptions" {
   }
 }
 
+module "dynamodb" {
+  source = "./modules/dynamodb"
+
+  env = var.env
+}
+
 resource "aws_cloudwatch_event_rule" "view_events" {
   count = var.enable_view_eventbridge_pipeline ? 1 : 0
 
