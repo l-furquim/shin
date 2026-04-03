@@ -33,6 +33,7 @@ variable "sns_topic_names" {
   description = "List of SNS topic names to create"
   type        = list(string)
   default = [
+    "raw-upload-created",
     "chunk-processed",
     "view-counted",
   ]

@@ -25,6 +25,18 @@ public final class ErrorCodes {
 
     public static final String UNAUTHORIZED_OPERATION = "UNAUTHORIZED_OPERATION";
 
+    public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
+    public static final String INVALID_TOKEN = "INVALID_TOKEN";
+    public static final String SESSION_EXPIRED = "SESSION_EXPIRED";
+    public static final String TOKEN_GENERATION_ERROR = "TOKEN_GENERATION_ERROR";
+    public static final String REFRESH_TOKEN_GENERATION_ERROR = "REFRESH_TOKEN_GENERATION_ERROR";
+    public static final String SESSION_RETRIEVAL_ERROR = "SESSION_RETRIEVAL_ERROR";
+
+    public static final String FORBIDDEN_SUBSCRIPTION = "FORBIDDEN_SUBSCRIPTION";
+    public static final String SUBSCRIPTION_ERROR = "SUBSCRIPTION_ERROR";
+
+    public static final String PRESIGN_ERROR = "PRESIGN_ERROR";
+
     public static final String TRANSCODER_ERROR = "TRANSCODER_ERROR";
     public static final String FFMPEG_PROCESS_ERROR = "FFMPEG_PROCESS_ERROR";
     public static final String PICTURE_UPLOAD_ERROR = "PICTURE_UPLOAD_ERROR";

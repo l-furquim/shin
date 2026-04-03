@@ -27,11 +27,9 @@ module "s3" {
   processed_bucket_name        = var.processed_bucket_name
   thumbnail_bucket_name        = var.thumbnail_bucket_name
   creator_pictures_bucket_name = var.creator_pictures_bucket_name
-  encode_queue_arn             = module.sqs.queue_arns["decode-job"]
-  thumbnail_queue_arn          = module.sqs.queue_arns["thumbnail-job"]
-  metadata_queue_arn           = module.sqs.queue_arns["raw-upload-metadata-queue"]
+  raw_upload_events_topic_arn  = module.sns.topic_arns["raw-upload-created"]
 
-  depends_on = [module.sqs]
+  depends_on = [module.sns]
 }
 
 module "sns" {
@@ -49,18 +47,39 @@ module "sqs" {
 }
 
 locals {
-  s3_notification_queues = [
-    "decode-job",
-    "thumbnail-job",
-    "raw-upload-metadata-queue"
-  ]
+  raw_upload_events_queue_subscriptions = {
+    "raw-upload-events-to-decode-job" = {
+      topic_arn = module.sns.topic_arns["raw-upload-created"]
+      queue_arn = module.sqs.queue_arns["decode-job"]
+      queue_url = module.sqs.queue_urls["decode-job"]
+    }
+    "raw-upload-events-to-thumbnail-job" = {
+      topic_arn = module.sns.topic_arns["raw-upload-created"]
+      queue_arn = module.sqs.queue_arns["thumbnail-job"]
+      queue_url = module.sqs.queue_urls["thumbnail-job"]
+    }
+    "raw-upload-events-to-metadata" = {
+      topic_arn = module.sns.topic_arns["raw-upload-created"]
+      queue_arn = module.sqs.queue_arns["raw-upload-metadata-queue"]
+      queue_url = module.sqs.queue_urls["raw-upload-metadata-queue"]
+    }
+  }
+
+  subscriptions = merge(
+    local.raw_upload_events_queue_subscriptions,
+    {
+      "metadata-view-counted" = {
+        topic_arn = module.sns.topic_arns["view-counted"]
+        queue_arn = module.sqs.queue_arns["view-events"]
+        queue_url = module.sqs.queue_urls["view-events"]
+      }
+    }
+  )
 }
 
-data "aws_iam_policy_document" "s3_to_sqs" {
-  for_each = toset(local.s3_notification_queues)
-
+data "aws_iam_policy_document" "s3_to_sns" {
   statement {
-    sid    = "AllowS3SendMessage"
+    sid    = "AllowS3Publish"
     effect = "Allow"
 
     principals {
@@ -68,8 +87,8 @@ data "aws_iam_policy_document" "s3_to_sqs" {
       identifiers = ["s3.amazonaws.com"]
     }
 
-    actions   = ["sqs:SendMessage"]
-    resources = [module.sqs.queue_arns[each.key]]
+    actions   = ["sns:Publish"]
+    resources = [module.sns.topic_arns["raw-upload-created"]]
 
     condition {
       test     = "ArnEquals"
@@ -79,11 +98,9 @@ data "aws_iam_policy_document" "s3_to_sqs" {
   }
 }
 
-resource "aws_sqs_queue_policy" "s3_to_sqs" {
-  for_each = toset(local.s3_notification_queues)
-
-  queue_url = module.sqs.queue_urls[each.key]
-  policy    = data.aws_iam_policy_document.s3_to_sqs[each.key].json
+resource "aws_sns_topic_policy" "raw_upload_events" {
+  arn    = module.sns.topic_arns["raw-upload-created"]
+  policy = data.aws_iam_policy_document.s3_to_sns.json
 }
 
 module "cloudfront" {
@@ -107,13 +124,7 @@ module "cloudfront" {
 module "subscriptions" {
   source = "./modules/subscriptions"
 
-  subscriptions = {
-    "metadata-view-counted" = {
-      topic_arn = module.sns.topic_arns["view-counted"]
-      queue_arn = module.sqs.queue_arns["view-events"]
-      queue_url = module.sqs.queue_urls["view-events"]
-    }
-  }
+  subscriptions = local.subscriptions
 }
 
 module "dynamodb" {

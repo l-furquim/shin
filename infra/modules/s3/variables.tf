@@ -29,14 +29,6 @@ variable "enable_lifecycle_rules" {
   default     = false
 }
 
-variable "encode_queue_arn" {
-  type = string
-}
-
-variable "thumbnail_queue_arn" {
-  type = string
-}
-
-variable "metadata_queue_arn" {
+variable "raw_upload_events_topic_arn" {
   type = string
 }

@@ -179,6 +179,30 @@ public class RouteConfig {
                         .uri("lb://auth-service")
                 )
 
+                .route("subscription-service", r -> r
+                        .path("/api/v1/subscriptions/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("subscriptionCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/subscription"))
+                        )
+                        .uri("lb://subscription-service")
+                )
+
+                .route("subscription-service-docs", r -> r
+                        .path("/subscription-service/v3/api-docs")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .rewritePath("/subscription-service/v3/api-docs", "/v3/api-docs"))
+                        .uri("lb://subscription-service")
+                )
+
                 .route("metadata-service-docs", r -> r
                         .path("/metadata-service/v3/api-docs")
                         .filters(f -> f
@@ -210,7 +234,8 @@ public class RouteConfig {
                                 .rewritePath("/auth-service/v3/api-docs", "/v3/api-docs"))
                         .uri("lb://auth-service")
                 )
-                
+
+
                 .build();
     }
 }

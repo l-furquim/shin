@@ -36,6 +36,11 @@ public class FallbackController {
         return createServiceUnavailableProblem("auth-service", "Auth service is temporarily unavailable. Please try again later.");
     }
 
+    @GetMapping("/subscription")
+    public Mono<ProblemDetail> SubscriptionFallback() {
+        return createServiceUnavailableProblem("subscription-service", "Subscription service is temporarily unavailable. Please try again later.");
+    }
+
     private Mono<ProblemDetail> createServiceUnavailableProblem(String service, String message) {
         return Mono.fromSupplier(() -> {
             ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(

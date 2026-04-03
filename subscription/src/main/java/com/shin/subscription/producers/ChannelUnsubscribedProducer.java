@@ -1,0 +1,17 @@
+package com.shin.subscription.producers;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@RequiredArgsConstructor
+@Component
+public class ChannelUnsubscribedProducer {
+
+   // TODO: Implement this
+   public void sendEvent() {
+       log.info("Send event to channel unsubscribed");
+   }
+
+}

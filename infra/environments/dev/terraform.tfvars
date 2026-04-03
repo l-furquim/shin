@@ -7,6 +7,7 @@ thumbnail_bucket_name        = "shin-dev-thumbnails"
 creator_pictures_bucket_name = "shin-dev-creator-pictures"
 
 sns_topic_names = [
+  "raw-upload-created",
   "chunk-processed",
   "view-counted",
 ]

@@ -114,19 +114,9 @@ resource "aws_s3_bucket_cors_configuration" "processed_bucket" {
 resource "aws_s3_bucket_notification" "raw_bucket_notifications" {
   bucket = aws_s3_bucket.raw_bucket.id
 
-  queue {
+  topic {
     events    = ["s3:ObjectCreated:*"]
-    queue_arn = var.encode_queue_arn
-  }
-
-  queue {
-    events    = ["s3:ObjectCreated:*"]
-    queue_arn = var.thumbnail_queue_arn
-  }
-
-  queue {
-    events    = ["s3:ObjectCreated:*"]
-    queue_arn = var.metadata_queue_arn
+    topic_arn = var.raw_upload_events_topic_arn
   }
 }
 

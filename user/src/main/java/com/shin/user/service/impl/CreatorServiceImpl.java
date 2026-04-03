@@ -9,8 +9,6 @@ import com.shin.user.repository.UserRepository;
 import com.shin.user.service.CreatorService;
 import com.shin.user.service.SecurityService;
 import com.shin.user.service.StorageService;
-import com.shin.user.service.SubscriptionService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,6 @@ public class CreatorServiceImpl implements CreatorService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final SecurityService securityService;
-    private final SubscriptionService subscriptionService;
 
     @Override
     public CreateCreatorResponse createCreatorWithUser(
@@ -195,7 +192,8 @@ public class CreatorServiceImpl implements CreatorService {
         Boolean isSubscribed = null;
         if (userId != null) {
             try {
-                isSubscribed = subscriptionService.getSubscriptionInfo(userId, creatorId).subscribed();
+                // TODO: finish this
+                isSubscribed = true;
             } catch (Exception e) {
                 log.warn("Could not resolve subscription status for user {} / channel {}: {}",
                         userId, creatorId, e.getMessage());

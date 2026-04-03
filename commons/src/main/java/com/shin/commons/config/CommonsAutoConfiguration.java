@@ -1,6 +1,5 @@
 package com.shin.commons.config;
 
-import com.shin.commons.exception.handler.GlobalExceptionHandler;
 import com.shin.commons.filter.CorrelationIdFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,13 +15,6 @@ import org.springframework.core.Ordered;
 public class CommonsAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(CommonsAutoConfiguration.class);
-
-    @Bean
-    @ConditionalOnMissingBean
-    public GlobalExceptionHandler globalExceptionHandler() {
-        log.info("Registering GlobalExceptionHandler from shin-commons");
-        return new GlobalExceptionHandler();
-    }
 
     @Bean
     @ConditionalOnMissingBean(name = "correlationIdFilter")

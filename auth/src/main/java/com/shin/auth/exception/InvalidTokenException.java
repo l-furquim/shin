@@ -1,7 +1,13 @@
 package com.shin.auth.exception;
 
-public class InvalidTokenException extends RuntimeException {
+import com.shin.commons.exception.ErrorCodes;
+import com.shin.commons.exception.base.UnauthorizedException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.UNAUTHORIZED)
+public class InvalidTokenException extends UnauthorizedException {
     public InvalidTokenException(String message) {
-        super(message);
+        super(ErrorCodes.INVALID_TOKEN, message);
     }
 }

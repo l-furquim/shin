@@ -21,8 +21,9 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
         </processorPath>
         <module name="auth-service" />
-        <module name="gateway" />
         <module name="user-service" />
+        <module name="subscription-service" />
+        <module name="gateway" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -42,6 +43,7 @@
       <module name="metadata-service" options="-parameters" />
       <module name="metadata-service (1)" options="-parameters" />
       <module name="shin-commons" options="-parameters" />
+      <module name="subscription-service" options="-parameters" />
       <module name="upload-service" options="-parameters" />
       <module name="user-service" options="-parameters" />
     </option>

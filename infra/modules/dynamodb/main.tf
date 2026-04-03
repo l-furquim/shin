@@ -70,27 +70,18 @@ resource "aws_dynamodb_table" "video_reactions" {
 
   global_secondary_index {
     name            = "userIdIndex"
+    hash_key        = "userId"
     projection_type = "ALL"
     read_capacity   = 1
     write_capacity  = 1
-
-
-    key_schema {
-      key_type       = "HASH"
-      attribute_name = "userId"
-    }
   }
 
   global_secondary_index {
     name            = "videoIdIndex"
+    hash_key        = "videoId"
     projection_type = "ALL"
     read_capacity   = 1
     write_capacity  = 1
-
-    key_schema {
-      key_type       = "HASH"
-      attribute_name = "videoId"
-    }
   }
 
   tags = {
@@ -144,16 +135,16 @@ resource "aws_dynamodb_table" "channel_subscriptions" {
   read_capacity  = 1
   write_capacity = 1
 
-  hash_key  = "userId"
-  range_key = "channelId"
+  hash_key  = "channelId"
+  range_key = "userId"
 
   attribute {
-    name = "userId"
+    name = "channelId"
     type = "S"
   }
 
   attribute {
-    name = "channelId"
+    name = "userId"
     type = "S"
   }
 
@@ -169,16 +160,16 @@ resource "aws_dynamodb_table" "user_subscriptions" {
   read_capacity  = 1
   write_capacity = 1
 
-  hash_key  = "channelId"
-  range_key = "userId"
+  hash_key  = "userId"
+  range_key = "channelId"
 
   attribute {
-    name = "channelId"
+    name = "userId"
     type = "S"
   }
 
   attribute {
-    name = "userId"
+    name = "channelId"
     type = "S"
   }
 
