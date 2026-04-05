@@ -1,8 +1,6 @@
 resource "aws_dynamodb_table" "video_metrics_daily" {
-  name           = "video_metrics_daily"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "video_metrics_daily"
+  billing_mode = var.billing_mode
 
   hash_key  = "videoId"
   range_key = "date"
@@ -17,18 +15,14 @@ resource "aws_dynamodb_table" "video_metrics_daily" {
     type = "S"
   }
 
-
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "channel_metrics_daily" {
-  name           = "channel_metrics_daily"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "channel_metrics_daily"
+  billing_mode = var.billing_mode
 
   hash_key  = "channelId"
   range_key = "date"
@@ -46,14 +40,11 @@ resource "aws_dynamodb_table" "channel_metrics_daily" {
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "video_reactions" {
-  name           = "video_reactions"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "video_reactions"
+  billing_mode = var.billing_mode
 
   hash_key  = "videoId"
   range_key = "userId"
@@ -68,33 +59,26 @@ resource "aws_dynamodb_table" "video_reactions" {
     type = "S"
   }
 
-  global_secondary_index {
-    name            = "userIdIndex"
-    hash_key        = "userId"
-    projection_type = "ALL"
-    read_capacity   = 1
-    write_capacity  = 1
+  attribute {
+    name = "createdAt"
+    type = "S"
   }
 
   global_secondary_index {
-    name            = "videoIdIndex"
-    hash_key        = "videoId"
+    name            = "userIdIndex"
+    hash_key        = "userId"
+    range_key       = "createdAt"
     projection_type = "ALL"
-    read_capacity   = 1
-    write_capacity  = 1
   }
 
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "video_reaction_counters" {
-  name           = "video_reaction_counters"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "video_reaction_counters"
+  billing_mode = var.billing_mode
 
   hash_key = "videoId"
 
@@ -106,15 +90,11 @@ resource "aws_dynamodb_table" "video_reaction_counters" {
   tags = {
     Env = var.env
   }
-
 }
 
-
 resource "aws_dynamodb_table" "playback_sessions" {
-  name           = "playback_sessions"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "playback_sessions"
+  billing_mode = var.billing_mode
 
   hash_key = "sessionId"
 
@@ -126,14 +106,11 @@ resource "aws_dynamodb_table" "playback_sessions" {
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "channel_subscriptions" {
-  name           = "channel_subscriptions"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "channel_subscriptions"
+  billing_mode = var.billing_mode
 
   hash_key  = "channelId"
   range_key = "userId"
@@ -151,14 +128,11 @@ resource "aws_dynamodb_table" "channel_subscriptions" {
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "user_subscriptions" {
-  name           = "user_subscriptions"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "user_subscriptions"
+  billing_mode = var.billing_mode
 
   hash_key  = "userId"
   range_key = "channelId"
@@ -176,14 +150,11 @@ resource "aws_dynamodb_table" "user_subscriptions" {
   tags = {
     Env = var.env
   }
-
 }
 
 resource "aws_dynamodb_table" "channel_subscription_counters" {
-  name           = "channel_subscription_counters"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  name         = "channel_subscription_counters"
+  billing_mode = var.billing_mode
 
   hash_key = "channelId"
 
@@ -195,5 +166,4 @@ resource "aws_dynamodb_table" "channel_subscription_counters" {
   tags = {
     Env = var.env
   }
-
 }

@@ -1,11 +1,11 @@
 package com.shin.upload.service;
 
 import com.shin.upload.dto.*;
-import org.springframework.web.multipart.MultipartFile;
+
 
 public interface UploadService {
 
-    RawUploadResponse uploadRawVideo(String userId, RawUploadData data, MultipartFile file);
+    RawUploadResponse uploadRawVideo(String userId, RawUploadData data);
 
     InitiateUploadResponse initiateUpload(String userId, InitiateUploadRequest request);
 

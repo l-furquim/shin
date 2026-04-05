@@ -8,16 +8,13 @@ import com.shin.upload.model.UploadState;
 import com.shin.upload.model.enums.UploadStatus;
 import com.shin.upload.producers.EncodingJobProducer;
 import com.shin.upload.producers.RawUploadMetadataProducer;
-import com.shin.upload.service.MetadataClientService;
+import com.shin.upload.producers.VideoInitializedProducer;
 import com.shin.upload.service.StorageService;
 import com.shin.upload.service.UploadService;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -27,50 +24,46 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class UploadServiceImpl implements UploadService {
 
-    private static final Logger log = LoggerFactory.getLogger(UploadServiceImpl.class);
     private static final long CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
     private static final int MAX_RAW_SIZE = 100 * 1024 * 1024; // 100 MB
 
     private final StorageService storageService;
-    private final MetadataClientService metadataClient;
+    private final VideoInitializedProducer videoInitializedProducer;
     private final EncodingJobProducer encodingProducer;
     private final RawUploadMetadataProducer rawUploadMetadataProducer;
     private final RedisTemplate<String, UploadState> redisTemplate;
 
     @Override
-    public RawUploadResponse uploadRawVideo(String userId, RawUploadData data, MultipartFile file) {
-        if(file.getSize() > MAX_RAW_SIZE){
+    public RawUploadResponse uploadRawVideo(String userId, RawUploadData data) {
+        if(data.fileSize() > MAX_RAW_SIZE){
             throw new InvalidVideoUploadException("File too large for raw upload. Max size: 100MB");
         }
+
         UUID uploadId = UUID.randomUUID();
 
-        final var originalName = file.getOriginalFilename();
-
-        if(originalName == null || originalName.isBlank()) {
-            throw new InvalidVideoUploadException("Original file name is invalid");
+        if(data.fileName() == null || data.fileName().isBlank()) {
+            throw new InvalidVideoUploadException("File name is invalid");
         }
-
-        final var extension = FilenameUtils.getExtension(originalName);
-
         final var resolutions = sanitizeResolutions(data.resolutions());
-        final var videoId = resolveVideoId(userId, resolutions);
+        final var videoId = UUID.randomUUID();
 
         log.info("Initiating raw upload: uploadId={}, videoId={}", uploadId, videoId);
 
-        final String finalKey = videoId + "/original." + extension;
+        final String finalKey = videoId + "/original.mp4";
 
         final var presignedUpload = this.storageService.generaePresignedUpload(
                 "raw",
                 finalKey,
-                file.getContentType(),
+                data.mimeType(),
                 videoId.toString(),
                 userId,
-                originalName,
-                file.getSize(),
+                data.fileName(),
+                data.fileSize(),
                 resolutions
         );
 
@@ -79,10 +72,10 @@ public class UploadServiceImpl implements UploadService {
                         videoId.toString(),
                         userId,
                         finalKey,
-                        originalName,
+                        data.fileName(),
                         String.join(",", resolutions),
-                        file.getContentType(),
-                        file.getSize()
+                        data.mimeType(),
+                        data.fileSize()
                 )
         );
 
@@ -97,8 +90,8 @@ public class UploadServiceImpl implements UploadService {
     public InitiateUploadResponse initiateUpload(String userId, InitiateUploadRequest request) {
         validateVideoFile(request.fileName(), request.fileSize(), request.contentType());
         final var resolutions = sanitizeResolutions(request.resolutions());
-        final var videoId = resolveVideoId(userId, resolutions);
 
+        UUID videoId = UUID.randomUUID();
         UUID uploadId = UUID.randomUUID();
 
         long totalChunks = (request.fileSize() / CHUNK_SIZE) + (request.fileSize() % CHUNK_SIZE > 0 ? 1 : 0);
@@ -120,10 +113,14 @@ public class UploadServiceImpl implements UploadService {
 
         redisTemplate.opsForValue().set("upload:" + uploadId, uploadState);
 
-        metadataClient.updateVideo(
-                new UpdateVideoRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, "UPLOADING"),
-                videoId.toString()
-        );
+        videoInitializedProducer.publish(new VideoInitializedEvent(
+                videoId.toString(),
+                userId,
+                "Untitled",
+                "PRIVATE",
+                "UPLOADING",
+                String.join(",", resolutions)
+        ));
 
         return new InitiateUploadResponse(
             uploadId,
@@ -152,7 +149,6 @@ public class UploadServiceImpl implements UploadService {
             }
 
             String chunkKey = state.videoId() + "/temp" + "/chunk-" + chunkNumber;
-
             storageService.upload("raw", chunkKey, data, "application/octet-stream");
 
             int newUploadedChunks = state.uploadedChunks() + 1;
@@ -170,7 +166,7 @@ public class UploadServiceImpl implements UploadService {
                 state.createdAt()
             );
 
-            log.info("Uploaded chunks: {} to the of {} for uploadId={} in key={}", newUploadedChunks, state.totalChunks(), uploadId, chunkKey);
+            log.info("Uploaded chunks: {} of {} for uploadId={} in key={}", newUploadedChunks, state.totalChunks(), uploadId, chunkKey);
 
             redisTemplate.opsForValue().set("upload:" + uploadId, updatedState, Duration.ofHours(24));
 
@@ -250,23 +246,17 @@ public class UploadServiceImpl implements UploadService {
     }
 
     private void assembleAndProcess(UploadState state, String finalKey) {
-
         List<String> chunks = IntStream.rangeClosed(1, state.totalChunks())
             .mapToObj(i -> state.videoId() + "/temp" + "/chunk-" + i)
             .toList();
 
         storageService.assembleChunks(chunks, "raw", finalKey, buildRawObjectMetadata(state, finalKey));
-
         chunks.forEach(chunkKey -> storageService.delete("raw", chunkKey));
 
         long processingTimeInMinutes = Duration.between(state.createdAt(), LocalDateTime.now()).toMinutes();
-
         log.info("Assembled chunks into final video at key={} for uploadId={} in {} minutes", finalKey, state.id(), processingTimeInMinutes);
 
-        this.finishUpload(
-            state,
-            finalKey
-        );
+        finishUpload(state, finalKey);
     }
 
     private void validateVideoFile(String fileName, Long fileSize, String contentType) {
@@ -286,15 +276,7 @@ public class UploadServiceImpl implements UploadService {
         }
     }
 
-    private void finishUpload(
-            UploadState state,
-            String finalKey
-    ) {
-        metadataClient.updateVideo(
-                new UpdateVideoRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, "PROCESSING"),
-                state.videoId().toString()
-        );
-
+    private void finishUpload(UploadState state, String finalKey) {
         encodingProducer.createJob(
                 new TranscodeJobEvent(
                         state.videoId().toString(),
@@ -318,21 +300,6 @@ public class UploadServiceImpl implements UploadService {
                 "contenttype", "video/mp4",
                 "filesize", String.valueOf(state.fileSize())
         );
-    }
-
-    private UUID resolveVideoId(String userId, List<String> resolutions) {
-        CreateVideoResponse createdVideo = metadataClient.createVideo(
-            new CreateVideoRequest(
-                "Untitled",
-                "",
-                "PRIVATE",
-                "UPLOADING",
-                userId,
-                String.join(",", resolutions)
-            )
-        );
-
-        return createdVideo.id();
     }
 
     private List<String> sanitizeResolutions(String[] resolutions) {

@@ -20,25 +20,6 @@ public class UploadController {
         this.uploadService = uploadService;
     }
 
-    @PostMapping
-    public ResponseEntity<RawUploadResponse> uploadRawVideo(
-        @RequestHeader("X-User-Id") String userId,
-        @RequestPart("data") RawUploadData data,
-        @RequestPart("file") MultipartFile file
-    ) {
-        RawUploadData requestData = new RawUploadData(
-            data.resolutions()
-        );
-
-        RawUploadResponse response = uploadService.uploadRawVideo(
-            userId,
-            requestData,
-            file
-        );
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
-    }
-
     @PostMapping("/sessions")
     public ResponseEntity<InitiateUploadResponse> initiateUpload(
         @RequestHeader("X-User-Id") String userId,
@@ -59,7 +40,6 @@ public class UploadController {
             chunkNumber,
             file.getBytes()
         );
-
         return ResponseEntity.ok(response);
     }
 

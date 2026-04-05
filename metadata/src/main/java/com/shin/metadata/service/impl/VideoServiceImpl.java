@@ -285,6 +285,12 @@ public class VideoServiceImpl implements VideoService {
         viewService.increaseView(videoId, viewerKey);
     }
 
+    @Override
+    @Transactional
+    public void applyLikeDelta(UUID videoId, long delta) {
+        videoRepository.applyLikeDelta(videoId, delta);
+    }
+
     private List<Video> fetchVideos(boolean isForward, Long categoryId,
                                     LocalDateTime cursorTimestamp, UUID cursorId, Pageable pageable) {
         boolean hasCursor = cursorTimestamp != null && cursorId != null;

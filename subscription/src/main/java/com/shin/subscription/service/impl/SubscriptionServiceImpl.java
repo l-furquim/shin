@@ -3,7 +3,7 @@ package com.shin.subscription.service.impl;
 import com.shin.subscription.dto.CreateSubscriptionResponse;
 import com.shin.subscription.dto.GetCreatorSubscriptionsResponse;
 import com.shin.subscription.dto.RemoveSubscriptionResponse;
-import com.shin.subscription.exceptions.ForbbidenSubscriptionException;
+import com.shin.subscription.exceptions.ForbiddenSubscriptionException;
 import com.shin.subscription.exceptions.SubscriptionError;
 import com.shin.subscription.producers.ChannelSubscribedProducer;
 import com.shin.subscription.producers.ChannelUnsubscribedProducer;
@@ -36,7 +36,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public CreateSubscriptionResponse subscribe(UUID userId, UUID channelId) {
         if (userId.equals(channelId)) {
-            throw new ForbbidenSubscriptionException();
+            throw new ForbiddenSubscriptionException();
         }
 
         var countTransaction = this.subscriptionCountService.buildDelta(channelId.toString(), 1L);
@@ -60,7 +60,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             // TODO: understand how to handle this exception properly.
             throw new SubscriptionError();
         }
-        this.channelSubscribedProducer.sendEvent();
+        this.channelSubscribedProducer.sendEvent(channelId, userId);
 
         final var newCount = this.subscriptionCountService.getCurrentCount(channelId.toString());
 
@@ -73,7 +73,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public RemoveSubscriptionResponse unsubscribe(UUID userId, UUID channelId) {
         if (userId.equals(channelId)) {
-            throw new ForbbidenSubscriptionException();
+            throw new ForbiddenSubscriptionException();
         }
 
         final var countTransaction = this.subscriptionCountService.buildDelta(channelId.toString(), -1L);
@@ -99,7 +99,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         final var newCount = this.subscriptionCountService.getCurrentCount(channelId.toString());
 
-        this.channelUnsubscribedProducer.sendEvent();
+        this.channelUnsubscribedProducer.sendEvent(channelId, userId);
 
         return new RemoveSubscriptionResponse(
                 false,
@@ -112,7 +112,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public GetCreatorSubscriptionsResponse getSubscriptionInfo(UUID userId, UUID channelId) {
         final var count = this.subscriptionCountService.getCurrentCount(channelId.toString());
 
-        var subscribed = userId == channelId;
+        var subscribed = userId.equals(channelId);
 
         if(!subscribed) {
             subscribed = this.userSubscriptionService.isUserSubscribed(userId.toString(), channelId.toString());

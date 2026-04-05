@@ -37,11 +37,8 @@ public class RedisConfig {
 
         return new LettuceConnectionFactory(redisConfig);
     }
-
     @Bean
-    public RedisTemplate<String, Session> redisTemplate(
-            RedisConnectionFactory connectionFactory
-    ) {
+    public RedisTemplate<String, Session> redisTemplate(RedisConnectionFactory connectionFactory) {
         ObjectMapper mapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -60,5 +57,4 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
-
 }

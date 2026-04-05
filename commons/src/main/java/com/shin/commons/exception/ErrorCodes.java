@@ -47,4 +47,6 @@ public final class ErrorCodes {
     public static final String DATABASE_ERROR = "DATABASE_ERROR";
     public static final String CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION";
     public static final String INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
+    public static final String IDEMPOTENCY_ERROR = "IDEMPOTENCY_ERROR";
+
 }

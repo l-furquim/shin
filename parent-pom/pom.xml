@@ -27,6 +27,7 @@
         <apache.httpcore4.version>4.4.16</apache.httpcore4.version>
         <bucket4j.version>8.16.0</bucket4j.version>
         <redisson.version>3.35.0</redisson.version>
+        <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -76,6 +77,12 @@
                         <artifactId>httpclient</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>net.logstash.logback</groupId>
+                <artifactId>logstash-logback-encoder</artifactId>
+                <version>${logstash-logback-encoder.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

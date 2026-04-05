@@ -41,6 +41,11 @@ public class FallbackController {
         return createServiceUnavailableProblem("subscription-service", "Subscription service is temporarily unavailable. Please try again later.");
     }
 
+    @GetMapping("/interaction")
+    public Mono<ProblemDetail> InteractionFallback() {
+        return createServiceUnavailableProblem("interaction-service", "Interaction service is temporarily unavailable. Please try again later.");
+    }
+
     private Mono<ProblemDetail> createServiceUnavailableProblem(String service, String message) {
         return Mono.fromSupplier(() -> {
             ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(

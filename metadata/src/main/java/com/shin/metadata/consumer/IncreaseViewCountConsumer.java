@@ -7,13 +7,16 @@ import com.shin.metadata.service.VideoService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Locale;
-import java.util.regex.Pattern;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -21,12 +24,22 @@ import java.util.UUID;
 public class IncreaseViewCountConsumer {
 
     private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");
+    private static final String PROCESSED_KEY_PREFIX = "processed:";
+    private static final Duration DEDUP_TTL = Duration.ofDays(4);
 
     private final ObjectMapper objectMapper;
     private final VideoService videoService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @SqsListener(queueNames = "${spring.cloud.aws.queues.view-count-queue}")
-    public void consume(String message) {
+    public void consume(String message, @Header("id") String messageId) {
+        String dedupKey = PROCESSED_KEY_PREFIX + messageId;
+        Boolean isNew = stringRedisTemplate.opsForValue().setIfAbsent(dedupKey, "1", DEDUP_TTL);
+        if (Boolean.FALSE.equals(isNew)) {
+            log.info("Skipping duplicate view count event messageId={}", messageId);
+            return;
+        }
+
         try {
             IncreaseViewCountEvent event = resolveEvent(message);
             if (event == null) {
@@ -34,10 +47,9 @@ public class IncreaseViewCountConsumer {
             }
 
             String viewerKey = resolveViewerKey(event);
-
             videoService.increaseVideoView(event.videoId(), viewerKey);
-
         } catch (Exception e) {
+            stringRedisTemplate.delete(dedupKey);
             log.error("Error while consuming view event", e);
         }
     }
@@ -117,10 +129,7 @@ public class IncreaseViewCountConsumer {
         if (objectKey == null || objectKey.isBlank()) {
             return false;
         }
-
         String normalized = objectKey.toLowerCase(Locale.ROOT);
         return normalized.endsWith(".m4s") && normalized.contains("chunk-");
     }
-
-
 }

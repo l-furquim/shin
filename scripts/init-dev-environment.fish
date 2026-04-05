@@ -64,8 +64,11 @@ set -Ux THUMBNAIL_JOB_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json s
 set -Ux ENCODING_FINISHED_EVENTS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."encoding-finished-events"')
 set -Ux THUMBNAIL_FINISHED_EVENTS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-finished-events"')
 set -Ux RAW_UPLOAD_METADATA_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."raw-upload-metadata-queue"')
-set -Ux SUBSCRIPTION_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."subscription-events"')
+set -Ux VIDEO_INITIALIZED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-initialized"')
 set -Ux LIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
+set -Ux DISLIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."dislike-events"')
+set -Ux CHANNEL_SUBSCRIBED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-subscribed"')
+set -Ux CHANNEL_UNSUBSCRIBED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-unsubscribed"')
 set -Ux VIEW_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."view-events"')
 
 set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')

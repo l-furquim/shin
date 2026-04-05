@@ -6,8 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.FORBIDDEN)
-public class ForbbidenSubscriptionException extends ForbiddenException {
-    public ForbbidenSubscriptionException() {
+public class ForbiddenSubscriptionException extends ForbiddenException {
+    public ForbiddenSubscriptionException() {
         super(ErrorCodes.FORBIDDEN_SUBSCRIPTION, "You are not allowed to perform this subscription operation");
     }
 }

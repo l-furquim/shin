@@ -195,12 +195,36 @@ public class RouteConfig {
                         .uri("lb://subscription-service")
                 )
 
+                .route("interaction-service-reactions", r -> r
+                        .path("/api/v1/reactions/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("interactionCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/interaction"))
+                        )
+                        .uri("lb://interaction-service")
+                )
+
                 .route("subscription-service-docs", r -> r
                         .path("/subscription-service/v3/api-docs")
                         .filters(f -> f
                                 .filter(correlationIdFilter.apply(new Object()))
                                 .rewritePath("/subscription-service/v3/api-docs", "/v3/api-docs"))
                         .uri("lb://subscription-service")
+                )
+
+                .route("interaction-service-docs", r -> r
+                        .path("/interaction-service/v3/api-docs")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .rewritePath("/interaction-service/v3/api-docs", "/v3/api-docs"))
+                        .uri("lb://interaction-service")
                 )
 
                 .route("metadata-service-docs", r -> r

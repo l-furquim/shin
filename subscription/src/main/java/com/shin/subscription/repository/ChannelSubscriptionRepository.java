@@ -1,12 +1,7 @@
 package com.shin.subscription.repository;
 
-import com.shin.subscription.model.ChannelSubscription;
-import io.awspring.cloud.dynamodb.DynamoDbTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.Delete;
 import software.amazon.awssdk.services.dynamodb.model.Put;
@@ -17,25 +12,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Component
 public class ChannelSubscriptionRepository {
-
-    private final DynamoDbTemplate dynamoDbTemplate;
-
-    public ChannelSubscription findByPartitionKey(String partitionKey){
-        QueryConditional keyCondition = QueryConditional
-                .keyEqualTo(Key.builder().partitionValue(partitionKey).build());
-
-        QueryEnhancedRequest queryRequest = QueryEnhancedRequest.builder()
-                .queryConditional(keyCondition)
-                .build();
-
-        return dynamoDbTemplate.query(queryRequest, ChannelSubscription.class)
-                .items()
-                .stream().findFirst().orElse(null);
-    }
-
-    public void save(ChannelSubscription channelSubscription){
-        dynamoDbTemplate.save(channelSubscription);
-    }
 
     public TransactWriteItem buildWriteTransactionItem(String channelId, String userId) {
        return TransactWriteItem.builder()
