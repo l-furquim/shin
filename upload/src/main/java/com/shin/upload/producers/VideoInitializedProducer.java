@@ -18,7 +18,7 @@ public class VideoInitializedProducer {
     @Value("${spring.cloud.aws.queues.video-initialized-queue}")
     private String queue;
 
-    public void publish(VideoInitializedEvent event) {
+    public void send(VideoInitializedEvent event) {
         try {
             template.send(queue, event);
             log.info("Published VideoInitializedEvent videoId={}", event.videoId());

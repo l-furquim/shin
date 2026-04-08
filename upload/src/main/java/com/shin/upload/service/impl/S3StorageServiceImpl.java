@@ -1,5 +1,6 @@
 package com.shin.upload.service.impl;
 
+import com.shin.upload.dto.PresignedChunk;
 import com.shin.upload.dto.PresignedUpload;
 import com.shin.upload.exceptions.PresignException;
 import com.shin.upload.service.StorageService;
@@ -10,34 +11,24 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
 public class S3StorageServiceImpl implements StorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(S3StorageServiceImpl.class);
-    private static final Duration PRESIGN_EXPIRES_IN_MINUTES = Duration.ofMinutes(15);
+    private static final Duration PRESIGN_DURATION = Duration.ofMinutes(15);
 
     private final S3Client client;
     private final S3Presigner presigner;
-
-    public S3StorageServiceImpl(S3Client client, S3Presigner presigner) {
-        this.client = client;
-        this.presigner = presigner;
-    }
 
     @Value("${spring.cloud.aws.s3.buckets.raw}")
     private String rawBucket;
@@ -45,13 +36,16 @@ public class S3StorageServiceImpl implements StorageService {
     @Value("${spring.cloud.aws.s3.buckets.processed}")
     private String processedBucket;
 
+    public S3StorageServiceImpl(S3Client client, S3Presigner presigner) {
+        this.client = client;
+        this.presigner = presigner;
+    }
+
     @Override
     public void upload(String bucket, String key, byte[] data, String contentType) {
         try {
-            String resolvedBucket = resolveBucket(bucket);
-
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(resolvedBucket)
+                .bucket(resolveBucket(bucket))
                 .key(key)
                 .contentType(contentType)
                 .build();
@@ -105,43 +99,28 @@ public class S3StorageServiceImpl implements StorageService {
             }
 
             logger.info("Binary concatenation completed. Final file size: {} bytes", outputFile.length());
-            logger.info("Uploading assembled video to S3: {}", destKey);
-
-            String resolvedDestBucket = resolveBucket(destBucket);
 
             PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(resolvedDestBucket)
+                .bucket(resolveBucket(destBucket))
                 .key(destKey)
                 .metadata(metadata)
                 .contentType("video/mp4")
                 .build();
 
             client.putObject(putRequest, RequestBody.fromFile(outputFile));
-
             logger.info("Successfully uploaded assembled video to S3: {}", destKey);
 
         } catch (Exception e) {
             logger.error("Error assembling chunks: {}", e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
-            logger.info("Cleaning up temporary files");
             for (File chunk : chunks) {
-                try {
-                    if (chunk.delete()) {
-                        logger.debug("Deleted chunk file: {}", chunk.getAbsolutePath());
-                    }
-                } catch (Exception e) {
-                    logger.warn("Failed to delete chunk file: {}, {}", chunk.getAbsolutePath(), e.getMessage());
+                if (!chunk.delete()) {
+                    logger.warn("Failed to delete temp chunk file: {}", chunk.getAbsolutePath());
                 }
             }
-            if (outputFile != null) {
-                try {
-                    if (outputFile.delete()) {
-                        logger.debug("Deleted output file: {}", outputFile.getAbsolutePath());
-                    }
-                } catch (Exception e) {
-                    logger.warn("Failed to delete output file: {}, {}", outputFile.getAbsolutePath(), e.getMessage());
-                }
+            if (outputFile != null && !outputFile.delete()) {
+                logger.warn("Failed to delete temp output file: {}", outputFile.getAbsolutePath());
             }
         }
     }
@@ -149,75 +128,42 @@ public class S3StorageServiceImpl implements StorageService {
     @Override
     public void delete(String bucket, String key) {
         try {
-            String resolvedBucket = resolveBucket(bucket);
-
-            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                .bucket(resolvedBucket)
+            client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(resolveBucket(bucket))
                 .key(key)
-                .build();
-
-            client.deleteObject(deleteRequest);
+                .build());
         } catch (Exception e) {
-            logger.error("Error deleting from S3: {}", e.getMessage(), e);
+            logger.error("Error deleting s3://{}/{}: {}", bucket, key, e.getMessage(), e);
         }
     }
 
     @Override
     public void deleteMultiple(String bucket, List<String> keys) {
+        if (keys.isEmpty()) return;
+
         try {
-            String resolvedBucket = resolveBucket(bucket);
+            List<ObjectIdentifier> identifiers = keys.stream()
+                .map(key -> ObjectIdentifier.builder().key(key).build())
+                .toList();
 
-            for (String key : keys) {
-                DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                    .bucket(resolvedBucket)
-                    .key(key)
-                    .build();
-
-                client.deleteObject(deleteRequest);
-            }
+            client.deleteObjects(DeleteObjectsRequest.builder()
+                .bucket(resolveBucket(bucket))
+                .delete(Delete.builder().objects(identifiers).build())
+                .build());
         } catch (Exception e) {
-            logger.error("Error deleting from S3: {}", e.getMessage(), e);
+            logger.error("Error deleting multiple objects from S3: {}", e.getMessage(), e);
         }
     }
 
     @Override
-    public PresignedUpload generaePresignedUpload(String bucket, String key, String contentType) {
+    public PresignedUpload generatePresignedUpload(String bucket, String key, String contentType,
+            String videoId, String userId, String originalName, Long fileSize, List<String> resolutions) {
         try {
-            final String resolvedBucket = resolveBucket(bucket);
-
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(resolvedBucket)
-                    .key(key)
-                    .contentType(contentType)
-                    .build();
-
-            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .putObjectRequest(putObjectRequest)
-                    .signatureDuration(PRESIGN_EXPIRES_IN_MINUTES)
-                    .build();
-
-            final var response = presigner.presignPutObject(presignRequest);
-
-            return new PresignedUpload(
-                    response.url().toString(),
-                    response.expiration().getEpochSecond()
-            );
-        } catch (Exception e) {
-            logger.error("Error generating presigned upload: {}", e.getMessage(), e);
-            throw new PresignException(e.getMessage());
-        }
-    }
-
-    @Override
-    public PresignedUpload generaePresignedUpload(String bucket, String key, String contentType, String videoId, String userId, String originalName, Long fileSize, List<String> resolutions) {
-        try {
-            final String resolvedBucket = resolveBucket(bucket);
-
-            Map<String, String> metadata = new java.util.HashMap<>(Map.of(
-                    "videoid", videoId,
-                    "userid", userId,
-                    "filename", originalName,
-                    "resolutions", resolutions.stream().collect(Collectors.joining(","))
+            Map<String, String> metadata = new HashMap<>(Map.of(
+                "videoid", videoId,
+                "userid", userId,
+                "filename", originalName,
+                "resolutions", String.join(",", resolutions)
             ));
 
             if (fileSize != null) {
@@ -228,36 +174,56 @@ public class S3StorageServiceImpl implements StorageService {
             }
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(resolvedBucket)
-                    .key(key)
-                    .metadata(metadata)
-                    .contentType(contentType)
-                    .build();
+                .bucket(resolveBucket(bucket))
+                .key(key)
+                .metadata(metadata)
+                .contentType(contentType)
+                .build();
 
-            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .putObjectRequest(putObjectRequest)
-                    .signatureDuration(PRESIGN_EXPIRES_IN_MINUTES)
-                    .build();
+            var response = presigner.presignPutObject(PutObjectPresignRequest.builder()
+                .putObjectRequest(putObjectRequest)
+                .signatureDuration(PRESIGN_DURATION)
+                .build());
 
-            final var response =  presigner.presignPutObject(presignRequest);
+            return new PresignedUpload(response.url().toString(), response.expiration().getEpochSecond());
 
-            return new PresignedUpload(
-                    response.url().toString(),
-                    response.expiration().getEpochSecond()
-            );
-        } catch (Exception e)  {
+        } catch (Exception e) {
             logger.error("Error generating presigned upload: {}", e.getMessage(), e);
             throw new PresignException(e.getMessage());
         }
     }
 
-    private String resolveBucket(String bucket) {
-        if ("raw".equals(bucket)) {
-            return rawBucket;
-        } else if ("processed".equals(bucket)) {
-            return processedBucket;
-        } else {
-            throw new IllegalArgumentException("Invalid bucket name");
+    @Override
+    public List<PresignedChunk> generatePresignedChunks(String bucket, List<String> keys) {
+        try {
+            String resolvedBucket = resolveBucket(bucket);
+            List<PresignedChunk> presignedChunks = new ArrayList<>(keys.size());
+
+            for (int i = 0; i < keys.size(); i++) {
+                PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(resolvedBucket)
+                    .key(keys.get(i))
+                    .build();
+
+                var response = presigner.presignPutObject(PutObjectPresignRequest.builder()
+                    .putObjectRequest(putObjectRequest)
+                    .signatureDuration(PRESIGN_DURATION)
+                    .build());
+
+                presignedChunks.add(new PresignedChunk(i, response.url().toString(), response.expiration().getEpochSecond()));
+            }
+
+            return presignedChunks;
+
+        } catch (Exception e) {
+            logger.error("Error generating presigned chunks: {}", e.getMessage(), e);
+            throw new PresignException(e.getMessage());
         }
+    }
+
+    private String resolveBucket(String bucket) {
+        if ("raw".equals(bucket)) return rawBucket;
+        if ("processed".equals(bucket)) return processedBucket;
+        throw new IllegalArgumentException("Unknown bucket alias: " + bucket);
     }
 }

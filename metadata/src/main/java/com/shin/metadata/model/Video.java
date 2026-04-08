@@ -83,6 +83,7 @@ public class Video {
 
     private String fileType;
 
+    // TODO: likeCount is no longer updated by this service — fetch from interaction-service via API or event-driven sync
     @Builder.Default
     private Long likeCount = 0L;
 

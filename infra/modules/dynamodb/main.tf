@@ -167,3 +167,82 @@ resource "aws_dynamodb_table" "channel_subscription_counters" {
     Env = var.env
   }
 }
+
+resource "aws_dynamodb_table" "comments" {
+  name         = "comments"
+  billing_mode = var.billing_mode
+
+  hash_key  = "id"
+  range_key = "createdAt"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  attribute {
+    name = "parentId"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "parentIdIndex"
+    hash_key        = "parentId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  tags = {
+    Env = var.env
+  }
+}
+
+resource "aws_dynamodb_table" "comment_threads" {
+  name         = "comment_threads"
+  billing_mode = var.billing_mode
+
+  hash_key  = "videoId"
+  range_key = "topLevelCommentId"
+
+  attribute {
+    name = "videoId"
+    type = "S"
+  }
+
+  attribute {
+    name = "topLevelCommentId"
+    type = "S"
+  }
+
+  attribute {
+    name = "channelId"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "topLevelCommentIdIndex"
+    hash_key        = "topLevelCommentId"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "channelIdIndex"
+    hash_key        = "channelId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  tags = {
+    Env = var.env
+  }
+}

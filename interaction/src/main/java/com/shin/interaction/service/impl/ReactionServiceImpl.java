@@ -45,11 +45,11 @@ public class ReactionServiceImpl implements ReactionService {
                 .build();
 
         if (type.equals(REACTION_TYPE.LIKE)) {
-            this.handleReaction(reaction, 1L, -1L);
-            this.videoLikedProducer.sendEvent(videoId, userId);
+            boolean isNew = this.handleReaction(reaction, 1L, -1L);
+            if (isNew) this.videoLikedProducer.sendEvent(videoId, userId);
         } else if (type.equals(REACTION_TYPE.DESLIKE)) {
-            this.handleReaction(reaction, -1L, 1L);
-            this.videoDeslikedProducer.sendEvent(videoId, userId);
+            boolean isNew = this.handleReaction(reaction, -1L, 1L);
+            if (isNew) this.videoDeslikedProducer.sendEvent(videoId, userId);
         }
 
         final var counts = reactionCountRepository.getCount(videoId.toString());
@@ -89,7 +89,7 @@ public class ReactionServiceImpl implements ReactionService {
         return new DeleteReactionResponse(counts.getLikesCount(), counts.getDeslikesCount());
     }
 
-    private void handleReaction(Reaction reaction, Long likeDelta, Long deslikeDelta) {
+    private boolean handleReaction(Reaction reaction, Long likeDelta, Long deslikeDelta) {
         try {
             final var upsertTransaction = reactionRepository.upsert(reaction);
             final var counterTransaction = reactionCountRepository.applyDelta(
@@ -101,6 +101,11 @@ public class ReactionServiceImpl implements ReactionService {
                     counterTransaction
             ));
 
+            return true;
+
+        } catch (TransactionCanceledException e) {
+            log.debug("Duplicate reaction ignored for videoId={}, userId={}", reaction.getVideoId(), reaction.getUserId());
+            return false;
         } catch (Exception e) {
             log.error("Reaction transaction failed for videoId={}, userId={}: {}",
                     reaction.getVideoId(), reaction.getUserId(), e.getMessage());

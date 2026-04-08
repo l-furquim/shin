@@ -6,9 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 
 @RestController
 @RequestMapping("${api.version}/uploads")
@@ -20,37 +18,33 @@ public class UploadController {
         this.uploadService = uploadService;
     }
 
-    @PostMapping("/sessions")
-    public ResponseEntity<InitiateUploadResponse> initiateUpload(
-        @RequestHeader("X-User-Id") String userId,
-        @Valid @RequestBody InitiateUploadRequest request
+    @PostMapping
+    public ResponseEntity<RawUploadResponse> initiateRawUpload(
+            @Valid @RequestBody RawUploadData data,
+            @RequestHeader("X-User-Id") String userId
     ) {
-        InitiateUploadResponse response = uploadService.initiateUpload(userId, request);
+        final var response = uploadService.initiateRawUpload(userId, data);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/sessions/{uploadId}/chunks/{chunkNumber}")
-    public ResponseEntity<ChunkUploadResponse> uploadChunk(
-        @PathVariable String uploadId,
-        @PathVariable Integer chunkNumber,
-        @RequestPart("file") MultipartFile file
-    ) throws IOException {
-        ChunkUploadResponse response = uploadService.uploadChunk(
-            uploadId,
-            chunkNumber,
-            file.getBytes()
-        );
-        return ResponseEntity.ok(response);
+    @PostMapping("/chunked")
+    public ResponseEntity<ChunkedUploadResponse> initiateChunkedUpload(
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody ChunkedUploadRequest request
+    ) {
+        ChunkedUploadResponse response = uploadService.initiateUpload(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/sessions/{uploadId}/complete")
-    public ResponseEntity<RawUploadResponse> completeUpload(@PathVariable String uploadId) {
-        RawUploadResponse response = uploadService.completeUpload(uploadId);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    @PostMapping("/chunked/{uploadId}/complete")
+    public ResponseEntity<Void> completeUpload(@PathVariable String uploadId) {
+        uploadService.completeUpload(uploadId);
+        return ResponseEntity.accepted().build();
     }
 
-    @DeleteMapping("/sessions/{uploadId}")
-    public CancelUploadResponse cancelUpload(@PathVariable String uploadId) {
-        return uploadService.cancelUpload(uploadId);
+    @DeleteMapping("/chunked/{uploadId}")
+    public ResponseEntity<Void> cancelUpload(@PathVariable String uploadId) {
+        uploadService.cancelUpload(uploadId);
+        return ResponseEntity.noContent().build();
     }
 }

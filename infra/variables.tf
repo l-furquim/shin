@@ -49,6 +49,15 @@ variable "sqs_queue_names" {
     "encoding-finished-events",
     "thumbnail-finished-events",
     "view-events",
+    "thread-created",
+    "comment-reply-created",
+    "comment-updated",
+    "comment-deleted",
+    "video-initialized",
+    "like-events",
+    "dislike-events",
+    "channel-subscribed",
+    "channel-unsubscribed",
   ]
 }
 

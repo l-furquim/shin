@@ -18,13 +18,18 @@ public class ReactionRepository {
     private final DynamoDbTemplate dynamoDbTemplate;
 
     public TransactWriteItem upsert(Reaction reaction) {
+        String newType = reaction.getType().name().toLowerCase();
         return TransactWriteItem.builder()
                 .put(Put.builder()
                         .tableName("video_reactions")
                         .item(Map.of(
                                 "videoId", AttributeValue.builder().s(reaction.getVideoId().toString()).build(),
                                 "userId", AttributeValue.builder().s(reaction.getUserId().toString()).build(),
-                                "reactionType", AttributeValue.builder().s(reaction.getType().name().toLowerCase()).build()
+                                "reactionType", AttributeValue.builder().s(newType).build()
+                        ))
+                        .conditionExpression("attribute_not_exists(videoId) OR reactionType <> :newType")
+                        .expressionAttributeValues(Map.of(
+                                ":newType", AttributeValue.builder().s(newType).build()
                         ))
                         .build())
                 .build();
@@ -39,20 +44,6 @@ public class ReactionRepository {
                                 "userId", AttributeValue.builder().s(userId).build()
                         ))
                         .conditionExpression("attribute_exists(videoId) AND attribute_exists(userId)")
-                        .build())
-                .build();
-    }
-
-    public TransactWriteItem deleteWithReactionType(String videoId, String userId, String reactionType) {
-        return TransactWriteItem.builder()
-                .delete(Delete.builder()
-                        .tableName("video_reactions")
-                        .key(Map.of(
-                                "videoId", AttributeValue.builder().s(videoId).build(),
-                                "userId", AttributeValue.builder().s(userId).build(),
-                                "reactionType", AttributeValue.builder().s(reactionType).build()
-                        ))
-                        .conditionExpression("attribute_exists(videoId) AND attribute_exists(userId) AND attribute_exists(reactionType)")
                         .build())
                 .build();
     }

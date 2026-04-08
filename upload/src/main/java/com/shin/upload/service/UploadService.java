@@ -5,13 +5,11 @@ import com.shin.upload.dto.*;
 
 public interface UploadService {
 
-    RawUploadResponse uploadRawVideo(String userId, RawUploadData data);
+    RawUploadResponse initiateRawUpload(String userId, RawUploadData data);
 
-    InitiateUploadResponse initiateUpload(String userId, InitiateUploadRequest request);
+    ChunkedUploadResponse initiateUpload(String userId, ChunkedUploadRequest request);
 
-    ChunkUploadResponse uploadChunk(String uploadId, Integer chunkNumber, byte[] data);
+    void completeUpload(String uploadId);
 
-    RawUploadResponse completeUpload(String uploadId);
-
-    CancelUploadResponse cancelUpload(String uploadId);
+    void cancelUpload(String uploadId);
 }

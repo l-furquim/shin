@@ -30,6 +30,7 @@ public class Creator {
     @Column(nullable = false, unique = true, length = 255, name = "channel_url")
     private String channelUrl;
 
+    // TODO: subscribersCount is no longer updated by this service — fetch from subscription-service via API or event-driven sync
     @Column(nullable = false)
     @PositiveOrZero
     private Long subscribersCount;

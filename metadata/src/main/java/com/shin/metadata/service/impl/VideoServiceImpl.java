@@ -10,7 +10,6 @@ import com.shin.metadata.model.Video;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 import com.shin.metadata.repository.VideoRepository;
-import com.shin.metadata.service.LikeService;
 import com.shin.metadata.service.ProcessingProgressService;
 import com.shin.metadata.service.TagService;
 import com.shin.metadata.service.VideoService;
@@ -22,7 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
+import com.shin.commons.util.PageTokenUtil;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,7 +44,6 @@ public class VideoServiceImpl implements VideoService {
 
     private final VideoRepository videoRepository;
     private final TagService tagService;
-    private final LikeService likeService;
     private final ViewService viewService;
     private final UserServiceClient userServiceClient;
     private final ProcessingProgressService processingProgressService;
@@ -107,14 +106,6 @@ public class VideoServiceImpl implements VideoService {
                 .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + id + " not found"));
 
         Boolean likedByMe = null;
-        if (userId != null) {
-            try {
-                likedByMe = likeService.getLikeInfo(userId, id).likedByMe();
-            } catch (Exception e) {
-                log.warn("Could not resolve like status for user {} / video {}: {}", userId, id, e.getMessage());
-                likedByMe = false;
-            }
-        }
 
         Long effectiveViewCount = fields.contains(VideoField.STATISTICS)
                 ? viewService.getEffectiveVideoViews(video.getId(), video.getViewCount())
@@ -197,10 +188,10 @@ public class VideoServiceImpl implements VideoService {
         String cursorDirection = CURSOR_NEXT;
 
         if (request.cursor() != null && !request.cursor().isBlank()) {
-            String[] parts = decodeCursor(request.cursor());
-            cursorTimestamp = LocalDateTime.parse(parts[0]);
-            cursorId = UUID.fromString(parts[1]);
-            cursorDirection = parts[2];
+            Map<String, String> parts = PageTokenUtil.decode(request.cursor());
+            cursorTimestamp = LocalDateTime.parse(parts.get("createdAt"));
+            cursorId = UUID.fromString(parts.get("id"));
+            cursorDirection = parts.get("direction");
         }
 
         int fetchSize = request.limit() + 1;
@@ -283,12 +274,6 @@ public class VideoServiceImpl implements VideoService {
             throw new InvalidVideoRequestException("Video ID and viewer key must not be null");
         }
         viewService.increaseView(videoId, viewerKey);
-    }
-
-    @Override
-    @Transactional
-    public void applyLikeDelta(UUID videoId, long delta) {
-        videoRepository.applyLikeDelta(videoId, delta);
     }
 
     private List<Video> fetchVideos(boolean isForward, Long categoryId,
@@ -528,11 +513,6 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private String encodeCursor(LocalDateTime timestamp, UUID id, String direction) {
-        String raw = timestamp + "|" + id + "|" + direction;
-        return Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String[] decodeCursor(String cursor) {
-        return new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8).split("\\|", 3);
+        return PageTokenUtil.encode("createdAt", timestamp.toString(), "id", id.toString(), "direction", direction);
     }
 }

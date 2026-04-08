@@ -18,10 +18,10 @@ public class RouteConfig {
     private final ClientIpResolverGatewayFilterFactory clientIpResolverFilter;
     private final CorrelationIdGatewayFilterFactory correlationIdFilter;
     private final AuthContextGatewayFilterFactory authContextFilter;
-    
+
     private final KeyResolver ipKeyResolver;
     private final KeyResolver userKeyResolver;
-    
+
     private final RedisRateLimiter authRateLimiter;
     private final RedisRateLimiter apiRateLimiter;
     private final RedisRateLimiter uploadRateLimiter;
@@ -211,12 +211,53 @@ public class RouteConfig {
                         .uri("lb://interaction-service")
                 )
 
+                .route("comment-service-comments", r -> r
+                        .path("/api/v1/comments/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("commentCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/comment"))
+                        )
+                        .uri("lb://comment-service")
+                )
+
+
+                .route("comment-service-threads", r -> r
+                        .path("/api/v1/threads/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("commentCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/comment"))
+                        )
+                        .uri("lb://comment-service")
+                )
+
                 .route("subscription-service-docs", r -> r
                         .path("/subscription-service/v3/api-docs")
                         .filters(f -> f
                                 .filter(correlationIdFilter.apply(new Object()))
                                 .rewritePath("/subscription-service/v3/api-docs", "/v3/api-docs"))
                         .uri("lb://subscription-service")
+                )
+
+                .route("comment-service-docs", r -> r
+                        .path("/comment-service/v3/api-docs")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .rewritePath("/comment-service/v3/api-docs", "/v3/api-docs"))
+                        .uri("lb://comment-service")
                 )
 
                 .route("interaction-service-docs", r -> r

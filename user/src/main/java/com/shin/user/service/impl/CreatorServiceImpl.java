@@ -189,17 +189,8 @@ public class CreatorServiceImpl implements CreatorService {
         var user = findUserByIdOrThrow(creatorId);
         String[] pictures = storageService.getAvatarAndBannerUrls(creatorId);
 
+        // TODO: call subscription-service to resolve whether userId is subscribed to creatorId
         Boolean isSubscribed = null;
-        if (userId != null) {
-            try {
-                // TODO: finish this
-                isSubscribed = true;
-            } catch (Exception e) {
-                log.warn("Could not resolve subscription status for user {} / channel {}: {}",
-                        userId, creatorId, e.getMessage());
-                isSubscribed = false;
-            }
-        }
 
         return new GetCreatorByIdResponse(
                 creator.getId(),

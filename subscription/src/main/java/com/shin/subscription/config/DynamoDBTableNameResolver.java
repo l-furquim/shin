@@ -1,6 +1,6 @@
 package com.shin.subscription.config;
 
-import com.shin.subscription.annotations.TableName;
+import com.shin.commons.annotations.TableName;
 import io.awspring.cloud.dynamodb.DynamoDbTableNameResolver;
 import org.springframework.stereotype.Component;
 

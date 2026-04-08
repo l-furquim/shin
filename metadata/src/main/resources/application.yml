@@ -15,3 +15,4 @@ views:
 
 media:
   thumbnail-base-url: ${THUMBNAIL_BASE_URL:}
+

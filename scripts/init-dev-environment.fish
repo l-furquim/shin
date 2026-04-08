@@ -70,6 +70,10 @@ set -Ux DISLIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_qu
 set -Ux CHANNEL_SUBSCRIBED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-subscribed"')
 set -Ux CHANNEL_UNSUBSCRIBED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-unsubscribed"')
 set -Ux VIEW_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."view-events"')
+set -Ux THREAD_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thread-created"')
+set -Ux COMMENT_REPLY_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-created"')
+set -Ux COMMENT_UPDATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-updated"')
+set -Ux COMMENT_DELETED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-deleted"')
 
 set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
 

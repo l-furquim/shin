@@ -115,7 +115,6 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - CONFIG_SERVER_USERNAME=${CONFIG_SERVER_USERNAME}
       - CONFIG_SERVER_PASSWORD=${CONFIG_SERVER_PASSWORD}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:-secret}
     depends_on:
       eureka-server:
         condition: service_healthy

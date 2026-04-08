@@ -1,6 +1,6 @@
 package com.shin.subscription.model;
 
-import com.shin.subscription.annotations.TableName;
+import com.shin.commons.annotations.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;

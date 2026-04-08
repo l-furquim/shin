@@ -17,7 +17,7 @@ public class RawUploadMetadataProducer {
     @Value("${spring.cloud.aws.queues.raw-upload-metadata-queue}")
     private String queue;
 
-    public void createEvent(RawUploadCreatedEvent event) {
+    public void send(RawUploadCreatedEvent event) {
         try {
             template.send(queue, event);
         } catch (Exception e) {

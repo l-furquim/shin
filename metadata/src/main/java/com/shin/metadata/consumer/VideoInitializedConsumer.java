@@ -15,11 +15,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.UUID;
 
-/**
- * Consumes VideoInitializedEvent from the upload service.
- * Creates the initial video record in PostgreSQL so uploads are no longer
- * blocked by a synchronous call to the metadata service.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

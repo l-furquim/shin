@@ -1,5 +1,6 @@
 package com.shin.upload.service;
 
+import com.shin.upload.dto.PresignedChunk;
 import com.shin.upload.dto.PresignedUpload;
 
 import java.util.List;
@@ -37,13 +38,7 @@ public interface StorageService {
         List<String> keys
     );
 
-    PresignedUpload generaePresignedUpload(
-        String bucket,
-        String key,
-        String contentType
-    );
-
-    PresignedUpload generaePresignedUpload(
+    PresignedUpload generatePresignedUpload(
         String bucket,
         String key,
         String contentType,
@@ -54,4 +49,8 @@ public interface StorageService {
         List<String> resolutions
     );
 
+    List<PresignedChunk> generatePresignedChunks(
+        String bucket,
+        List<String> keys
+    );
 }

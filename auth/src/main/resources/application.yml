@@ -16,3 +16,4 @@ spring:
       lettuce:
         pool:
           enabled: true
+

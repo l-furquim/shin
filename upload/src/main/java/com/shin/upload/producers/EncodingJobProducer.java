@@ -16,7 +16,7 @@ public class EncodingJobProducer {
     @Value("${spring.cloud.aws.queues.encode-job-queue}")
     private String queue;
 
-    public void createJob(TranscodeJobEvent event) {
+    public void send(TranscodeJobEvent event) {
         try {
             template.send(queue, event);
         } catch (Exception e) {

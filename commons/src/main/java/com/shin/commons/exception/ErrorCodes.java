@@ -10,6 +10,8 @@ public final class ErrorCodes {
     public static final String UPLOAD_NOT_FOUND = "UPLOAD_NOT_FOUND";
     public static final String USER_NOT_FOUND = "USER_NOT_FOUND";
     public static final String CREATOR_NOT_FOUND = "CREATOR_NOT_FOUND";
+    public static final String COMMENT_NOT_FOUND = "COMMENT_NOT_FOUND";
+    public static final String THREAD_NOT_FOUND = "THREAD_NOT_FOUND";
 
     public static final String INVALID_VIDEO_REQUEST = "INVALID_VIDEO_REQUEST";
     public static final String INVALID_PLAYLIST_REQUEST = "INVALID_PLAYLIST_REQUEST";
@@ -48,5 +50,5 @@ public final class ErrorCodes {
     public static final String CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION";
     public static final String INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
     public static final String IDEMPOTENCY_ERROR = "IDEMPOTENCY_ERROR";
-
+    public static final String INVALID_COMMENT_CONTENT = "INVALID_COMMENT_CONTENT";
 }

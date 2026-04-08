@@ -14,7 +14,6 @@ public record UploadState(
     @JsonProperty("fileName") String fileName,
     @JsonProperty("fileSize") Long fileSize,
     @JsonProperty("totalChunks") Integer totalChunks,
-    @JsonProperty("uploadedChunks") Integer uploadedChunks,
     @JsonProperty("resolutions") String resolutions,
     @JsonProperty("status") UploadStatus status,
     @JsonProperty("createdAt") LocalDateTime createdAt

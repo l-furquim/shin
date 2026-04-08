@@ -112,14 +112,6 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
     @Modifying
     @Query("""
         UPDATE Video v
-        SET v.likeCount = GREATEST(0, v.likeCount + :delta)
-        WHERE v.id = :videoId
-    """)
-    int applyLikeDelta(@Param("videoId") UUID videoId, @Param("delta") Long delta);
-
-    @Modifying
-    @Query("""
-        UPDATE Video v
         SET v.viewCount = GREATEST(0, COALESCE(v.viewCount, 0) + :delta)
         WHERE v.id = :videoId
     """)

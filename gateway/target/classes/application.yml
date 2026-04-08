@@ -7,3 +7,4 @@ spring:
     config:
       username: ${CONFIG_SERVER_USERNAME:configuser}
       password: ${CONFIG_SERVER_PASSWORD:configpass}
+
