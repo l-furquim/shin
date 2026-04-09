@@ -195,6 +195,22 @@ public class RouteConfig {
                         .uri("lb://subscription-service")
                 )
 
+                .route("streaming-service-vod", r -> r
+                        .path("/api/v1/vod", "/api/v1/vod/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("streamingCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/streaming"))
+                        )
+                        .uri("lb://streaming-service")
+                )
+
                 .route("interaction-service-reactions", r -> r
                         .path("/api/v1/reactions/**")
                         .filters(f -> f
@@ -298,6 +314,14 @@ public class RouteConfig {
                                 .filter(correlationIdFilter.apply(new Object()))
                                 .rewritePath("/auth-service/v3/api-docs", "/v3/api-docs"))
                         .uri("lb://auth-service")
+                )
+
+                .route("streaming-service-docs", r -> r
+                        .path("/streaming-service/v3/api-docs")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .rewritePath("/streaming-service/v3/api-docs", "/v3/api-docs"))
+                        .uri("lb://streaming-service")
                 )
 
 

@@ -33,6 +33,42 @@ if not test -f "$ENGAGEMENT_DIR/processor/bootstrap.zip"
     echo "engagement-processor built."
 end
 
+set THUMBNAIL_DIR "$PROJECT_ROOT/lambdas/thumbnail"
+set FFMPEG_LAYER_DIR "$THUMBNAIL_DIR/ffmpeg-layer"
+
+if not test -f "$FFMPEG_LAYER_DIR/ffmpeg-layer.zip"
+    echo "Downloading FFmpeg static binary for Lambda layer..."
+    mkdir -p "$FFMPEG_LAYER_DIR/bin"
+    curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
+        -o "/tmp/ffmpeg-static.tar.xz"
+    tar -xf /tmp/ffmpeg-static.tar.xz --strip-components=1 -C /tmp/ --wildcards "*/ffmpeg"
+    mv /tmp/ffmpeg "$FFMPEG_LAYER_DIR/bin/ffmpeg"
+    chmod +x "$FFMPEG_LAYER_DIR/bin/ffmpeg"
+    cd "$FFMPEG_LAYER_DIR"
+    zip -r ffmpeg-layer.zip bin/
+    rm -rf bin/
+    rm /tmp/ffmpeg-static.tar.xz
+    cd -
+    echo "FFmpeg layer built."
+end
+
+if not test -f "$THUMBNAIL_DIR/go.sum"
+    echo "Running go mod tidy for thumbnail-processor..."
+    cd "$THUMBNAIL_DIR"
+    go mod tidy
+    cd -
+end
+
+if not test -f "$THUMBNAIL_DIR/bootstrap.zip"
+    echo "Building thumbnail-processor Lambda..."
+    cd "$THUMBNAIL_DIR"
+    GOOS=linux GOARCH=amd64 go build -o bootstrap .
+    zip bootstrap.zip bootstrap
+    rm bootstrap
+    cd -
+    echo "thumbnail-processor built."
+end
+
 # echo "Tearing down existing dev environment"
 # docker compose down -v
 # terraform -chdir=$TERRAFORM_PATH destroy \
@@ -100,6 +136,7 @@ set -Ux THREAD_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_qu
 set -Ux COMMENT_REPLY_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-created"')
 set -Ux COMMENT_UPDATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-updated"')
 set -Ux COMMENT_DELETED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-deleted"')
+set -Ux PLAYBACK_PROGRESS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-playback-started"')
 
 set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
 

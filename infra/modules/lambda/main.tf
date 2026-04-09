@@ -34,6 +34,7 @@ resource "aws_lambda_function" "this" {
   timeout          = var.timeout
   filename         = var.filename
   source_code_hash = var.source_hash
+  layers           = var.layers
 
   environment {
     variables = var.environment_variables

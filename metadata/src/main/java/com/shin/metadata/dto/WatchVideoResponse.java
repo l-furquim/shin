@@ -9,6 +9,7 @@ public record WatchVideoResponse(
         UUID id,
         UUID creatorId,
         String title,
+        Long duration,
         String description,
         VideoVisibility visibility,
         ProcessingStatus status

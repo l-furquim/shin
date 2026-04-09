@@ -333,24 +333,6 @@ services:
     networks:
       - shin-network
 
-  thumbnail:
-    build:
-      context: ./thumbnail
-      dockerfile: Dockerfile
-    container_name: shin-thumbnail
-    hostname: thumbnail-service
-    environment:
-      THUMBNAIL_JOB_QUEUE_URL: ${THUMBNAIL_JOB_QUEUE_URL}
-      THUMBNAIL_FINISHED_EVENTS_QUEUE_URL: ${THUMBNAIL_FINISHED_EVENTS_QUEUE_URL}
-      RAW_BUCKET_NAME: ${RAW_BUCKET_NAME}
-      THUMBNAIL_BUCKET_NAME: ${THUMBNAIL_BUCKET_NAME}
-      AWS_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
-    networks:
-      - shin-network
-
   streaming:
     build:
       context: .

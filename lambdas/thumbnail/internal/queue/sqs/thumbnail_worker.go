@@ -7,10 +7,10 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"thumbnail-service/internal/config"
-	"thumbnail-service/internal/event"
-	"thumbnail-service/internal/model"
-	"thumbnail-service/internal/service"
+	"thumbnail-processor/internal/config"
+	"thumbnail-processor/internal/event"
+	"thumbnail-processor/internal/model"
+	"thumbnail-processor/internal/service"
 )
 
 type ThumbnailWorker struct {

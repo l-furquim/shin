@@ -5,35 +5,20 @@ import (
 	"os"
 )
 
-type Env int
-
-const (
-	PROD Env = iota
-	DEV
-)
-
 type Config struct {
-	Port                      string
-	JobRequestQueueURL        string
 	ThumbnailFinishedQueueURL string
 	RawBucketName             string
 	ThumbnailBucketName       string
-	Env                       Env
-	Region                    string
+	FFmpegPath                string
 }
 
-func LoadConfig(env Env) *Config {
-	cfg := &Config{
-		Port:                      getEnv("PORT", "8080"),
-		JobRequestQueueURL:        mustGetEnv("THUMBNAIL_JOB_QUEUE_URL"),
+func LoadConfig() *Config {
+	return &Config{
 		ThumbnailFinishedQueueURL: mustGetEnv("THUMBNAIL_FINISHED_EVENTS_QUEUE_URL"),
 		RawBucketName:             mustGetEnv("RAW_BUCKET_NAME"),
 		ThumbnailBucketName:       mustGetEnv("THUMBNAIL_BUCKET_NAME"),
-		Region:                    getEnv("AWS_REGION", "us-east-1"),
-		Env:                       env,
+		FFmpegPath:                getEnv("FFMPEG_PATH", "/opt/bin/ffmpeg"),
 	}
-
-	return cfg
 }
 
 func getEnv(key, defaultValue string) string {

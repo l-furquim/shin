@@ -118,10 +118,14 @@ public class VideoServiceImpl implements VideoService {
     public WatchVideoResponse getWatchVideoById(UUID id) {
         Video video = videoRepository.findById(id)
                 .orElseThrow(() -> new VideoNotFoundException("Video with ID " + id + " not found"));
+
+        long duration = video.getDuration() == null ? 0L : video.getDuration().longValue();
+
         return new WatchVideoResponse(
                 video.getId(),
                 video.getCreatorId(),
                 video.getTitle(),
+                duration,
                 video.getDescription(),
                 video.getVisibility(),
                 video.getStatus()

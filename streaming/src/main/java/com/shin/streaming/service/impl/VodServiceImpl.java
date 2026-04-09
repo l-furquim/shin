@@ -1,24 +1,24 @@
 package com.shin.streaming.service.impl;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.shin.streaming.client.MetadataServiceClient;
 import com.shin.streaming.config.CloudFrontConfig;
-import com.shin.streaming.dto.VideoDetails;
-import com.shin.streaming.dto.WatchVodResponse;
+import com.shin.streaming.dto.*;
+import com.shin.streaming.exception.InvalidPlackbayEvent;
+import com.shin.streaming.exception.InvalidTokenException;
 import com.shin.streaming.exception.VideoAccessDeniedException;
 import com.shin.streaming.exception.VideoNotFoundException;
+import com.shin.streaming.producer.PlaybackProgressProducer;
+import com.shin.streaming.service.AuthService;
 import com.shin.streaming.service.StorageService;
 import com.shin.streaming.service.VodService;
-import com.shin.streaming.dto.WatchVodResult;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cloudfront.cookie.CookiesForCustomPolicy;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -30,10 +30,12 @@ public class VodServiceImpl implements VodService {
 
     private final MetadataServiceClient metadataServiceClient;
     private final StorageService storageService;
+    private final AuthService authService;
+
+    private final PlaybackProgressProducer playbackProgressProducer;
+
     private final CloudFrontConfig cloudFrontConfig;
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
 
     @Override
     public WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl) {
@@ -44,9 +46,51 @@ public class VodServiceImpl implements VodService {
         CookiesForCustomPolicy signed = storageService.generateSignedCookiesForVideo(videoId);
         List<String> cookies = buildCookieHeaders(signed);
         String manifestUrl = "https://" + cloudFrontConfig.getCdnUrl() + "/" + videoId + "/master.m3u8";
-        String playbackToken = generatePlaybackToken(sessionId, videoId, userId);
+        String playbackToken = authService.generatePlaybackToken(sessionId, videoId, userId);
 
         return new WatchVodResult(new WatchVodResponse(videoDetails, manifestUrl, playbackToken), cookies);
+    }
+
+    @Override
+    public void handlePlaybackEvent(ViewEventRequest request, UUID userId) {
+       if (request.playbackSessionToken() == null || request.playbackSessionToken().isBlank())  {
+           throw new VideoAccessDeniedException("Invalid playback session token");
+       }
+
+       final var jwtDecoded = this.authService.getToken(request.playbackSessionToken());
+       final var isExpired = jwtDecoded.getExpiresAt().before(Date.from(Instant.now()));
+
+       if (isExpired) {
+           throw new InvalidTokenException();
+       }
+
+        final var videoId = jwtDecoded.getClaim("videoId").asString();
+        final var sessionId = jwtDecoded.getClaim("sessionId").asString();
+        final var userClaimedId =  jwtDecoded.getSubject();
+
+        if (!userClaimedId.equals(userId.toString())) {
+            throw new VideoAccessDeniedException("You cannot access this video");
+        }
+
+        VideoDetails videoDetails = fetchVideoDetails(UUID.fromString(videoId));
+
+        if (videoDetails.visibility().equals("PRIVATE") && !videoDetails.creatorId().equals(userId)) {
+            throw new VideoAccessDeniedException("You cannot access this video");
+        }
+
+        if (!request.totalDurationSeconds().equals(videoDetails.duration())) {
+            throw new InvalidPlackbayEvent();
+        }
+
+        this.playbackProgressProducer.sendEvent(new PlaybackProgressEvent(
+                sessionId,
+                videoId,
+                userClaimedId,
+                request.watchTimeSeconds(),
+                request.currentPositionSeconds(),
+                LocalDateTime.now()
+        ));
+
     }
 
     private VideoDetails fetchVideoDetails(UUID videoId) {
@@ -67,17 +111,6 @@ public class VodServiceImpl implements VodService {
 
     private String withAttributes(String nameValuePair) {
         return nameValuePair + "; Path=/; Secure; HttpOnly; SameSite=None";
-    }
-
-    private String generatePlaybackToken(UUID sessionId, UUID videoId, UUID userId) {
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-        return JWT.create()
-                .withIssuer("shin")
-                .withSubject(userId != null ? userId.toString() : "anonymous")
-                .withClaim("sessionId", sessionId.toString())
-                .withClaim("videoId", videoId.toString())
-                .withExpiresAt(Date.from(Instant.now().plusSeconds(cloudFrontConfig.getCookieValiditySeconds())))
-                .sign(algorithm);
     }
 
     private void checkAccess(UUID userId, VideoDetails video, String videoUrl) {

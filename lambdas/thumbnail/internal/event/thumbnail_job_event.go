@@ -1,6 +1,6 @@
 package event
 
-import "thumbnail-service/internal/model"
+import "thumbnail-processor/internal/model"
 
 type ThumbnailJobEvent struct {
 	VideoId string `json:"videoId"`

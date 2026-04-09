@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"thumbnail-service/internal/config"
-	"thumbnail-service/internal/model"
+	"thumbnail-processor/internal/config"
+	"thumbnail-processor/internal/model"
 	"time"
 )
 
@@ -57,7 +57,7 @@ func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJ
 	}
 	defer os.Remove(videoPath)
 
-	thumbnails, tempDir, err := generateThumbnails(videoPath, job.VideoId)
+	thumbnails, tempDir, err := generateThumbnails(videoPath, job.VideoId, cfg.FFmpegPath)
 	if err != nil {
 		if tempDir != "" {
 			_ = os.RemoveAll(tempDir)
@@ -99,7 +99,7 @@ func (s *ThumbnailService) ProcessJob(ctx context.Context, job *model.ThumbnailJ
 	return nil
 }
 
-func generateThumbnails(videoPath, videoId string) ([]GeneratedThumbnail, string, error) {
+func generateThumbnails(videoPath, videoId, ffmpegPath string) ([]GeneratedThumbnail, string, error) {
 	tempDir := filepath.Join(os.TempDir(), "thumbnails", videoId)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return nil, "", fmt.Errorf("failed to create thumbnail temp directory %s: %w", tempDir, err)
@@ -109,7 +109,7 @@ func generateThumbnails(videoPath, videoId string) ([]GeneratedThumbnail, string
 	for _, profile := range thumbnailResolutions {
 		outputPath := filepath.Join(tempDir, fmt.Sprintf("%s.jpg", profile.Profile))
 		args := buildThumbnailCommand(videoPath, profile, outputPath)
-		if err := runFFmpeg(args); err != nil {
+		if err := runFFmpeg(ffmpegPath, args); err != nil {
 			return nil, tempDir, fmt.Errorf("ffmpeg failed for profile %s: %w", profile.Profile, err)
 		}
 		thumbnails = append(thumbnails, GeneratedThumbnail{Profile: profile.Profile, LocalPath: outputPath})
@@ -133,8 +133,8 @@ func buildThumbnailCommand(input string, profile QualityConfig, outputPath strin
 	}
 }
 
-func runFFmpeg(args []string) error {
-	cmd := exec.Command("ffmpeg", args...)
+func runFFmpeg(ffmpegPath string, args []string) error {
+	cmd := exec.Command(ffmpegPath, args...)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

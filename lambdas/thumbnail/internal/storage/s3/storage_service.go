@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -72,12 +71,6 @@ func (s *StorageService) UploadThumbnail(ctx context.Context, data *[]byte, key 
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload thumbnail %s to %s: %w", key, bucketName, err)
-	}
-
-	if err := s3.NewObjectExistsWaiter(s.c).Wait(
-		ctx, &s3.HeadObjectInput{Bucket: aws.String(bucketName), Key: aws.String(key)}, time.Minute,
-	); err != nil {
-		return fmt.Errorf("failed to verify thumbnail %s exists: %w", key, err)
 	}
 
 	log.Printf("Successfully uploaded thumbnail to %s", key)

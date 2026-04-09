@@ -6,6 +6,7 @@ public record VideoDetails(
         UUID id,
         UUID creatorId,
         String title,
+        Long duration,
         String description,
         String visibility,
         String status

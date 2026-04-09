@@ -60,3 +60,9 @@ variable "extra_policy_arns" {
   type    = list(string)
   default = []
 }
+
+variable "layers" {
+  type        = list(string)
+  default     = []
+  description = "List of Lambda Layer ARNs to attach"
+}

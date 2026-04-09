@@ -152,6 +152,23 @@ module "engagement" {
   processor_hash              = filebase64sha256("${path.root}/../lambdas/engagement/processor/bootstrap.zip")
 }
 
+module "thumbnail" {
+  source = "./modules/thumbnail"
+
+  env                          = var.env
+  thumbnail_job_queue_arn      = module.sqs.queue_arns["thumbnail-job"]
+  thumbnail_finished_queue_arn = module.sqs.queue_arns["thumbnail-finished-events"]
+  thumbnail_finished_queue_url = module.sqs.queue_urls["thumbnail-finished-events"]
+  raw_bucket_arn               = module.s3.raw_bucket_arn
+  raw_bucket_name              = var.raw_bucket_name
+  thumbnail_bucket_arn         = module.s3.thumbnail_bucket_arn
+  thumbnail_bucket_name        = var.thumbnail_bucket_name
+  processor_zip                = "${path.root}/../lambdas/thumbnail/bootstrap.zip"
+  processor_hash               = filebase64sha256("${path.root}/../lambdas/thumbnail/bootstrap.zip")
+  ffmpeg_layer_zip             = "${path.root}/../lambdas/thumbnail/ffmpeg-layer/ffmpeg-layer.zip"
+  ffmpeg_layer_hash            = filebase64sha256("${path.root}/../lambdas/thumbnail/ffmpeg-layer/ffmpeg-layer.zip")
+}
+
 resource "aws_cloudwatch_event_rule" "view_events" {
   count = var.enable_view_eventbridge_pipeline ? 1 : 0
 

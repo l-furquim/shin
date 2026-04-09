@@ -46,6 +46,11 @@ public class FallbackController {
         return createServiceUnavailableProblem("interaction-service", "Interaction service is temporarily unavailable. Please try again later.");
     }
 
+    @GetMapping("/streaming")
+    public Mono<ProblemDetail> streamingFallback() {
+        return createServiceUnavailableProblem("streaming-service", "Streaming service is temporarily unavailable. Please try again later.");
+    }
+
     private Mono<ProblemDetail> createServiceUnavailableProblem(String service, String message) {
         return Mono.fromSupplier(() -> {
             ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
