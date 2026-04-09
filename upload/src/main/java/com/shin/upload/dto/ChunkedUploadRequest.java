@@ -8,6 +8,6 @@ import jakarta.validation.constraints.NotNull;
 public record ChunkedUploadRequest(
     @NotBlank String fileName,
     @NotNull Long fileSize,
-    @NotBlank String contentType,
+    @NotBlank String mimeType,
     @NotEmpty String[] resolutions
 ) {}

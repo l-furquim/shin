@@ -90,3 +90,9 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "jwt_secret" {
+  description = "Secret key for signing playback JWT tokens"
+  type        = string
+  sensitive   = true
+}

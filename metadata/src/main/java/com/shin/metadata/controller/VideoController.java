@@ -58,6 +58,13 @@ public class VideoController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/watch")
+    public ResponseEntity<WatchVideoResponse> getWatchVideoById(
+            @PathVariable("id") UUID id
+    ) {
+        return ResponseEntity.ok(videoService.getWatchVideoById(id));
+    }
+
     @GetMapping
     public ResponseEntity<SearchVideosResponse> search(
             @RequestParam(name = "id", required = false) String id,

@@ -29,4 +29,6 @@ public interface VideoService {
 
     void increaseVideoView(UUID videoId, String viewerKey);
 
+    WatchVideoResponse getWatchVideoById(UUID id);
+
 }

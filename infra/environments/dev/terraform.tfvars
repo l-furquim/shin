@@ -30,8 +30,11 @@ sqs_queue_names = [
   "comment-deleted",
   "video-playback-started",
   "video-playback-progress",
-  "video-published"
+  "video-published",
+  "playback-events"
 ]
+
+jwt_secret = "shin-dev-secret"
 
 enable_view_eventbridge_pipeline = false
 

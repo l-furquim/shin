@@ -130,6 +130,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    trusted_key_groups     = [aws_cloudfront_key_group.video_key_group.id]
   }
 
   ordered_cache_behavior {
@@ -164,4 +165,16 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     Env = var.env
   }
 
+}
+
+resource "aws_cloudfront_public_key" "processed_video_signing_key" {
+  name        = "video-signing-key"
+  comment     = "Public key for signed cookies"
+  encoded_key = file("${path.module}/cloudfront_public_key.pem")
+}
+
+resource "aws_cloudfront_key_group" "video_key_group" {
+  name    = "shin-${var.env}-video-key-group"
+  comment = "Key group for signed cookie access to processed videos"
+  items   = [aws_cloudfront_public_key.processed_video_signing_key.id]
 }

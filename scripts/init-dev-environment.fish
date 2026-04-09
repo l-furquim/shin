@@ -8,6 +8,31 @@ cd $PROJECT_ROOT
 
 echo "Initializing development environment..."
 
+set -l CLOUDFRONT_KEY_DIR "$TERRAFORM_PATH/modules/cloudfront"
+if not test -f "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem"
+    echo "Generating CloudFront RSA key pair..."
+    openssl genrsa -out "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" 2048
+    openssl rsa -pubout \
+        -in "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" \
+        -out "$CLOUDFRONT_KEY_DIR/cloudfront_public_key.pem"
+    openssl pkcs8 -topk8 -nocrypt \
+        -in "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" \
+        -out "$CLOUDFRONT_KEY_DIR/cloudfront_private_key_pkcs8.pem"
+    echo "Key pair generated."
+end
+
+set ENGAGEMENT_DIR "$PROJECT_ROOT/lambdas/engagement"
+
+if not test -f "$ENGAGEMENT_DIR/processor/bootstrap.zip"
+    echo "Building engagement-processor Lambda..."
+    cd "$ENGAGEMENT_DIR/processor"
+    GOOS=linux GOARCH=amd64 go build -o bootstrap .
+    zip bootstrap.zip bootstrap
+    rm bootstrap
+    cd -
+    echo "engagement-processor built."
+end
+
 # echo "Tearing down existing dev environment"
 # docker compose down -v
 # terraform -chdir=$TERRAFORM_PATH destroy \
@@ -34,6 +59,7 @@ if test $apply_status -ne 0
           -target=module.sns \
           -target=module.sqs \
           -target=module.subscriptions \
+          -target=module.secrets \
           -auto-approve
         or return 1
     else
@@ -82,6 +108,18 @@ if test $status -eq 0 -a -n "$cf_url"
     set -Ux CLOUDFRONT_CDN_URL $cf_url
     set -Ux THUMBNAIL_BASE_URL "https://$CLOUDFRONT_CDN_URL"
 end
+
+set -l cf_key_pair_id (terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_key_pair_id 2>/dev/null)
+if test $status -eq 0 -a -n "$cf_key_pair_id"
+    set -Ux CLOUDFRONT_KEY_PAIR_ID $cf_key_pair_id
+end
+
+set -l cf_secret_arn (terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_private_key_secret_arn 2>/dev/null)
+if test $status -eq 0 -a -n "$cf_secret_arn"
+    set -Ux CLOUDFRONT_PRIVATE_KEY_SECRET_ARN $cf_secret_arn
+end
+
+
 set -Ux AWS_REGION (terraform -chdir=$TERRAFORM_PATH output -raw region)
 set -Ux SHIN_AWS_REGION $AWS_REGION
 

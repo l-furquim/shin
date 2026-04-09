@@ -62,3 +62,18 @@ output "cloud_front_cdn_url" {
   description = "CloudFront CDN URL"
   value       = module.cloudfront.cloud_front_cdn_url
 }
+
+output "cloudfront_key_pair_id" {
+  description = "CloudFront public key ID for signed cookies"
+  value       = module.cloudfront.key_pair_id
+}
+
+output "cloudfront_private_key_secret_arn" {
+  description = "ARN of the Secrets Manager secret for the CloudFront private key"
+  value       = module.secrets.cloudfront_private_key_secret_arn
+}
+
+output "engagement_processor_arn" {
+  description = "ARN of the engagement processor Lambda"
+  value       = module.engagement.processor_function_arn
+}

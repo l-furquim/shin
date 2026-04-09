@@ -48,3 +48,7 @@ target/
 /infra/terraform.tfstate
 /infra/terraform.tfstate*
 /infra/terraform.tfstate.backup
+
+## CloudFront private keys (never commit)
+infra/modules/cloudfront/cloudfront_private_key.pem
+infra/modules/cloudfront/cloudfront_private_key_pkcs8.pem

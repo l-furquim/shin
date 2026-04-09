@@ -127,10 +127,29 @@ module "subscriptions" {
   subscriptions = local.subscriptions
 }
 
+module "secrets" {
+  source = "./modules/secrets"
+
+  env                    = var.env
+  cloudfront_private_key = file("${path.module}/modules/cloudfront/cloudfront_private_key_pkcs8.pem")
+}
+
 module "dynamodb" {
   source = "./modules/dynamodb"
 
   env = var.env
+}
+
+module "engagement" {
+  source = "./modules/engagement"
+
+  env                         = var.env
+  view_events_queue_arn       = module.sqs.queue_arns["view-events"]
+  view_events_queue_url       = module.sqs.queue_urls["view-events"]
+  playback_progress_queue_arn = module.sqs.queue_arns["video-playback-progress"]
+  playback_sessions_table_arn = module.dynamodb.table_arns["playback_sessions"]
+  processor_zip               = "${path.root}/../lambdas/engagement/processor/bootstrap.zip"
+  processor_hash              = filebase64sha256("${path.root}/../lambdas/engagement/processor/bootstrap.zip")
 }
 
 resource "aws_cloudwatch_event_rule" "view_events" {

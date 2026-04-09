@@ -9,6 +9,27 @@ cd "$PROJECT_ROOT"
 
 echo "Initializing development environment..."
 
+CLOUDFRONT_KEY_DIR="$TERRAFORM_PATH/modules/cloudfront"
+if [ ! -f "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" ]; then
+  echo "Generating CloudFront RSA key pair..."
+  openssl genrsa -out "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" 2048
+  openssl rsa -pubout \
+    -in "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" \
+    -out "$CLOUDFRONT_KEY_DIR/cloudfront_public_key.pem"
+  openssl pkcs8 -topk8 -nocrypt \
+    -in "$CLOUDFRONT_KEY_DIR/cloudfront_private_key.pem" \
+    -out "$CLOUDFRONT_KEY_DIR/cloudfront_private_key_pkcs8.pem"
+  echo "Key pair generated."
+fi
+
+ENGAGEMENT_DIR="$PROJECT_ROOT/lambdas/engagement"
+
+if [ ! -f "$ENGAGEMENT_DIR/processor/bootstrap.zip" ]; then
+  echo "Building engagement-processor Lambda..."
+  (cd "$ENGAGEMENT_DIR/processor" && GOOS=linux GOARCH=amd64 go build -o bootstrap . && zip bootstrap.zip bootstrap && rm bootstrap)
+  echo "engagement-processor built."
+fi
+
 echo "Tearing down existing dev environment"
 docker compose down -v
 terraform -chdir=$TERRAFORM_PATH destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
@@ -32,6 +53,7 @@ if [ $APPLY_STATUS -ne 0 ]; then
       -target=module.sns \
       -target=module.sqs \
       -target=module.subscriptions \
+      -target=module.secrets \
       -auto-approve
   else
     exit $APPLY_STATUS
@@ -78,6 +100,15 @@ if CLOUDFRONT_CDN_URL=$(terraform -chdir=$TERRAFORM_PATH output -raw cloud_front
   export CLOUDFRONT_CDN_URL
   export THUMBNAIL_BASE_URL="https://$CLOUDFRONT_CDN_URL"
 fi
+
+if CLOUDFRONT_KEY_PAIR_ID=$(terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_key_pair_id 2>/dev/null); then
+  export CLOUDFRONT_KEY_PAIR_ID
+fi
+
+if CLOUDFRONT_PRIVATE_KEY_SECRET_ARN=$(terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_private_key_secret_arn 2>/dev/null); then
+  export CLOUDFRONT_PRIVATE_KEY_SECRET_ARN
+fi
+
 export AWS_REGION=$(terraform -chdir=$TERRAFORM_PATH output -raw region)
 export SHIN_AWS_REGION=$AWS_REGION
 

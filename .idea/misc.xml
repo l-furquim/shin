@@ -16,7 +16,14 @@
         <option value="$PROJECT_DIR$/subscription/pom.xml" />
         <option value="$PROJECT_DIR$/interaction/pom.xml" />
         <option value="$PROJECT_DIR$/comment/pom.xml" />
+        <option value="$PROJECT_DIR$/video-aggregator/pom.xml" />
+        <option value="$PROJECT_DIR$/streaming/pom.xml" />
       </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/video-aggregator/pom.xml" />
+      </set>
     </option>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_21" default="true" project-jdk-name="corretto-21" project-jdk-type="JavaSDK">

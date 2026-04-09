@@ -8,9 +8,10 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="config-server" />
-        <module name="upload-service" />
         <module name="shin-commons" />
         <module name="comment-service" />
+        <module name="streaming-service" />
+        <module name="upload-service" />
         <module name="metadata-service" />
         <module name="eureka-server" />
       </profile>
@@ -46,6 +47,7 @@
       <module name="metadata-service" options="-parameters" />
       <module name="metadata-service (1)" options="-parameters" />
       <module name="shin-commons" options="-parameters" />
+      <module name="streaming-service" options="-parameters" />
       <module name="subscription-service" options="-parameters" />
       <module name="subscription-service (1)" options="-parameters" />
       <module name="upload-service" options="-parameters" />

@@ -4,6 +4,7 @@ import com.shin.commons.models.PageInfo;
 import com.shin.metadata.client.UserServiceClient;
 import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidVideoRequestException;
+import com.shin.metadata.exception.VideoNotFoundException;
 import com.shin.metadata.model.Tag;
 import com.shin.metadata.model.ThumbnailProfile;
 import com.shin.metadata.model.Video;
@@ -111,6 +112,20 @@ public class VideoServiceImpl implements VideoService {
                 ? viewService.getEffectiveVideoViews(video.getId(), video.getViewCount())
                 : 0L;
         return toDto(video, likedByMe, fields, isOwner(video, userId), effectiveViewCount);
+    }
+
+    @Override
+    public WatchVideoResponse getWatchVideoById(UUID id) {
+        Video video = videoRepository.findById(id)
+                .orElseThrow(() -> new VideoNotFoundException("Video with ID " + id + " not found"));
+        return new WatchVideoResponse(
+                video.getId(),
+                video.getCreatorId(),
+                video.getTitle(),
+                video.getDescription(),
+                video.getVisibility(),
+                video.getStatus()
+        );
     }
 
     @Override

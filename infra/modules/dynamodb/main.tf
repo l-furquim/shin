@@ -1,47 +1,3 @@
-resource "aws_dynamodb_table" "video_metrics_daily" {
-  name         = "video_metrics_daily"
-  billing_mode = var.billing_mode
-
-  hash_key  = "videoId"
-  range_key = "date"
-
-  attribute {
-    name = "videoId"
-    type = "S"
-  }
-
-  attribute {
-    name = "date"
-    type = "S"
-  }
-
-  tags = {
-    Env = var.env
-  }
-}
-
-resource "aws_dynamodb_table" "channel_metrics_daily" {
-  name         = "channel_metrics_daily"
-  billing_mode = var.billing_mode
-
-  hash_key  = "channelId"
-  range_key = "date"
-
-  attribute {
-    name = "channelId"
-    type = "S"
-  }
-
-  attribute {
-    name = "date"
-    type = "S"
-  }
-
-  tags = {
-    Env = var.env
-  }
-}
-
 resource "aws_dynamodb_table" "video_reactions" {
   name         = "video_reactions"
   billing_mode = var.billing_mode
@@ -101,6 +57,11 @@ resource "aws_dynamodb_table" "playback_sessions" {
   attribute {
     name = "sessionId"
     type = "S"
+  }
+
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
   }
 
   tags = {

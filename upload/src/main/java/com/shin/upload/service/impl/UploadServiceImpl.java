@@ -77,7 +77,7 @@ public class UploadServiceImpl implements UploadService {
 
     @Override
     public ChunkedUploadResponse initiateUpload(String userId, ChunkedUploadRequest request) {
-        validateVideoFile(request.fileName(), request.fileSize(), request.contentType());
+        validateVideoFile(request.fileName(), request.fileSize(), request.mimeType());
         final var resolutions = sanitizeResolutions(request.resolutions());
 
         UUID videoId = UUID.randomUUID();
@@ -117,7 +117,7 @@ public class UploadServiceImpl implements UploadService {
             String.join(",", resolutions)
         ));
 
-        return new ChunkedUploadResponse(videoId, chunks);
+        return new ChunkedUploadResponse(videoId, (long) chunks.size(), chunks);
     }
 
     @Override
