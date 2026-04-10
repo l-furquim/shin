@@ -5,6 +5,12 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
+  CloudUpload,
+  Film,
+  MessageSquare,
+  Share2,
+  ThumbsDown,
+  ThumbsUp,
   BadgeCheck,
   Ban,
   Bell,
@@ -190,6 +196,12 @@ export const ZARD_ICONS = {
   'user-plus': UserPlus,
   'credit-card': CreditCard,
   activity: Activity,
+  'cloud-upload': CloudUpload,
+  film: Film,
+  'thumbs-up': ThumbsUp,
+  'thumbs-down': ThumbsDown,
+  'message-square': MessageSquare,
+  share: Share2,
 } as const satisfies Record<string, LucideIconData>;
 
 export declare type ZardIcon = keyof typeof ZARD_ICONS | LucideIconData;

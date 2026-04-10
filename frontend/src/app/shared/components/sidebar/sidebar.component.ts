@@ -34,6 +34,19 @@ import { ZardIconComponent, type ZardIcon } from '../icon';
           }
         </ul>
 
+          <div class="mt-4 border-t border-sidebar-border pt-4">
+          <a
+            z-button
+            zType="default"
+            zSize="default"
+            routerLink="/upload"
+            class="w-full justify-start gap-2.5"
+          >
+            <z-icon zType="cloud-upload" zSize="sm" />
+            <span>Upload</span>
+          </a>
+        </div>
+
         <div class="mt-auto pt-4">
           <button
             z-button

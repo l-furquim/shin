@@ -1,91 +1,73 @@
+import { AuthStore } from '@/core/stores/auth.store';
 import { AuthService } from '@/features/auth/auth.service';
 import { AuthResponse } from '@/features/auth/auth.types';
-import { TokenService } from '@/features/auth/token.service';
-import {
-  HttpErrorResponse,
-  HttpEvent,
-  HttpHandler,
-  HttpInterceptor,
-  HttpRequest,
-} from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, catchError, filter, Observable, switchMap, take, throwError } from 'rxjs';
+import { catchError, filter, switchMap, take, throwError } from 'rxjs';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshSubject = new BehaviorSubject<string | null>(null);
+function addToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+  return req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+}
 
-  constructor(
-    private router: Router,
-    private tokenService: TokenService,
-    private authService: AuthService,
-  ) {}
+function handle401(
+  req: HttpRequest<unknown>,
+  next: Parameters<HttpInterceptorFn>[1],
+  authStore: AuthStore,
+  authService: AuthService,
+  router: Router,
+) {
+  if (!authStore.isRefreshing) {
+    authStore.isRefreshing = true;
+    authStore.refreshing$.next(null);
 
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const accessToken = this.tokenService.getAccessToken();
+    return authService.refreshToken().pipe(
+      switchMap((response: AuthResponse | null) => {
+        authStore.isRefreshing = false;
 
-    const authReq = accessToken
-      ? req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } })
-      : req;
-
-    return next.handle(authReq).pipe(
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 401) {
-          return this.handleUnauthorized(req, next);
+        if (!response) {
+          authStore.clearSession();
+          router.navigate(['/login']);
+          return throwError(() => new Error('Unauthorized'));
         }
+
+        authStore.setAccessToken(response.token);
+        authStore.refreshing$.next(response.token);
+
+        return next(addToken(req, response.token));
+      }),
+      catchError((err) => {
+        authStore.isRefreshing = false;
+        authStore.clearSession();
+        router.navigate(['/login']);
         return throwError(() => err);
       }),
     );
   }
 
-  private handleUnauthorized(req: HttpRequest<any>, next: HttpHandler) {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshSubject.next(null);
-
-      return this.authService.refreshToken().pipe(
-        switchMap((response: AuthResponse | null) => {
-          if (!response) {
-            throw new Error('Unauthorized');
-          }
-
-          this.isRefreshing = false;
-
-          const newAccessToken = response.token;
-          this.tokenService.setAccessToken(newAccessToken);
-
-          this.refreshSubject.next(newAccessToken);
-
-          return next.handle(
-            req.clone({ setHeaders: { Authorization: `Bearer ${newAccessToken}` } }),
-          );
-        }),
-        catchError((err) => {
-          console.error(`Erro: ${err}`);
-
-          this.isRefreshing = false;
-          this.tokenService.clear();
-
-          // Usuario sem auth ligado
-          this.router.navigate(['/login']);
-          return throwError(() => new Error('Unauthorized'));
-        }),
-      );
-    }
-
-    // espera o refresh atual finalizar.
-    return this.refreshSubject.pipe(
-      filter((token) => token !== null),
-      take(1),
-      switchMap((token) => {
-        return next.handle(
-          req.clone({
-            setHeaders: { Authorization: `Bearer ${token}` },
-          }),
-        );
-      }),
-    );
-  }
+  return authStore.refreshing$.pipe(
+    filter((token): token is string => token !== null),
+    take(1),
+    switchMap((token) => next(addToken(req, token))),
+  );
 }
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.url.includes('amazonaws.com')) {
+    return next(req);
+  }
+
+  const authStore = inject(AuthStore);
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const token = authStore.accessToken();
+  const authReq = token ? addToken(req, token) : req;
+
+  return next(authReq).pipe(
+    catchError((err: HttpErrorResponse) => {
+      if (err.status !== 401) return throwError(() => err);
+      return handle401(req, next, authStore, authService, router);
+    }),
+  );
+};

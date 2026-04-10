@@ -117,7 +117,7 @@ public class UploadServiceImpl implements UploadService {
             String.join(",", resolutions)
         ));
 
-        return new ChunkedUploadResponse(videoId, (long) chunks.size(), chunks);
+        return new ChunkedUploadResponse(uploadId, videoId, (long) chunks.size(), chunks);
     }
 
     @Override

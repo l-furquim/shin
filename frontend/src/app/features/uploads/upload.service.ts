@@ -6,7 +6,6 @@ import type {
   InitiateUploadRequest,
   InitiateUploadResponse,
   UploadChunkProgress,
-  UploadChunkResponse,
   UploadChunksRequest,
 } from './upload.types';
 
@@ -16,75 +15,53 @@ export class UploadService {
   private readonly chunkSize = 5 * 1024 * 1024;
 
   initiateChunkedUpload(request: InitiateUploadRequest): Observable<InitiateUploadResponse> {
-    const { userId, ...body } = request;
-
     return this.http
-      .post<InitiateUploadResponse>('/api/v1/uploads/sessions', body, {
-        headers: {
-          'X-User-Id': userId,
-        },
-      })
+      .post<InitiateUploadResponse>('/api/v1/uploads/chunked', request)
       .pipe(catchError((error) => this.handleHttpError(error, 'iniciar upload')));
   }
 
   uploadChunks(request: UploadChunksRequest): Observable<UploadChunkProgress> {
-    const chunkSequence = Array.from({ length: request.totalChunks }, (_, index) => index + 1);
-
-    return from(chunkSequence).pipe(
-      concatMap((chunkNumber) => this.uploadSingleChunk(request, chunkNumber)),
-    );
-  }
-
-  private uploadSingleChunk(
-    request: UploadChunksRequest,
-    chunkNumber: number,
-  ): Observable<UploadChunkProgress> {
-    const start = (chunkNumber - 1) * this.chunkSize;
-    const end = Math.min(start + this.chunkSize, request.file.size);
-    const chunkBlob = request.file.slice(start, end);
-
-    const formData = new FormData();
-    formData.append('file', chunkBlob);
-
-    return this.http
-      .put<UploadChunkResponse>(
-        `/api/v1/uploads/sessions/${request.uploadId}/chunks/${chunkNumber}`,
-        formData,
-      )
-      .pipe(
-      map((response) => ({
-        chunkNumber,
-        totalChunks: request.totalChunks,
-        progress: this.normalizeProgress(response.progress, chunkNumber, request.totalChunks),
-      })),
-      catchError((error) => this.handleHttpError(error, `enviar chunk ${chunkNumber}`)),
+    const indices = Array.from({ length: request.totalChunks }, (_, i) => i);
+    return from(indices).pipe(
+      concatMap((index) => this.uploadChunk(request, index)),
     );
   }
 
   completeChunkedUpload(uploadId: string): Observable<CompleteUploadResponse> {
     return this.http
-      .post<CompleteUploadResponse>(`/api/v1/uploads/sessions/${uploadId}/complete`, null)
+      .post<CompleteUploadResponse>(`/api/v1/uploads/chunked/${uploadId}/complete`, null)
       .pipe(catchError((error) => this.handleHttpError(error, 'finalizar upload')));
   }
 
-  private normalizeProgress(
-    rawProgress: number,
-    chunkNumber: number,
-    totalChunks: number,
-  ): number {
-    if (Number.isFinite(rawProgress)) {
-      return Math.max(0, Math.min(100, Math.round(rawProgress)));
-    }
+  private uploadChunk(request: UploadChunksRequest, index: number): Observable<UploadChunkProgress> {
+    const { url } = request.chunks[index];
+    const start = index * this.chunkSize;
+    const end = Math.min(start + this.chunkSize, request.file.size);
+    const blob = request.file.slice(start, end);
 
-    return Math.round((chunkNumber / totalChunks) * 100);
+    return this.http
+      .put(url, blob, {
+        headers: { 'Content-Type': request.file.type },
+      })
+      .pipe(
+        map(() => ({
+          chunkNumber: index + 1,
+          totalChunks: request.totalChunks,
+          progress: Math.round(((index + 1) / request.totalChunks) * 100),
+        })),
+        catchError((error) => this.handleHttpError(error, `enviar chunk ${index + 1}`)),
+      );
   }
 
   private handleHttpError(error: unknown, operation: string): Observable<never> {
-    const message =
-      error instanceof HttpErrorResponse
-        ? `Falha ao ${operation}. Status ${error.status}`
-        : `Falha ao ${operation}.`;
+    if (error instanceof HttpErrorResponse) {
+      const detail =
+        typeof error.error === 'object' && error.error?.message
+          ? error.error.message
+          : `Status ${error.status}`;
+      return throwError(() => new Error(`Falha ao ${operation}. ${detail}`));
+    }
 
-    return throwError(() => new Error(message));
+    return throwError(() => new Error(`Falha ao ${operation}.`));
   }
 }

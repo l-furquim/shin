@@ -3,12 +3,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { CreatorStore } from '@/core/stores/creator.store';
+import { AuthStore } from '@/core/stores/auth.store';
 import { AuthService } from '@/features/auth/auth.service';
-import { TokenService } from '@/features/auth/token.service';
 import type { Creator } from '@/features/creator/creator.types';
 import { ZardAlertComponent } from '@/shared/components/alert';
-import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCardComponent } from '@/shared/components/card';
 import { ZardInputDirective } from '@/shared/components/input';
 
@@ -19,7 +17,6 @@ import { ZardInputDirective } from '@/shared/components/input';
     RouterLink,
     ZardCardComponent,
     ZardInputDirective,
-    ZardButtonComponent,
     ZardAlertComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,8 +77,7 @@ import { ZardInputDirective } from '@/shared/components/input';
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
-  private readonly tokenService = inject(TokenService);
-  private readonly creatorStore = inject(CreatorStore);
+  private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
   protected readonly isSubmitting = signal(false);
@@ -95,7 +91,6 @@ export class LoginComponent {
   async onSubmit(): Promise<void> {
     if (this.form.invalid || this.isSubmitting()) {
       this.form.markAllAsTouched();
-
       return;
     }
 
@@ -103,12 +98,11 @@ export class LoginComponent {
     this.errorMessage.set('');
 
     try {
-      const deviceId = this.authService.getDeviceId();
       const response = await firstValueFrom(
         this.authService.auth({
           email: this.form.controls.email.value,
           password: this.form.controls.password.value,
-          deviceId,
+          deviceId: this.authStore.creator()?.deviceId ?? null,
         }),
       );
 
@@ -117,18 +111,9 @@ export class LoginComponent {
         return;
       }
 
-      this.tokenService.setAccessToken(response.token);
+      this.authStore.setAccessToken(response.token);
 
-      const user = await firstValueFrom(
-        this.authService.getUserByEmail(this.form.controls.email.value),
-      );
-
-      if (!user) {
-        this.errorMessage.set('Nao foi possivel carregar perfil do usuario.');
-        return;
-      }
-
-      const me = await firstValueFrom(this.authService.getMe(user.id));
+      const me = await firstValueFrom(this.authService.getMe());
 
       if (!me) {
         this.errorMessage.set('Nao foi possivel carregar perfil de criador.');
@@ -148,7 +133,7 @@ export class LoginComponent {
         createdAt: new Date(me.createdAt),
       };
 
-      this.creatorStore.setCreator(creator);
+      this.authStore.setSession(response.token, creator);
 
       await this.router.navigateByUrl('/');
     } catch {

@@ -17,8 +17,18 @@ type DashPlayer = {
   initialize(videoElement: HTMLVideoElement, manifestUrl: string, autoPlay: boolean): void;
   on(event: string, listener: (payload?: unknown) => void): void;
   updateSettings(settings: object): void;
+  extend(type: string, factory: () => object, override?: boolean): void;
   reset(): void;
 };
+
+export interface AttachPlayerOptions {
+  videoElement: HTMLVideoElement;
+  manifestUrl: string;
+  withCredentials?: boolean;
+  onStreamInitialized: () => void;
+  onError: () => void;
+  onQualityChanged: (qualityLabel: string) => void;
+}
 
 @Injectable({ providedIn: 'root' })
 export class VideoPlayerService {
@@ -41,25 +51,16 @@ export class VideoPlayerService {
   }
 
   getBufferLevel(videoElement: HTMLVideoElement): string {
-    if (videoElement.buffered.length === 0) {
-      return '-';
-    }
+    if (videoElement.buffered.length === 0) return '-';
 
     const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
     const bufferLevel = Math.max(0, bufferedEnd - videoElement.currentTime);
-
     return `${bufferLevel.toFixed(1)}s`;
   }
 
-  async attachPlayer(options: {
-    videoElement: HTMLVideoElement;
-    manifestUrl: string;
-    onStreamInitialized: () => void;
-    onError: () => void;
-    onQualityChanged: (qualityLabel: string) => void;
-  }): Promise<DashPlayerHandle> {
+  async attachPlayer(options: AttachPlayerOptions): Promise<DashPlayerHandle> {
     if (!isPlatformBrowser(this.platformId)) {
-      throw new Error('Player indisponivel fora do browser.');
+      throw new Error('Player indisponível fora do browser.');
     }
 
     const dashImport = await import('dashjs');
@@ -67,6 +68,20 @@ export class VideoPlayerService {
     const mediaPlayer = dash.MediaPlayer().create();
 
     mediaPlayer.initialize(options.videoElement, options.manifestUrl, true);
+
+    // Cloud front signed cookies integration.
+    if (options.withCredentials) {
+      mediaPlayer.extend(
+        'RequestModifier',
+        () => ({
+          modifyRequestHeader(xhr: XMLHttpRequest) {
+            xhr.withCredentials = true;
+            return xhr;
+          },
+        }),
+        true,
+      );
+    }
 
     mediaPlayer.on(dash.MediaPlayer.events['STREAM_INITIALIZED'], () => {
       options.onStreamInitialized();
@@ -79,59 +94,32 @@ export class VideoPlayerService {
     mediaPlayer.on(dash.MediaPlayer.events['QUALITY_CHANGE_RENDERED'], (payload?: unknown) => {
       const event = payload as DashEventPayload;
       if (event.mediaType === 'video' && typeof event.newQuality === 'number') {
-        options.onQualityChanged(`Nivel ${event.newQuality}`);
+        options.onQualityChanged(`Nível ${event.newQuality}`);
       }
     });
 
     mediaPlayer.updateSettings({
       streaming: {
-        abr: {
-          autoSwitchBitrate: {
-            video: true,
-          },
-        },
-        buffer: {
-          fastSwitchEnabled: true,
-        },
+        abr: { autoSwitchBitrate: { video: true } },
+        buffer: { fastSwitchEnabled: true },
       },
     });
 
-    return {
-      reset: () => mediaPlayer.reset(),
-    };
+    return { reset: () => mediaPlayer.reset() };
   }
 
   private normalizeCdnUrl(url: string | undefined): string {
-    if (!url) {
-      return '';
-    }
-
+    if (!url) return '';
     const trimmed = url.trim().replace(/\/$/, '');
-    if (!trimmed) {
-      return '';
-    }
-
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
     return `https://${trimmed}`;
   }
 
   private normalizeProcessedPath(path: string | undefined): string {
-    if (!path) {
-      return '';
-    }
-
+    if (!path) return '';
     const trimmed = path.trim().replace(/^\/+|\/+$/g, '');
-    if (!trimmed) {
-      return '';
-    }
-
-    if (trimmed.startsWith('videos/')) {
-      return trimmed;
-    }
-
-    return `videos/${trimmed}`;
+    if (!trimmed) return '';
+    return trimmed.startsWith('videos/') ? trimmed : `videos/${trimmed}`;
   }
 }

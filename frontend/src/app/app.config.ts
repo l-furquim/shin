@@ -5,31 +5,16 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideZard } from '@/shared/core/provider/providezard';
-import {
-  provideHttpClient,
-  withInterceptorsFromDi,
-  HTTP_INTERCEPTORS,
-  withFetch,
-} from '@angular/common/http';
-import { AuthInterceptor } from '@/interceptors/auth.interceptor';
-import { ApiBaseUrlInterceptor } from '@/interceptors/api-base-url.interceptor';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { authInterceptor } from '@/interceptors/auth.interceptor';
+import { apiBaseUrlInterceptor } from '@/interceptors/api-base-url.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideHttpClient(withInterceptorsFromDi(), withFetch()),
+    provideHttpClient(withInterceptors([apiBaseUrlInterceptor, authInterceptor]), withFetch()),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
     provideZard(),
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: ApiBaseUrlInterceptor,
-      multi: true,
-    },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
-      multi: true,
-    },
   ],
 };
