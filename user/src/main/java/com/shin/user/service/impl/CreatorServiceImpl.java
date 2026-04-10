@@ -64,7 +64,7 @@ public class CreatorServiceImpl implements CreatorService {
                 .id(userSaved.getId())
                 .username(username)
                 .description(request.description())
-                .channelUrl(userSaved.getId().toString())
+                .channelUrl("/".concat(userSaved.getId().toString()))
                 .subscribersCount(0L)
                 .build();
 
@@ -197,6 +197,7 @@ public class CreatorServiceImpl implements CreatorService {
                 user.getDisplayName(),
                 creator.getUsername(),
                 creator.getDescription(),
+                creator.getChannelUrl(),
                 creator.getChannelUrl(),
                 pictures[0],
                 pictures[1],

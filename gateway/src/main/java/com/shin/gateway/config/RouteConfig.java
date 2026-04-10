@@ -3,6 +3,7 @@ package com.shin.gateway.config;
 import com.shin.gateway.filter.AuthContextGatewayFilterFactory;
 import com.shin.gateway.filter.ClientIpResolverGatewayFilterFactory;
 import com.shin.gateway.filter.CorrelationIdGatewayFilterFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -14,6 +15,9 @@ import org.springframework.http.HttpMethod;
 
 @Configuration
 public class RouteConfig {
+
+    @Value("${cloudfront.cdn-url:d1bdx17cpz5q2y.cloudfront.net}")
+    private String cloudfrontCdnUrl;
 
     private final ClientIpResolverGatewayFilterFactory clientIpResolverFilter;
     private final CorrelationIdGatewayFilterFactory correlationIdFilter;
@@ -49,6 +53,16 @@ public class RouteConfig {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("cloudfront-cdn", r -> r
+                        .path("/cdn/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .rewritePath("/cdn/(?<segment>.*)", "/${segment}")
+                        )
+                        .uri(cloudfrontUri())
+                )
+
                 .route("user-auth-public", r -> r
                         .path("/api/v1/users/auth")
                         .and()
@@ -260,6 +274,30 @@ public class RouteConfig {
                         .uri("lb://comment-service")
                 )
 
+                .route("search-service", r -> r
+                        .path("/api/v1/search/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("searchCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/search"))
+                        )
+                        .uri("lb://search-service")
+                )
+
+                .route("search-service-docs", r -> r
+                        .path("/search-service/v3/api-docs")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .rewritePath("/search-service/v3/api-docs", "/v3/api-docs"))
+                        .uri("lb://search-service")
+                )
+
                 .route("subscription-service-docs", r -> r
                         .path("/subscription-service/v3/api-docs")
                         .filters(f -> f
@@ -326,5 +364,19 @@ public class RouteConfig {
 
 
                 .build();
+    }
+
+    private String cloudfrontUri() {
+        String normalized = cloudfrontCdnUrl == null ? "" : cloudfrontCdnUrl.trim();
+        if (normalized.isEmpty()) {
+            return "https://d1bdx17cpz5q2y.cloudfront.net";
+        }
+
+        normalized = normalized.replaceAll("/+$", "");
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            return normalized;
+        }
+
+        return "https://" + normalized;
     }
 }

@@ -3,8 +3,8 @@ import { AuthService } from '@/features/auth/auth.service';
 import { AuthResponse } from '@/features/auth/auth.types';
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, filter, switchMap, take, throwError } from 'rxjs';
+import { catchError, filter, switchMap, take, throwError, timeout } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 function addToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
   return req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
@@ -15,8 +15,9 @@ function handle401(
   next: Parameters<HttpInterceptorFn>[1],
   authStore: AuthStore,
   authService: AuthService,
-  router: Router,
 ) {
+  const currentToken = authStore.accessToken();
+
   if (!authStore.isRefreshing) {
     authStore.isRefreshing = true;
     authStore.refreshing$.next(null);
@@ -27,7 +28,6 @@ function handle401(
 
         if (!response) {
           authStore.clearSession();
-          router.navigate(['/login']);
           return throwError(() => new Error('Unauthorized'));
         }
 
@@ -39,27 +39,38 @@ function handle401(
       catchError((err) => {
         authStore.isRefreshing = false;
         authStore.clearSession();
-        router.navigate(['/login']);
         return throwError(() => err);
       }),
     );
   }
 
+  if (!currentToken) {
+    return throwError(() => new Error('Unauthorized'));
+  }
+
   return authStore.refreshing$.pipe(
     filter((token): token is string => token !== null),
     take(1),
+    timeout(5000),
     switchMap((token) => next(addToken(req, token))),
+    catchError((err) => {
+      authStore.clearSession();
+      return throwError(() => err);
+    }),
   );
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.url.includes('amazonaws.com')) {
+  if (req.url.includes('/api/v1/auth')) {
     return next(req);
+  }
+
+  if (req.url.includes(environment.defaultCloudfrontUrl)) {
+    return next(req.clone({ withCredentials: true }));
   }
 
   const authStore = inject(AuthStore);
   const authService = inject(AuthService);
-  const router = inject(Router);
 
   const token = authStore.accessToken();
   const authReq = token ? addToken(req, token) : req;
@@ -67,7 +78,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     catchError((err: HttpErrorResponse) => {
       if (err.status !== 401) return throwError(() => err);
-      return handle401(req, next, authStore, authService, router);
+      return handle401(req, next, authStore, authService);
     }),
   );
 };

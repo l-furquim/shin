@@ -7,6 +7,9 @@ public record CreateCommentResponse(
         String parentId,
         String videoId,
         String authorId,
+        String authorDisplayName,
+        String authorAvatarUrl,
+        String authorUrl,
         String textOriginal,
         String textDisplay,
         Long likeCount

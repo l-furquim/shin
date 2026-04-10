@@ -32,11 +32,12 @@ variable "creator_pictures_bucket_name" {
 variable "sns_topic_names" {
   description = "List of SNS topic names to create"
   type        = list(string)
-  default = [
-    "raw-upload-created",
-    "chunk-processed",
-    "view-counted",
-  ]
+}
+
+variable "sns_fanout_subscriptions" {
+  description = "Map of SNS topic names to SQS queue names for fanout subscriptions"
+  type        = map(list(string))
+  default     = {}
 }
 
 variable "sqs_queue_names" {

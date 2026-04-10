@@ -36,8 +36,8 @@ SQS_QUEUES=(
 )
 
 SNS_TOPICS=(
-    "shin-${ENV}-chunk-processed"
-    "shin-${ENV}-view-counted"
+    "shin-${ENV}-raw-upload-created"
+    "shin-${ENV}-video-published"
 )
 
 log_info() {

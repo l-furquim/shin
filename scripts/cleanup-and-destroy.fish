@@ -32,8 +32,8 @@ set SQS_QUEUES \
     "shin-$ENV-view-events-dlq"
 
 set SNS_TOPICS \
-    "shin-$ENV-chunk-processed" \
-    "shin-$ENV-view-counted"
+    "shin-$ENV-raw-upload-created" \
+    "shin-$ENV-video-published"
 
 function log_info
     printf "%b[INFO]%b %s\n" $BLUE $NC "$argv"

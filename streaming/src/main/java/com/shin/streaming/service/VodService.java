@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface VodService {
 
-    WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl);
+    WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl, String[] resolutions);
     void handlePlaybackEvent(ViewEventRequest request, UUID userId);
 }

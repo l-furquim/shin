@@ -28,6 +28,11 @@ output "sns_topic_names" {
   value       = module.sns.topic_names
 }
 
+output "sns_fanout_bindings" {
+  description = "Fanout bindings with SNS topics and subscribed SQS queues"
+  value       = local.sns_fanout_bindings
+}
+
 output "sqs_queue_arns" {
   description = "Map of SQS queue names to their ARNs"
   value       = module.sqs.queue_arns
@@ -63,6 +68,11 @@ output "cloud_front_cdn_url" {
   value       = module.cloudfront.cloud_front_cdn_url
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = module.cloudfront.distribution_id
+}
+
 output "cloudfront_key_pair_id" {
   description = "CloudFront public key ID for signed cookies"
   value       = module.cloudfront.key_pair_id
@@ -76,4 +86,12 @@ output "cloudfront_private_key_secret_arn" {
 output "engagement_processor_arn" {
   description = "ARN of the engagement processor Lambda"
   value       = module.engagement.processor_function_arn
+}
+
+output "open_search_collection_endpoint" {
+  value = module.open_search.open_search_collection_endpoint
+}
+
+output "open_search_dashboard_endpoint" {
+  value = module.open_search.open_search_dashboard_endpoint
 }

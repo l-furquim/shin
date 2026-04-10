@@ -11,27 +11,27 @@ COPY commons/src commons/src
 
 RUN mvn -f commons/pom.xml clean install -DskipTests
 
-COPY metadata/pom.xml metadata/pom.xml
+COPY comment/pom.xml comment/pom.xml
 
-WORKDIR /app/metadata
+WORKDIR /app/comment
 
 RUN mvn dependency:go-offline -B
 
-COPY metadata/src/ src/
+COPY comment/src/ src/
 
 RUN mvn clean package -DskipTests
 
 FROM amazoncorretto:21-alpine
 
-RUN adduser -S metadata -u 1001
+RUN adduser -S comment -u 1001
 
 WORKDIR /app
 
-COPY --from=build --chown=metadata:metadata /app/metadata/target/*.jar metadata-service.jar
+COPY --from=build --chown=comment:comment /app/comment/target/*.jar comment-service.jar
 
-RUN chmod 444 metadata-service.jar
+RUN chmod 444 comment-service.jar
 
 EXPOSE 8080
-USER metadata
+USER comment
 
-ENTRYPOINT ["java", "-jar", "metadata-service.jar"]
+ENTRYPOINT ["java", "-jar", "comment-service.jar"]

@@ -5,13 +5,14 @@ import {
   DestroyRef,
   inject,
   OnInit,
+  PLATFORM_ID,
   signal,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { switchMap, catchError, of, forkJoin } from 'rxjs';
+import { switchMap, catchError, of, map } from 'rxjs';
 
 import { AuthStore } from '@/core/stores/auth.store';
 import { VodService } from '@/features/vod/vod.service';
@@ -19,7 +20,7 @@ import { PlaybackTrackerService } from '@/features/vod/playback-tracker.service'
 import { VideoService } from '@/features/videos/video.service';
 import { CommentService } from '@/features/comments/comment.service';
 import { InteractionService } from '@/features/interactions/interaction.service';
-import type { VideoItem } from '@/features/videos/video.types';
+import type { Resolution, VideoItem } from '@/features/videos/video.types';
 import type { WatchVodResponse } from '@/features/vod/vod.types';
 import type { CommentDto } from '@/features/comments/comment.types';
 
@@ -28,6 +29,8 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 import { ZardButtonComponent } from '../button';
 import { ZardIconComponent } from '../icon';
 import { ZardAlertComponent } from '../alert';
+
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-video',
@@ -77,10 +80,46 @@ import { ZardAlertComponent } from '../alert';
                 (streamReady)="onStreamReady()"
               ></video-player>
 
+              @if (availableResolutions().length > 0) {
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Qualidade
+                  </span>
+                  @for (resolution of availableResolutions(); track resolution) {
+                    <button
+                      type="button"
+                      class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                      [class.bg-stone-900]="selectedResolution() === resolution"
+                      [class.text-white]="selectedResolution() === resolution"
+                      [class.border-stone-900]="selectedResolution() === resolution"
+                      [class.hover:bg-stone-100]="selectedResolution() !== resolution"
+                      [disabled]="resolutionLoading() || selectedResolution() === resolution"
+                      (click)="onResolutionChange(resolution)"
+                    >
+                      {{ resolution }}
+                    </button>
+                  }
+                  @if (resolutionLoading()) {
+                    <z-icon zType="loader-circle" class="animate-spin text-muted-foreground" zSize="sm" />
+                  }
+                </div>
+              }
+
+              @if (resolutionError()) {
+                <p class="text-sm text-destructive">
+                  Não foi possível trocar a resolução agora. Tente novamente.
+                </p>
+              }
+
               <div class="space-y-2">
                 <h1 class="text-xl font-bold leading-tight md:text-2xl">
                   {{ video()?.title ?? vod()?.videoDetails?.title }}
                 </h1>
+                @if (!video()) {
+                  <p class="text-xs text-muted-foreground">
+                    Nao foi possivel carregar todos os detalhes do video.
+                  </p>
+                }
                 <p class="text-muted-foreground text-sm">
                   {{ video()?.statistics?.viewCount ?? 0 | number }} visualizações
                   @if (video()?.publishedAt) {
@@ -93,12 +132,14 @@ import { ZardAlertComponent } from '../alert';
                 <div class="flex items-center gap-3">
                   @if (video()?.channel?.avatarUrl) {
                     <img
-                      [src]="video()!.channel.avatarUrl"
+                      [src]="cloudFrontBase() + video()?.channel?.avatarUrl"
                       [alt]="video()!.channel.name"
                       class="h-10 w-10 rounded-full object-cover"
                     />
                   } @else {
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-stone-200">
+                    <div
+                      class="flex h-10 w-10 items-center justify-center rounded-full bg-stone-200"
+                    >
                       <z-icon zType="user" zSize="sm" class="text-stone-500" />
                     </div>
                   }
@@ -137,18 +178,21 @@ import { ZardAlertComponent } from '../alert';
               <div class="h-px bg-border"></div>
 
               <div class="rounded-xl bg-stone-100 p-4 text-sm leading-relaxed">
-                <p
-                  class="whitespace-pre-wrap"
-                  [class.line-clamp-3]="!descriptionExpanded()"
-                >
+                <p class="whitespace-pre-wrap" [class.line-clamp-3]="!descriptionExpanded()">
                   {{ video()?.description ?? vod()?.videoDetails?.description ?? '' }}
                 </p>
                 @if (!descriptionExpanded()) {
-                  <button class="mt-2 font-semibold hover:underline" (click)="descriptionExpanded.set(true)">
+                  <button
+                    class="mt-2 font-semibold hover:underline"
+                    (click)="descriptionExpanded.set(true)"
+                  >
                     Ver mais
                   </button>
                 } @else {
-                  <button class="mt-2 font-semibold hover:underline" (click)="descriptionExpanded.set(false)">
+                  <button
+                    class="mt-2 font-semibold hover:underline"
+                    (click)="descriptionExpanded.set(false)"
+                  >
                     Ver menos
                   </button>
                 }
@@ -163,7 +207,9 @@ import { ZardAlertComponent } from '../alert';
 
                 @if (userId()) {
                   <div class="flex gap-3">
-                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-stone-200">
+                    <div
+                      class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-stone-200"
+                    >
                       <z-icon zType="user" zSize="sm" class="text-stone-500" />
                     </div>
                     <div class="flex flex-1 flex-col gap-2">
@@ -194,7 +240,9 @@ import { ZardAlertComponent } from '../alert';
 
                 @for (comment of comments(); track comment.id) {
                   <div class="flex gap-3">
-                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-stone-200">
+                    <div
+                      class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-stone-200"
+                    >
                       <z-icon zType="user" zSize="sm" class="text-stone-500" />
                     </div>
                     <div class="flex-1 space-y-1">
@@ -233,6 +281,12 @@ import { ZardAlertComponent } from '../alert';
                 @if (!commentsLoading() && comments().length === 0) {
                   <p class="py-4 text-center text-sm text-muted-foreground">
                     Seja o primeiro a comentar.
+                  </p>
+                }
+
+                @if (commentsError()) {
+                  <p class="py-2 text-sm text-muted-foreground">
+                    Nao foi possivel carregar comentarios.
                   </p>
                 }
               </section>
@@ -280,8 +334,13 @@ import { ZardAlertComponent } from '../alert';
                   </div>
                 }
               }
-            </aside>
 
+              @if (relatedError()) {
+                <p class="px-2 text-sm text-muted-foreground">
+                  Nao foi possivel carregar recomendacoes.
+                </p>
+              }
+            </aside>
           </div>
         }
       </main>
@@ -297,6 +356,8 @@ export class VideoComponent implements OnInit {
   private readonly interactionService = inject(InteractionService);
   private readonly tracker = inject(PlaybackTrackerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
+  protected readonly cloudFrontBase = signal(`https://${environment.defaultCloudfrontUrl}`);
 
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
@@ -304,17 +365,26 @@ export class VideoComponent implements OnInit {
   protected readonly video = signal<VideoItem | null>(null);
   protected readonly comments = signal<CommentDto[]>([]);
   protected readonly commentsLoading = signal(false);
+  protected readonly commentsError = signal(false);
   protected readonly relatedVideos = signal<VideoItem[]>([]);
   protected readonly relatedLoading = signal(true);
+  protected readonly relatedError = signal(false);
   protected readonly descriptionExpanded = signal(false);
   protected readonly commentSubmitting = signal(false);
   protected readonly likedByMe = signal(false);
   protected readonly dislikedByMe = signal(false);
   protected readonly likeCount = signal(0);
+  protected readonly selectedResolution = signal<Resolution | null>(null);
+  protected readonly resolutionLoading = signal(false);
+  protected readonly resolutionError = signal(false);
 
   protected newCommentText = '';
 
   protected readonly manifestUrl = computed(() => this.vod()?.manifestUrl ?? null);
+  protected readonly availableResolutions = computed<Resolution[]>(() => {
+    const raw = this.video()?.contentDetails?.resolutions;
+    return this.extractResolutions(raw);
+  });
   protected readonly userId = computed(() => this.authStore.creator()?.id ?? null);
 
   private videoId = '';
@@ -334,15 +404,31 @@ export class VideoComponent implements OnInit {
 
           this.loading.set(true);
           this.loadError.set(false);
+          this.resolutionLoading.set(false);
+          this.resolutionError.set(false);
+          this.selectedResolution.set(null);
 
-          return forkJoin({
-            vod: this.vodService.watchVod(this.videoId),
-            video: this.videoService.getVideo(this.videoId, 'contentDetails,statistics,channel'),
-          }).pipe(catchError(() => of(null)));
+          return this.videoService.getVideo(this.videoId, 'contentDetails,statistics,channel').pipe(
+            catchError(() => of(null)),
+            switchMap((video) => {
+              const initialResolution = this.pickInitialResolution(video);
+
+              if (!initialResolution) {
+                return of({ vod: null, video });
+              }
+
+              this.selectedResolution.set(initialResolution);
+
+              return this.vodService.watchVod(this.videoId, initialResolution).pipe(
+                map((vod) => ({ vod, video })),
+                catchError(() => of({ vod: null, video })),
+              );
+            }),
+          );
         }),
       )
       .subscribe((result) => {
-        if (!result) {
+        if (!result?.vod) {
           this.loadError.set(true);
           this.loading.set(false);
           return;
@@ -350,14 +436,18 @@ export class VideoComponent implements OnInit {
 
         this.vod.set(result.vod);
         this.video.set(result.video);
-        this.likedByMe.set(result.video.likedByMe ?? false);
-        this.likeCount.set(result.video.statistics?.likeCount ?? 0);
+        this.likedByMe.set(result.video?.likedByMe ?? false);
+        this.likeCount.set(result.video?.statistics?.likeCount ?? 0);
+        this.resolutionLoading.set(false);
+        this.resolutionError.set(false);
         this.loading.set(false);
 
-        this.tracker.start({
-          token: result.vod.playbackToken,
-          duration: result.vod.videoDetails.duration,
-        });
+        if (isPlatformBrowser(this.platformId)) {
+          this.tracker.start({
+            token: result.vod.playbackToken,
+            duration: result.vod.videoDetails.duration,
+          });
+        }
 
         this.loadComments();
         this.loadRelatedVideos();
@@ -382,13 +472,48 @@ export class VideoComponent implements OnInit {
 
   protected onStreamReady(): void {}
 
+  protected onResolutionChange(resolution: Resolution): void {
+    if (!this.videoId || this.selectedResolution() === resolution || this.resolutionLoading()) return;
+
+    this.resolutionLoading.set(true);
+    this.resolutionError.set(false);
+
+    this.vodService
+      .watchVod(this.videoId, resolution)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
+      .subscribe((vod) => {
+        this.resolutionLoading.set(false);
+
+        if (!vod) {
+          this.resolutionError.set(true);
+          return;
+        }
+
+        this.selectedResolution.set(resolution);
+        this.vod.set(vod);
+
+        if (isPlatformBrowser(this.platformId)) {
+          this.tracker.start({
+            token: vod.playbackToken,
+            duration: vod.videoDetails.duration,
+          });
+        }
+      });
+  }
+
   protected onLike(): void {
     if (!this.videoId) return;
 
     if (this.likedByMe()) {
       this.interactionService
         .removeReaction(this.videoId, 'like')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
           if (res !== null) {
             this.likedByMe.set(false);
@@ -399,7 +524,10 @@ export class VideoComponent implements OnInit {
       if (this.dislikedByMe()) this.dislikedByMe.set(false);
       this.interactionService
         .react(this.videoId, 'like')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
           if (res !== null) {
             this.likedByMe.set(true);
@@ -415,7 +543,10 @@ export class VideoComponent implements OnInit {
     if (this.dislikedByMe()) {
       this.interactionService
         .removeReaction(this.videoId, 'dislike')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
           if (res !== null) this.dislikedByMe.set(false);
         });
@@ -425,7 +556,10 @@ export class VideoComponent implements OnInit {
       }
       this.interactionService
         .react(this.videoId, 'dislike')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
           if (res !== null) {
             this.dislikedByMe.set(true);
@@ -444,7 +578,10 @@ export class VideoComponent implements OnInit {
     this.commentSubmitting.set(true);
     this.commentService
       .createComment({ videoId: this.videoId, channelId, content: text })
-      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
       .subscribe((comment) => {
         this.commentSubmitting.set(false);
         if (comment) {
@@ -457,7 +594,10 @@ export class VideoComponent implements OnInit {
   protected deleteComment(commentId: string): void {
     this.commentService
       .deleteComment(commentId)
-      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
       .subscribe(() => {
         this.comments.update((list) => list.filter((c) => c.id !== commentId));
       });
@@ -465,11 +605,21 @@ export class VideoComponent implements OnInit {
 
   private loadComments(): void {
     this.commentsLoading.set(true);
+    this.commentsError.set(false);
     this.commentService
       .listThreads(this.videoId)
-      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
       .subscribe((threads) => {
-        if (!threads?.items.length) {
+        if (!threads) {
+          this.commentsError.set(true);
+          this.commentsLoading.set(false);
+          return;
+        }
+
+        if (!threads.items.length) {
           this.commentsLoading.set(false);
           return;
         }
@@ -477,24 +627,56 @@ export class VideoComponent implements OnInit {
         const ids = threads.items.map((t) => t.id);
         this.commentService
           .listComments({ ids, maxResults: ids.length })
-          .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            catchError(() => of(null)),
+          )
           .subscribe((res) => {
             this.commentsLoading.set(false);
-            if (res) this.comments.set(res.items);
+            if (res) {
+              this.comments.set(res.items);
+              return;
+            }
+
+            this.commentsError.set(true);
           });
       });
   }
 
   private loadRelatedVideos(): void {
     this.relatedLoading.set(true);
+    this.relatedError.set(false);
     this.videoService
-      .listVideos({ fields: 'statistics,thumbnails,channel', limit: 10 })
-      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .listVideos({ fields: 'statistics,thumbnails,channel,tags,contentDetails', limit: 10 })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
       .subscribe((res) => {
         this.relatedLoading.set(false);
         if (res) {
           this.relatedVideos.set(res.items.filter((v) => v.id !== this.videoId));
+          return;
         }
+
+        this.relatedError.set(true);
       });
+  }
+
+  private extractResolutions(raw: string | undefined): Resolution[] {
+    if (!raw) return [];
+
+    const supported: Resolution[] = ['1080p', '720p', '480p', '360p'];
+    return supported.filter((resolution) => raw.includes(resolution));
+  }
+
+  private pickInitialResolution(video: VideoItem | null): Resolution | null {
+    const available = this.extractResolutions(video?.contentDetails?.resolutions);
+
+    if (available.includes('720p')) {
+      return '720p';
+    }
+
+    return available[0] ?? '720p';
   }
 }

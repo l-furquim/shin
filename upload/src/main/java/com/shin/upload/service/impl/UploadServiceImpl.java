@@ -3,9 +3,9 @@ package com.shin.upload.service.impl;
 import com.shin.upload.dto.*;
 import com.shin.upload.exceptions.InvalidVideoUploadException;
 import com.shin.upload.exceptions.UploadNotFoundException;
+import java.util.concurrent.CompletableFuture;
 import com.shin.upload.model.UploadState;
 import com.shin.upload.model.enums.UploadStatus;
-import com.shin.upload.producers.EncodingJobProducer;
 import com.shin.upload.producers.RawUploadMetadataProducer;
 import com.shin.upload.producers.VideoInitializedProducer;
 import com.shin.upload.service.StorageService;
@@ -35,7 +35,6 @@ public class UploadServiceImpl implements UploadService {
 
     private final StorageService storageService;
     private final VideoInitializedProducer videoInitializedProducer;
-    private final EncodingJobProducer encodingProducer;
     private final RawUploadMetadataProducer rawUploadMetadataProducer;
     private final RedisTemplate<String, UploadState> redisTemplate;
 
@@ -121,7 +120,7 @@ public class UploadServiceImpl implements UploadService {
     }
 
     @Override
-    public void completeUpload(String uploadId) {
+    public CompleteUploadResponse completeUpload(String uploadId) {
         UploadState state = redisTemplate.opsForValue().get("upload:" + uploadId);
         if (state == null) {
             throw new UploadNotFoundException("Upload not found");
@@ -129,9 +128,17 @@ public class UploadServiceImpl implements UploadService {
 
         String finalKey = state.videoId() + "/original.mp4";
 
-        log.info("Completing chunked upload: uploadId={}, videoId={}", uploadId, state.videoId());
+        log.info("Accepted chunked upload for assembly: uploadId={}, videoId={}", uploadId, state.videoId());
 
-        assembleAndProcess(state, finalKey);
+        CompletableFuture.runAsync(() -> {
+            try {
+                assembleAndProcess(state, finalKey);
+            } catch (Exception e) {
+                log.error("Async assembly failed: uploadId={}, videoId={}", state.id(), state.videoId(), e);
+            }
+        });
+
+        return new CompleteUploadResponse(state.videoId().toString(), UploadStatus.PROCESSING.name());
     }
 
     @Override
@@ -168,17 +175,6 @@ public class UploadServiceImpl implements UploadService {
         log.info("Assembled {} chunks into key={} for uploadId={} in {} minutes",
             chunks.size(), finalKey, state.id(), elapsed);
 
-        finishUpload(state, finalKey);
-    }
-
-    private void finishUpload(UploadState state, String finalKey) {
-        encodingProducer.send(new TranscodeJobEvent(
-            state.videoId().toString(),
-            finalKey,
-            state.userId(),
-            state.fileName(),
-            Arrays.asList(state.resolutions().split(","))
-        ));
 
         redisTemplate.delete("upload:" + state.id());
     }

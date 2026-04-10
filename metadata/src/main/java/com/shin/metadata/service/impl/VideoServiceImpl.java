@@ -10,12 +10,12 @@ import com.shin.metadata.model.ThumbnailProfile;
 import com.shin.metadata.model.Video;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
+import com.shin.metadata.producer.VideoPublishedProducer;
 import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.ProcessingProgressService;
 import com.shin.metadata.service.TagService;
 import com.shin.metadata.service.VideoService;
 import com.shin.metadata.service.ViewService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.shin.commons.util.PageTokenUtil;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -48,6 +49,8 @@ public class VideoServiceImpl implements VideoService {
     private final ViewService viewService;
     private final UserServiceClient userServiceClient;
     private final ProcessingProgressService processingProgressService;
+
+    private final VideoPublishedProducer videoPublishedProducer;
 
     @Value("${media.thumbnail-base-url:}")
     private String thumbnailBaseUrl;
@@ -320,6 +323,7 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
+    @Transactional(readOnly = true)
     @Override
     public void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType) {
         Video video = videoRepository.findById(UUID.fromString(videoId))
@@ -341,10 +345,43 @@ public class VideoServiceImpl implements VideoService {
         if (processedPath != null && !processedPath.isBlank()) {
             video.setUploadKey(processedPath);
         }
+
         video.setDuration(duration);
         video.setFileName(fileName);
         video.setFileSize(fileSize);
         video.setFileType(fileType);
+
+        // Send video published event to notification and search service
+        if (isCompleted) {
+            video.setPublishedAt(LocalDateTime.now());
+
+            final var event = VideoPublishedEvent.builder()
+                    .id(video.getId())
+                    .title(video.getTitle())
+                    .description(video.getDescription())
+                    .language(video.getDefaultLanguage() != null ? video.getDefaultLanguage().getDisplayName() : null)
+                    .tags(video.getTags() != null ? video.getTags().stream().map(Tag::getName).collect(Collectors.toSet()) : Set.of())
+                    .forAdults(video.getOnlyForAdults() != null && video.getOnlyForAdults())
+                    .publishedAt(video.getPublishedAt())
+                    .videoLink("/videos/" + video.getId())
+                    .duration(video.getDuration())
+                    .thumbnailUrl(video.getThumbnailUrl())
+                    .categoryName(video.getVideoCategory() != null ? video.getVideoCategory().getName() : null)
+                    .visibility(video.getVisibility() != null ? video.getVisibility().name() : null)
+                    .build();
+
+            try {
+                final var channelDetails = this.userServiceClient.getCreatorById(video.getCreatorId());
+                if (channelDetails != null) {
+                    event.setChannelName(channelDetails.displayName());
+                    event.setChannelAvatar(channelDetails.avatar());
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch channel details for videoId={}, publishing without channel info", video.getId());
+            }
+
+            this.videoPublishedProducer.sendEvent(event);
+        }
 
         videoRepository.save(video);
     }

@@ -19,15 +19,16 @@ resource "aws_iam_policy" "processor" {
 }
 
 module "lambda_processor" {
-  source          = "../lambda"
-  env             = var.env
-  function_name   = "engagement-processor"
-  description     = "Aggregates playback progress into DynamoDB and publishes valid view events"
-  filename        = var.processor_zip
-  source_hash     = var.processor_hash
-  timeout         = 60
-  sqs_trigger_arn = var.playback_progress_queue_arn
-  sqs_batch_size  = 25
+  source                              = "../lambda"
+  env                                 = var.env
+  function_name                       = "engagement-processor"
+  description                         = "Aggregates playback progress into DynamoDB and publishes valid view events"
+  filename                            = var.processor_zip
+  source_hash                         = var.processor_hash
+  timeout                             = 60
+  sqs_trigger_arn                     = var.playback_progress_queue_arn
+  sqs_batch_size                      = 25
+  sqs_maximum_batching_window_seconds = 1
   environment_variables = {
     TABLE_NAME            = "playback_sessions"
     VIEW_EVENTS_QUEUE_URL = var.view_events_queue_url

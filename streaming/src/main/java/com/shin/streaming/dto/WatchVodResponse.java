@@ -1,8 +1,11 @@
 package com.shin.streaming.dto;
 
+import java.util.List;
+import java.util.Map;
+
 public record WatchVodResponse(
         VideoDetails videoDetails,
-        String manifestUrl,
+        List<Map<String, String>> manifests,
         String playbackToken
 ) {
 }

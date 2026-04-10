@@ -27,7 +27,7 @@ RUN adduser -S subscription -u 1001
 
 WORKDIR /app
 
-COPY --from=build --chown=subscription:subscription /app/user/target/*.jar subscription-service.jar
+COPY --from=build --chown=subscription:subscription /app/subscription/target/*.jar subscription-service.jar
 
 RUN chmod 444 subscription-service.jar
 

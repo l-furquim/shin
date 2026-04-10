@@ -37,9 +37,9 @@ public class UploadController {
     }
 
     @PostMapping("/chunked/{uploadId}/complete")
-    public ResponseEntity<Void> completeUpload(@PathVariable String uploadId) {
-        uploadService.completeUpload(uploadId);
-        return ResponseEntity.accepted().build();
+    public ResponseEntity<CompleteUploadResponse> completeUpload(@PathVariable String uploadId) {
+        CompleteUploadResponse response = uploadService.completeUpload(uploadId);
+        return ResponseEntity.accepted().body(response);
     }
 
     @DeleteMapping("/chunked/{uploadId}")

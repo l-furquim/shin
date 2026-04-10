@@ -11,27 +11,27 @@ COPY commons/src commons/src
 
 RUN mvn -f commons/pom.xml clean install -DskipTests
 
-COPY subscription/pom.xml subscription/pom.xml
+COPY interaction/pom.xml interaction/pom.xml
 
-WORKDIR /app/subscription
+WORKDIR /app/interaction
 
 RUN mvn dependency:go-offline -B
 
-COPY subscription/src/ src/
+COPY interaction/src/ src/
 
 RUN mvn clean package -DskipTests
 
 FROM amazoncorretto:21-alpine
 
-RUN adduser -S subscription -u 1001
+RUN adduser -S interaction -u 1001
 
 WORKDIR /app
 
-COPY --from=build --chown=subscription:subscription /app/user/target/*.jar subscription-service.jar
+COPY --from=build --chown=interaction:interaction /app/interaction/target/*.jar interaction-service.jar
 
-RUN chmod 444 subscription-service.jar
+RUN chmod 444 interaction-service.jar
 
 EXPOSE 8080
-USER subscription
+USER interaction
 
-ENTRYPOINT ["java", "-jar", "subscription-service.jar"]
+ENTRYPOINT ["java", "-jar", "interaction-service.jar"]

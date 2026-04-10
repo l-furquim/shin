@@ -56,6 +56,12 @@ variable "sqs_batch_size" {
   default = 10
 }
 
+variable "sqs_maximum_batching_window_seconds" {
+  type        = number
+  default     = null
+  description = "Maximum batching window for SQS event source mapping"
+}
+
 variable "extra_policy_arns" {
   type    = list(string)
   default = []

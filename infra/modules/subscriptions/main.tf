@@ -10,9 +10,10 @@ resource "aws_sns_topic_subscription" "subscriptions" {
 
 locals {
   subscriptions_by_queue = {
-    for queue_arn in distinct([for _, s in var.subscriptions : s.queue_arn]) : queue_arn => {
-      queue_url  = [for _, s in var.subscriptions : s.queue_url if s.queue_arn == queue_arn][0]
-      topic_arns = distinct([for _, s in var.subscriptions : s.topic_arn if s.queue_arn == queue_arn])
+    for queue_name in distinct([for _, s in var.subscriptions : s.queue_name]) : queue_name => {
+      queue_arn  = [for _, s in var.subscriptions : s.queue_arn if s.queue_name == queue_name][0]
+      queue_url  = [for _, s in var.subscriptions : s.queue_url if s.queue_name == queue_name][0]
+      topic_arns = distinct([for _, s in var.subscriptions : s.topic_arn if s.queue_name == queue_name])
     }
   }
 }
@@ -41,7 +42,7 @@ data "aws_iam_policy_document" "subscription_policy" {
     ]
 
     resources = [
-      each.key
+      each.value.queue_arn
     ]
 
     condition {

@@ -7,10 +7,7 @@ import java.util.List;
 public interface ThreadService {
 
     void create(
-            String topLevelComment,
-            String authorId,
-            String channelId,
-            String videoId
+            String topLevelComment, String authorId, String channelId, String authorName, String authorAvatarUrl, String authorUrl, String videoId
     );
 
     ThreadListResponse listThreads(

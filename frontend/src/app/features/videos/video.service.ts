@@ -24,7 +24,7 @@ export class VideoService {
 
   searchVideos(request: SearchVideosRequest): HttpResourceRequest {
     return {
-      url: '/api/v1/videos/search',
+      url: '/api/v1/videos',
       method: 'GET',
       params: {
         ...(request.id && { id: request.id }),
@@ -47,7 +47,7 @@ export class VideoService {
     if (request.limit) params['limit'] = request.limit;
 
     return this.http
-      .get<SearchVideosResponse>('/api/v1/videos/search', { params })
+      .get<SearchVideosResponse>('/api/v1/videos', { params })
       .pipe(catchError((error) => this.handleHttpError(error, 'listar vídeos')));
   }
 

@@ -6,6 +6,7 @@ import com.shin.auth.dto.LogoutResponse;
 import com.shin.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,21 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Value("${auth.cookie.secure:true}")
+    private boolean cookieSecure;
+
+    @Value("${auth.cookie.http-only:true}")
+    private boolean cookieHttpOnly;
+
+    @Value("${auth.cookie.path:/}")
+    private String cookiePath;
+
+    @Value("${auth.cookie.same-site:Strict}")
+    private String cookieSameSite;
+
+    @Value("${auth.cookie.max-age-days:7}")
+    private long cookieMaxAgeDays;
+
     @PostMapping()
     public ResponseEntity<AuthResponse> auth(
         @RequestHeader("X-Client-IP") String clientIp,
@@ -28,13 +44,7 @@ public class AuthController {
     ) {
         var response = authService.auth(agent, clientIp, authRequest);
 
-        ResponseCookie sessionCookie = ResponseCookie.from("refreshToken", response.refreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(Duration.ofDays(7))
-                .sameSite("Strict")
-                .build();
+        ResponseCookie sessionCookie = buildRefreshCookie(response.refreshToken(), Duration.ofDays(cookieMaxAgeDays));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
@@ -55,13 +65,7 @@ public class AuthController {
 
         var response = authService.logout(refreshToken);
 
-            ResponseCookie clearCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
+            ResponseCookie clearCookie = buildRefreshCookie("", Duration.ZERO);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
@@ -79,13 +83,7 @@ public class AuthController {
 
         var response = authService.refresh(refreshToken, clientIp);
 
-        ResponseCookie sessionCookie = ResponseCookie.from("refreshToken", response.refreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(Duration.ofDays(7))
-                .sameSite("Strict")
-                .build();
+        ResponseCookie sessionCookie = buildRefreshCookie(response.refreshToken(), Duration.ofDays(cookieMaxAgeDays));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
@@ -93,6 +91,16 @@ public class AuthController {
                         response.token(),
                         response.deviceId(),
                         response.tokenExpiresIn()));
+    }
+
+    private ResponseCookie buildRefreshCookie(String value, Duration maxAge) {
+        return ResponseCookie.from("refreshToken", value)
+                .httpOnly(cookieHttpOnly)
+                .secure(cookieSecure)
+                .path(cookiePath)
+                .maxAge(maxAge)
+                .sameSite(cookieSameSite)
+                .build();
     }
 
 }

@@ -36,13 +36,17 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
   selector: 'upload-area, [upload-area]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .upload-progress { transition: width 0.3s ease; }
-    .drop-zone { transition: border-color 0.15s ease, background-color 0.15s ease; }
+    .upload-progress {
+      transition: width 0.3s ease;
+    }
+    .drop-zone {
+      transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
+    }
   `,
   template: `
     <div class="w-full space-y-5">
-
-      <!-- Drop zone -->
       <div
         appDragDrop
         #dnd="dragDrop"
@@ -61,12 +65,18 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
         @switch (state()) {
           @case ('idle') {
-            <div class="flex flex-col items-center gap-4 py-14 px-6 pointer-events-none text-center">
+            <div
+              class="flex flex-col items-center gap-4 py-14 px-6 pointer-events-none text-center"
+            >
               <div
                 class="rounded-full p-4 transition-colors duration-150"
                 [class]="dnd.isDragging() ? 'bg-primary/20' : 'bg-muted'"
               >
-                <z-icon zType="cloud-upload" zSize="lg" [class]="dnd.isDragging() ? 'text-primary' : 'text-muted-foreground'" />
+                <z-icon
+                  zType="cloud-upload"
+                  zSize="lg"
+                  [class]="dnd.isDragging() ? 'text-primary' : 'text-muted-foreground'"
+                />
               </div>
               <div class="space-y-1">
                 <p class="font-semibold text-foreground">
@@ -74,7 +84,9 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
                 </p>
                 <p class="text-sm text-muted-foreground">ou clique para selecionar</p>
               </div>
-              <p class="text-xs text-muted-foreground/70 border border-border/50 rounded-full px-3 py-1">
+              <p
+                class="text-xs text-muted-foreground/70 border border-border/50 rounded-full px-3 py-1"
+              >
                 MP4 · MKV · MOV · AVI · WebM — até 10 GB
               </p>
             </div>
@@ -133,7 +145,11 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
           @case ('success') {
             <div class="flex items-center gap-4 p-5 pointer-events-none">
               <div class="rounded-xl bg-emerald-500/10 p-3 shrink-0">
-                <z-icon zType="circle-check" zSize="default" class="text-emerald-600 dark:text-emerald-400" />
+                <z-icon
+                  zType="circle-check"
+                  zSize="default"
+                  class="text-emerald-600 dark:text-emerald-400"
+                />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="font-semibold text-sm text-foreground">Vídeo enviado!</p>
@@ -156,7 +172,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         }
       </div>
 
-      <!-- Validation error -->
       @if (validationError()) {
         <z-alert
           zType="destructive"
@@ -165,7 +180,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         />
       }
 
-      <!-- Resolution selector -->
       @if (showResolutionSelector()) {
         <div class="space-y-2">
           <label class="text-sm font-medium">Resoluções para processamento</label>
@@ -208,7 +222,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         </div>
       }
 
-      <!-- Upload error detail -->
       @if (state() === 'error') {
         <z-alert
           zType="destructive"
@@ -217,26 +230,27 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         />
       }
 
-      <!-- Success detail -->
       @if (state() === 'success') {
         <div class="rounded-xl border bg-card p-4 space-y-2 text-sm">
           <p class="font-medium text-foreground">Detalhes do vídeo</p>
           <div class="space-y-1 text-muted-foreground">
             <p><span class="font-medium text-foreground">ID:</span> {{ uploadedVideoId() }}</p>
-            <p><span class="font-medium text-foreground">Status:</span> {{ uploadedVideoStatus() }}</p>
+            <p>
+              <span class="font-medium text-foreground">Status:</span> {{ uploadedVideoStatus() }}
+            </p>
             <p class="text-xs pt-1">O vídeo está sendo processado nas resoluções selecionadas.</p>
           </div>
         </div>
       }
 
-      <!-- Actions -->
       <div class="flex items-center gap-3">
         @if (state() !== 'success') {
           <z-button
             [zDisabled]="!canUpload()"
             [zLoading]="state() === 'uploading'"
+            [zSize]="'lg'"
             zType="default"
-            class="flex-1"
+            class="flex-1 p-5"
             (click)="onUpload()"
           >
             @if (state() !== 'uploading') {
@@ -246,9 +260,7 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
           </z-button>
 
           @if (state() === 'error') {
-            <z-button zType="outline" (click)="onUpload()">
-              Tentar novamente
-            </z-button>
+            <z-button zType="outline" (click)="onUpload()"> Tentar novamente </z-button>
           }
         } @else {
           <z-button zType="outline" class="w-full" (click)="reset()">
@@ -257,7 +269,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
           </z-button>
         }
       </div>
-
     </div>
   `,
 })
@@ -293,9 +304,7 @@ export class UploadComponent {
   );
 
   protected readonly fileName = computed(() => this.selectedFile()?.name ?? '');
-  protected readonly fileSize = computed(() =>
-    this.formatBytes(this.selectedFile()?.size ?? 0),
-  );
+  protected readonly fileSize = computed(() => this.formatBytes(this.selectedFile()?.size ?? 0));
 
   private readonly uploadService = inject(UploadService);
   private readonly authStore = inject(AuthStore);

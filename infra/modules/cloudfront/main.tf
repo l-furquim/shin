@@ -1,3 +1,10 @@
+resource "aws_cloudfront_origin_access_control" "default" {
+  name                              = "processed-bucket-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 data "aws_iam_policy_document" "processed_bucket_policy" {
   statement {
     sid    = "AllowCloudFrontServicePrincipalReadOnly"
@@ -88,13 +95,45 @@ resource "aws_s3_bucket_policy" "creator_policy" {
   policy = data.aws_iam_policy_document.creator_bucket_policy.json
 }
 
+resource "aws_cloudfront_function" "cors_preflight" {
+  name    = "shin-cors-preflight-${var.env}"
+  runtime = "cloudfront-js-2.0"
+  comment = "Short-circuit OPTIONS preflight before it reaches S3"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      if (event.request.method === 'OPTIONS') {
+        return {
+          statusCode: 204,
+          statusDescription: 'No Content',
+          headers: {
+            'access-control-allow-origin':  { value: '*' },
+            'access-control-allow-methods': { value: 'GET, HEAD, OPTIONS' },
+            'access-control-allow-headers': { value: '*' },
+            'access-control-max-age':       { value: '86400' }
+          }
+        };
+      }
+      return event.request;
+    }
+  EOT
+}
 
-
-resource "aws_cloudfront_origin_access_control" "default" {
-  name                              = "processed-bucket-oac"
-  origin_access_control_origin_type = "s3"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
+resource "aws_cloudfront_function" "cors_headers" {
+  name    = "shin-cors-${var.env}"
+  runtime = "cloudfront-js-2.0"
+  comment = "Inject CORS headers into viewer responses"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var response = event.response;
+      var headers = response.headers;
+      headers['access-control-allow-origin'] = { value: '*' };
+      headers['access-control-allow-methods'] = { value: 'GET, HEAD, OPTIONS' };
+      headers['access-control-allow-headers'] = { value: '*' };
+      return response;
+    }
+  EOT
 }
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
@@ -130,25 +169,58 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-    trusted_key_groups     = [aws_cloudfront_key_group.video_key_group.id]
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.cors_preflight.arn
+    }
+
+    function_association {
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.cors_headers.arn
+    }
+
+    # SECURITY (PRODUCTION): Signed-cookie protection is intentionally disabled outside prod.
+    # Re-enable this for production-grade access control to processed video assets.
+    trusted_key_groups = var.env == "prod" ? [aws_cloudfront_key_group.video_key_group.id] : []
   }
 
   ordered_cache_behavior {
     path_pattern           = "/thumbnails/*"
     target_origin_id       = var.thumbnail_s3_id
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.cors_preflight.arn
+    }
+
+    function_association {
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.cors_headers.arn
+    }
   }
 
   ordered_cache_behavior {
     path_pattern           = "/creators/*"
     target_origin_id       = var.creators_s3_id
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.cors_preflight.arn
+    }
+
+    function_association {
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.cors_headers.arn
+    }
   }
 
   restrictions {

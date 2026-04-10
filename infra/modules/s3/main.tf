@@ -127,8 +127,9 @@ resource "aws_s3_bucket_notification" "raw_bucket_notifications" {
   bucket = aws_s3_bucket.raw_bucket.id
 
   topic {
-    events    = ["s3:ObjectCreated:*"]
-    topic_arn = var.raw_upload_events_topic_arn
+    events        = ["s3:ObjectCreated:*"]
+    topic_arn     = var.raw_upload_events_topic_arn
+    filter_suffix = "/original.mp4"
   }
 }
 

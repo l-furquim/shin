@@ -7,6 +7,7 @@ public record CreatorResponse(
         String displayName,
         String username,
         String avatar,
-        String banner
+        String banner,
+        String link
 ) {
 }

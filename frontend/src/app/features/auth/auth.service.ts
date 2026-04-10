@@ -43,7 +43,7 @@ export class AuthService {
 
   auth(request: AuthRequest): Observable<AuthResponse | null> {
     return this.http
-      .post<AuthResponse>('/api/v1/auth', request)
+      .post<AuthResponse>('/api/v1/auth', request, { withCredentials: true })
       .pipe(catchError(() => of(null)));
   }
 

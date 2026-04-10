@@ -1,11 +1,13 @@
 package com.shin.comment.service.impl;
 
+import com.shin.comment.client.UserServiceClient;
 import com.shin.comment.dto.CommentDto;
 import com.shin.comment.dto.CommentListResponse;
 import com.shin.comment.dto.CreateCommentRequest;
 import com.shin.comment.dto.CreateCommentResponse;
 import com.shin.comment.dto.UpdateCommentRequest;
 import com.shin.comment.dto.UpdateCommentResponse;
+import com.shin.comment.exception.ChannelConsultingException;
 import com.shin.comment.exception.CommentNotFoundException;
 import com.shin.comment.exception.ForbiddenCommentOperationException;
 import com.shin.comment.exception.InvalidCommentException;
@@ -22,6 +24,7 @@ import com.shin.comment.service.ThreadService;
 import com.shin.commons.util.PageTokenUtil;
 import com.shin.commons.models.PageInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -32,17 +35,20 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class CommentServiceImpl implements CommentService {
 
-    private final ContentSanitizerService contentSanitizerService;
-    private final ThreadService threadService;
     private final CommentRepository commentRepository;
     private final ThreadCreatedProducer threadCreatedProducer;
     private final CommentReplyCreatedProducer commentReplyCreatedProducer;
     private final CommentUpdatedProducer commentUpdatedProducer;
     private final CommentDeletedProducer commentDeletedProducer;
+
+    private final UserServiceClient userServiceClient;
+    private final ContentSanitizerService contentSanitizerService;
+    private final ThreadService threadService;
 
     @Override
     public CreateCommentResponse createComment(String userId, CreateCommentRequest request) {
@@ -71,12 +77,29 @@ public class CommentServiceImpl implements CommentService {
                 .createdAt(LocalDateTime.now().toString())
                 .build();
 
+        try {
+            final var response = this.userServiceClient.getCreatorById(UUID.fromString(userId));
+
+            if (response != null) {
+                comment.setAuthorAvatarUrl(response.avatar());
+                comment.setAuthorDisplayName(response.displayName());
+                comment.setAuthorLink(response.link());
+            }
+
+        } catch (Exception e) {
+           log.error("Could not get the user additional information.");
+           throw new ChannelConsultingException();
+        }
+
         commentRepository.save(comment);
 
         if (request.parentId().isEmpty()) {
             this.threadService.create(
                     comment.getId(), userId,
                     request.channelId().toString(),
+                    comment.getAuthorDisplayName(),
+                    comment.getAuthorAvatarUrl(),
+                    comment.getAuthorLink(),
                     request.videoId().toString());
             threadCreatedProducer.sendEvent(
                     comment.getId(), request.videoId().toString(),
@@ -93,6 +116,9 @@ public class CommentServiceImpl implements CommentService {
                 request.parentId().orElse(null),
                 request.videoId().toString(),
                 userId,
+                comment.getAuthorDisplayName(),
+                comment.getAuthorAvatarUrl(),
+                comment.getAuthorLink(),
                 comment.getTextOriginal(),
                 comment.getTextDisplay(),
                 comment.getLikeCount()
@@ -242,6 +268,9 @@ public class CommentServiceImpl implements CommentService {
                 c.getParentId(),
                 c.getVideoId(),
                 c.getAuthorId(),
+                c.getAuthorDisplayName(),
+                c.getAuthorAvatarUrl(),
+                c.getAuthorLink(),
                 text,
                 c.getTextOriginal(),
                 c.getLikeCount(),

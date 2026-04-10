@@ -33,8 +33,6 @@ public class Comment {
     @Getter
     private String videoId;
 
-    @Getter
-    private String authorId;
 
     @Setter
     @Getter
@@ -50,6 +48,19 @@ public class Comment {
     @Setter
     @Getter
     private boolean deleted;
+
+
+    @Getter
+    private String authorId;
+
+    @Getter
+    private String authorDisplayName;
+
+    @Getter
+    private String authorAvatarUrl;
+
+    @Getter
+    private String authorLink;
 
     @Setter
     @Getter

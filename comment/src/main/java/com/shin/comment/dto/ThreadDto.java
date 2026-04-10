@@ -5,6 +5,9 @@ public record ThreadDto(
         String videoId,
         String channelId,
         String authorId,
+        String authorDisplayName,
+        String authorAvatarUrl,
+        String authorUrl,
         Long totalReplyCount,
         String createdAt,
         String updatedAt

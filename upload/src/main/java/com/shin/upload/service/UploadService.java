@@ -9,7 +9,7 @@ public interface UploadService {
 
     ChunkedUploadResponse initiateUpload(String userId, ChunkedUploadRequest request);
 
-    void completeUpload(String uploadId);
+    CompleteUploadResponse completeUpload(String uploadId);
 
     void cancelUpload(String uploadId);
 }

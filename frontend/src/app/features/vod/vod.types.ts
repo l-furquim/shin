@@ -14,6 +14,12 @@ export interface WatchVodResponse {
   playbackToken: string;
 }
 
+export interface WatchVodApiResponse {
+  videoDetails: WatchVodVideoDetails;
+  manifests: Array<Record<string, string>>;
+  playbackToken: string;
+}
+
 export interface PlaybackEventRequest {
   playbackSessionToken: string;
   watchTimeSeconds: number;

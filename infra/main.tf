@@ -47,34 +47,34 @@ module "sqs" {
 }
 
 locals {
-  raw_upload_events_queue_subscriptions = {
-    "raw-upload-events-to-decode-job" = {
-      topic_arn = module.sns.topic_arns["raw-upload-created"]
-      queue_arn = module.sqs.queue_arns["decode-job"]
-      queue_url = module.sqs.queue_urls["decode-job"]
-    }
-    "raw-upload-events-to-thumbnail-job" = {
-      topic_arn = module.sns.topic_arns["raw-upload-created"]
-      queue_arn = module.sqs.queue_arns["thumbnail-job"]
-      queue_url = module.sqs.queue_urls["thumbnail-job"]
-    }
-    "raw-upload-events-to-metadata" = {
-      topic_arn = module.sns.topic_arns["raw-upload-created"]
-      queue_arn = module.sqs.queue_arns["raw-upload-metadata-queue"]
-      queue_url = module.sqs.queue_urls["raw-upload-metadata-queue"]
+  subscriptions = {
+    for pair in flatten([
+      for topic_name, queue_names in var.sns_fanout_subscriptions : [
+        for queue_name in queue_names : {
+          key        = "${topic_name}-to-${queue_name}"
+          topic_name = topic_name
+          queue_name = queue_name
+        }
+      ]
+      ]) : pair.key => {
+      topic_arn  = module.sns.topic_arns[pair.topic_name]
+      queue_name = pair.queue_name
+      queue_arn  = module.sqs.queue_arns[pair.queue_name]
+      queue_url  = module.sqs.queue_urls[pair.queue_name]
     }
   }
 
-  subscriptions = merge(
-    local.raw_upload_events_queue_subscriptions,
-    {
-      "metadata-view-counted" = {
-        topic_arn = module.sns.topic_arns["view-counted"]
-        queue_arn = module.sqs.queue_arns["view-events"]
-        queue_url = module.sqs.queue_urls["view-events"]
+  sns_fanout_bindings = {
+    for topic_name, queue_names in var.sns_fanout_subscriptions : topic_name => {
+      topic_arn = module.sns.topic_arns[topic_name]
+      queues = {
+        for queue_name in queue_names : queue_name => {
+          arn = module.sqs.queue_arns[queue_name]
+          url = module.sqs.queue_urls[queue_name]
+        }
       }
     }
-  )
+  }
 }
 
 data "aws_iam_policy_document" "s3_to_sns" {
@@ -167,6 +167,13 @@ module "thumbnail" {
   processor_hash               = filebase64sha256("${path.root}/../lambdas/thumbnail/bootstrap.zip")
   ffmpeg_layer_zip             = "${path.root}/../lambdas/thumbnail/ffmpeg-layer/ffmpeg-layer.zip"
   ffmpeg_layer_hash            = filebase64sha256("${path.root}/../lambdas/thumbnail/ffmpeg-layer/ffmpeg-layer.zip")
+}
+
+module "open_search" {
+  source = "./modules/open-search"
+
+  env = var.env
+
 }
 
 resource "aws_cloudwatch_event_rule" "view_events" {

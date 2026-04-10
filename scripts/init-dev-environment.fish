@@ -3,6 +3,7 @@
 set SCRIPT_DIR (dirname (status --current-filename))
 set PROJECT_ROOT (realpath "$SCRIPT_DIR/..")
 set TERRAFORM_PATH "$PROJECT_ROOT/infra"
+set TFVARS_FILE "environments/dev/terraform.tfvars"
 
 cd $PROJECT_ROOT
 
@@ -36,20 +37,40 @@ end
 set THUMBNAIL_DIR "$PROJECT_ROOT/lambdas/thumbnail"
 set FFMPEG_LAYER_DIR "$THUMBNAIL_DIR/ffmpeg-layer"
 
-if not test -f "$FFMPEG_LAYER_DIR/ffmpeg-layer.zip"
-    echo "Downloading FFmpeg static binary for Lambda layer..."
+set -l rebuild_ffmpeg_layer 0
+if not test -s "$FFMPEG_LAYER_DIR/ffmpeg-layer.zip"
+    set rebuild_ffmpeg_layer 1
+end
+
+if test $rebuild_ffmpeg_layer -eq 1
+    echo "Building FFmpeg Lambda layer..."
     mkdir -p "$FFMPEG_LAYER_DIR/bin"
-    curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
+    curl -fL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
         -o "/tmp/ffmpeg-static.tar.xz"
+    or return 1
     tar -xf /tmp/ffmpeg-static.tar.xz --strip-components=1 -C /tmp/ --wildcards "*/ffmpeg"
+    or return 1
     mv /tmp/ffmpeg "$FFMPEG_LAYER_DIR/bin/ffmpeg"
+    or return 1
     chmod +x "$FFMPEG_LAYER_DIR/bin/ffmpeg"
     cd "$FFMPEG_LAYER_DIR"
+    rm -f ffmpeg-layer.zip
     zip -r ffmpeg-layer.zip bin/
-    rm -rf bin/
-    rm /tmp/ffmpeg-static.tar.xz
+    or return 1
     cd -
+    if not test -s "$FFMPEG_LAYER_DIR/ffmpeg-layer.zip"
+        echo "Failed to build ffmpeg-layer.zip"
+        return 1
+    end
+    rm -rf "$FFMPEG_LAYER_DIR/bin"
+    rm -f /tmp/ffmpeg-static.tar.xz /tmp/ffmpeg
     echo "FFmpeg layer built."
+end
+
+set -l ffmpeg_layer_entries (unzip -l "$FFMPEG_LAYER_DIR/ffmpeg-layer.zip" 2>/dev/null)
+if not string match -q "*bin/ffmpeg*" -- $ffmpeg_layer_entries
+    echo "Invalid ffmpeg-layer.zip: bin/ffmpeg not found. Rebuild required."
+    return 1
 end
 
 if not test -f "$THUMBNAIL_DIR/go.sum"
@@ -80,7 +101,7 @@ terraform -chdir=$TERRAFORM_PATH init
 or return 1
 
 set -l apply_output (terraform -chdir=$TERRAFORM_PATH apply \
-  -var-file="environments/dev/terraform.tfvars" \
+  -var-file="$TFVARS_FILE" \
   -auto-approve 2>&1)
 set -l apply_status $status
 
@@ -88,14 +109,43 @@ printf "%s\n" "$apply_output"
 
 if test $apply_status -ne 0
     if string match -q "*OriginAccessControlAlreadyExists*" "$apply_output"
-        echo "CloudFront OAC already exists. Reapplying without cloudfront resources..."
+        echo "CloudFront OAC already exists. Importing existing CloudFront resources and retrying apply..."
+
+        set -l existing_oac_id (aws cloudfront list-origin-access-controls \
+          --query "OriginAccessControlList.Items[?Name=='processed-bucket-oac'].Id | [0]" \
+          --output text 2>/dev/null)
+
+        if test -n "$existing_oac_id" -a "$existing_oac_id" != "None"
+            terraform -chdir=$TERRAFORM_PATH import -var-file="$TFVARS_FILE" module.cloudfront.aws_cloudfront_origin_access_control.default "$existing_oac_id" >/dev/null 2>&1
+        end
+
+        set -l dist_id ""
+        if test -n "$existing_oac_id" -a "$existing_oac_id" != "None"
+            set dist_id (aws cloudfront list-distributions \
+              --query "DistributionList.Items[?contains(join(',', Origins.Items[].OriginAccessControlId), '$existing_oac_id')].Id | [0]" \
+              --output text 2>/dev/null)
+        end
+
+        set -l cf_domain "$CLOUDFRONT_CDN_URL"
+        if test -z "$dist_id" -a -z "$cf_domain"
+            set cf_domain (aws cloudfront list-distributions \
+              --query "DistributionList.Items[0].DomainName" \
+              --output text 2>/dev/null)
+        end
+
+        if test -z "$dist_id" -a -n "$cf_domain" -a "$cf_domain" != "None"
+            set dist_id (aws cloudfront list-distributions \
+              --query "DistributionList.Items[?DomainName=='$cf_domain'].Id | [0]" \
+              --output text 2>/dev/null)
+
+        end
+
+        if test -n "$dist_id" -a "$dist_id" != "None"
+            terraform -chdir=$TERRAFORM_PATH import -var-file="$TFVARS_FILE" module.cloudfront.aws_cloudfront_distribution.s3_distribution "$dist_id" >/dev/null 2>&1
+        end
+
         terraform -chdir=$TERRAFORM_PATH apply \
-          -var-file="environments/dev/terraform.tfvars" \
-          -target=module.s3 \
-          -target=module.sns \
-          -target=module.sqs \
-          -target=module.subscriptions \
-          -target=module.secrets \
+          -var-file="$TFVARS_FILE" \
           -auto-approve
         or return 1
     else
@@ -108,7 +158,10 @@ echo "Exporting Terraform outputs..."
 set -Ux RAW_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."raw"')
 set -Ux PROCESSED_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."processed"')
 set -Ux THUMBNAIL_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
-set -Ux CREATOR_PICTURES_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator-pictures"')
+set -Ux CREATOR_PICTURES_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator_pictures"')
+
+set -Ux OPENSEARCH_COLLETION_ENDPOINT (terraform -chdir=$TERRAFORM_PATH output -raw open_search_collection_endpoint)
+set -Ux OPENSEARCH_DASHBOARD_ENDPOINT (terraform -chdir=$TERRAFORM_PATH output -raw open_search_dashboard_endpoint)
 
 set -Ux DECODE_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 set -Ux THUMBNAIL_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
@@ -137,13 +190,29 @@ set -Ux COMMENT_REPLY_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json
 set -Ux COMMENT_UPDATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-updated"')
 set -Ux COMMENT_DELETED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-deleted"')
 set -Ux PLAYBACK_PROGRESS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-playback-started"')
+set -Ux VIDEO_UPDATED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-updated"')
+set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-opensearch-indexer"')
+set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-notification-service"')
+set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-opensearch-indexer"')
+set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-notification-service"')
 
-set -Ux CHUNK_PROCESSED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."chunk-processed"')
+set -Ux VIDEO_PUBLISHED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."video-published"')
 
 set -l cf_url (terraform -chdir=$TERRAFORM_PATH output -raw cloud_front_cdn_url 2>/dev/null)
 if test $status -eq 0 -a -n "$cf_url"
     set -Ux CLOUDFRONT_CDN_URL $cf_url
     set -Ux THUMBNAIL_BASE_URL "https://$CLOUDFRONT_CDN_URL"
+end
+
+set -l cf_dist_id (terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_distribution_id 2>/dev/null)
+if test $status -eq 0 -a -n "$cf_dist_id" -a "$cf_dist_id" != "None"
+    echo "Invalidating CloudFront cache..."
+    aws cloudfront create-invalidation \
+        --distribution-id "$cf_dist_id" \
+        --paths "/*" \
+        --output text >/dev/null 2>&1
+    and echo "CloudFront cache invalidated."
+    or echo "Warning: CloudFront cache invalidation failed (non-critical)."
 end
 
 set -l cf_key_pair_id (terraform -chdir=$TERRAFORM_PATH output -raw cloudfront_key_pair_id 2>/dev/null)

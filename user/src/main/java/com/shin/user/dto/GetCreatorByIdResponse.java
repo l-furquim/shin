@@ -8,6 +8,7 @@ public record GetCreatorByIdResponse(
         String displayName,
         String username,
         String description,
+        String link,
         String channelUrl,
         String avatar,
         String banner,

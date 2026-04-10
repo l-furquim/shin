@@ -3,10 +3,7 @@ package com.shin.streaming.service.impl;
 import com.shin.streaming.client.MetadataServiceClient;
 import com.shin.streaming.config.CloudFrontConfig;
 import com.shin.streaming.dto.*;
-import com.shin.streaming.exception.InvalidPlackbayEvent;
-import com.shin.streaming.exception.InvalidTokenException;
-import com.shin.streaming.exception.VideoAccessDeniedException;
-import com.shin.streaming.exception.VideoNotFoundException;
+import com.shin.streaming.exception.*;
 import com.shin.streaming.producer.PlaybackProgressProducer;
 import com.shin.streaming.service.AuthService;
 import com.shin.streaming.service.StorageService;
@@ -19,14 +16,14 @@ import software.amazon.awssdk.services.cloudfront.cookie.CookiesForCustomPolicy;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class VodServiceImpl implements VodService {
+
+    private static final List<String> RESOLUTIONS_ALLOWED = List.of("1080p", "720p", "480p", "360p");
 
     private final MetadataServiceClient metadataServiceClient;
     private final StorageService storageService;
@@ -38,17 +35,22 @@ public class VodServiceImpl implements VodService {
 
 
     @Override
-    public WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl) {
+    public WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl, String[] resolutions) {
+        checkResolutions(resolutions);
         VideoDetails videoDetails = fetchVideoDetails(videoId);
         checkAccess(userId, videoDetails, videoUrl);
 
         UUID sessionId = UUID.randomUUID();
         CookiesForCustomPolicy signed = storageService.generateSignedCookiesForVideo(videoId);
         List<String> cookies = buildCookieHeaders(signed);
-        String manifestUrl = "https://" + cloudFrontConfig.getCdnUrl() + "/" + videoId + "/master.m3u8";
+
+        List<Map<String, String>> manifests = Arrays.stream(resolutions).map(r ->
+                Map.of(r, "https://" + cloudFrontConfig.getCdnUrl() + "/videos/" + videoId + "/".concat(r).concat("/manifest.mpd"))
+        ).toList();
+
         String playbackToken = authService.generatePlaybackToken(sessionId, videoId, userId);
 
-        return new WatchVodResult(new WatchVodResponse(videoDetails, manifestUrl, playbackToken), cookies);
+        return new WatchVodResult(new WatchVodResponse(videoDetails,manifests , playbackToken), cookies);
     }
 
     @Override
@@ -129,5 +131,13 @@ public class VodServiceImpl implements VodService {
             }
             default -> throw new VideoAccessDeniedException("Unknown visibility: " + video.visibility());
         }
+    }
+
+    private void checkResolutions(String[] resolutions) {
+       for (String resolution : resolutions) {
+           if (!RESOLUTIONS_ALLOWED.contains(resolution)) {
+              throw new InvalidWatchVodRequest();
+           }
+       }
     }
 }

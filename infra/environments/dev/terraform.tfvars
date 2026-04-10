@@ -8,9 +8,21 @@ creator_pictures_bucket_name = "shin-dev-creator-pictures"
 
 sns_topic_names = [
   "raw-upload-created",
-  "chunk-processed",
-  "view-counted",
+  "video-published"
 ]
+
+sns_fanout_subscriptions = {
+  "raw-upload-created" = [
+    "decode-job",
+    "thumbnail-job",
+    "raw-upload-metadata-queue"
+  ]
+
+  "video-published" = [
+    "video-video-published-opensearch-indexer",
+    "video-video-published-notification-service"
+  ]
+}
 
 sqs_queue_names = [
   "decode-job",
@@ -28,10 +40,10 @@ sqs_queue_names = [
   "comment-reply-created",
   "comment-updated",
   "comment-deleted",
-  "video-playback-started",
   "video-playback-progress",
-  "video-published",
-  "playback-events"
+  "video-video-published-opensearch-indexer",
+  "video-video-published-notification-service",
+  "video-updated"
 ]
 
 jwt_secret = "shin-dev-secret"

@@ -18,6 +18,7 @@
         <option value="$PROJECT_DIR$/comment/pom.xml" />
         <option value="$PROJECT_DIR$/video-aggregator/pom.xml" />
         <option value="$PROJECT_DIR$/streaming/pom.xml" />
+        <option value="$PROJECT_DIR$/search/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

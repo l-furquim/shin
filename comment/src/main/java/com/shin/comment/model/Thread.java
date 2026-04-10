@@ -35,6 +35,11 @@ public class Thread {
 
     private String channelId;
     private String authorId;
+
+    private String authorDisplayName;
+    private String authorAvatarUrl;
+    private String authorLink;
+
     private Long totalReplyCount;
     private String createdAt;
     private String updatedAt;

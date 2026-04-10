@@ -58,12 +58,13 @@ export class PlayerComponent {
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
 
   private dashPlayer: DashPlayerHandle | null = null;
+  private currentManifestUrl: string | null = null;
 
   constructor() {
     effect(() => {
       const url = this.manifestUrl();
       if (url) {
-        this.loadPlayer(url);
+        this.applyManifestUrl(url);
       } else {
         this.resetPlayer();
       }
@@ -79,6 +80,25 @@ export class PlayerComponent {
     }
   }
 
+  private applyManifestUrl(manifestUrl: string): void {
+    if (!this.dashPlayer) {
+      this.loadPlayer(manifestUrl);
+      return;
+    }
+
+    if (this.currentManifestUrl === manifestUrl) {
+      return;
+    }
+
+    this.playerError.set(false);
+    const element = this.videoElement()?.nativeElement;
+    const startAt = this.dashPlayer.getCurrentTime();
+    const shouldAutoPlay = !!element && !element.paused && !element.ended;
+
+    this.dashPlayer.setSource(manifestUrl, { startAt, autoPlay: shouldAutoPlay });
+    this.currentManifestUrl = manifestUrl;
+  }
+
   private async loadPlayer(manifestUrl: string): Promise<void> {
     this.resetPlayer();
     this.playerError.set(false);
@@ -90,7 +110,8 @@ export class PlayerComponent {
       this.dashPlayer = await this.videoPlayerService.attachPlayer({
         videoElement: element,
         manifestUrl,
-        withCredentials: true,
+        autoPlay: true,
+        withCredentials: false,
         onStreamInitialized: () => this.streamReady.emit(),
         onError: () => {
           this.playerError.set(true);
@@ -98,6 +119,7 @@ export class PlayerComponent {
         },
         onQualityChanged: () => {},
       });
+      this.currentManifestUrl = manifestUrl;
     } catch {
       this.playerError.set(true);
       this.playerFailed.emit();
@@ -109,5 +131,6 @@ export class PlayerComponent {
       this.dashPlayer.reset();
       this.dashPlayer = null;
     }
+    this.currentManifestUrl = null;
   }
 }

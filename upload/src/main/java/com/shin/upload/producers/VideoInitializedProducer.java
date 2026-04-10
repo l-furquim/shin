@@ -2,6 +2,7 @@ package com.shin.upload.producers;
 
 import com.shin.upload.dto.VideoInitializedEvent;
 import com.shin.upload.exceptions.InvalidVideoUploadException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,13 +15,14 @@ import org.springframework.stereotype.Component;
 public class VideoInitializedProducer {
 
     private final SqsTemplate template;
+    private final ObjectMapper objectMapper;
 
     @Value("${spring.cloud.aws.queues.video-initialized-queue}")
     private String queue;
 
     public void send(VideoInitializedEvent event) {
         try {
-            template.send(queue, event);
+            template.send(queue, objectMapper.writeValueAsString(event));
             log.info("Published VideoInitializedEvent videoId={}", event.videoId());
         } catch (Exception e) {
             log.error("Failed to publish VideoInitializedEvent videoId={}: {}", event.videoId(), e.getMessage());

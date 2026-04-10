@@ -51,6 +51,11 @@ public class FallbackController {
         return createServiceUnavailableProblem("streaming-service", "Streaming service is temporarily unavailable. Please try again later.");
     }
 
+    @GetMapping("/search")
+    public Mono<ProblemDetail> searchFallback() {
+        return createServiceUnavailableProblem("search-service", "Search service is temporarily unavailable. Please try again later.");
+    }
+
     private Mono<ProblemDetail> createServiceUnavailableProblem(String service, String message) {
         return Mono.fromSupplier(() -> {
             ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(

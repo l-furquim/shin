@@ -21,10 +21,18 @@ public class VodController {
     @GetMapping
     public ResponseEntity<WatchVodResponse> watchVod(
             @RequestParam(value = "videoId") UUID videoId,
+            @RequestParam(value = "resolutions") String resolutions,
             @RequestParam(value = "videoUrl", required = false) String videoUrl,
             @RequestHeader(value = "X-User-Id") UUID userId
     ) {
-        WatchVodResult result = vodService.watchVod(userId, videoId, videoUrl);
+
+        final var formattedResolutions = resolutions.split(",");
+
+        if (formattedResolutions.length == 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        WatchVodResult result = vodService.watchVod(userId, videoId, videoUrl, formattedResolutions);
 
         HttpHeaders headers = new HttpHeaders();
         result.cookies().forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie));

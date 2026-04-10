@@ -28,12 +28,15 @@ public class ThreadServiceImpl implements ThreadService {
     private final ThreadRepository threadRepository;
 
     @Override
-    public void create(String topLevelComment, String authorId, String channelId, String videoId) {
+    public void create(String topLevelComment, String authorId, String channelId, String authorName, String authorAvatarUrl, String authorUrl, String videoId) {
         Thread thread = Thread.builder()
                 .topLevelCommentId(topLevelComment)
                 .authorId(authorId)
                 .channelId(channelId)
                 .videoId(videoId)
+                .authorAvatarUrl(authorAvatarUrl)
+                .authorLink(authorUrl)
+                .authorDisplayName(authorName)
                 .totalReplyCount(0L)
                 .createdAt(LocalDateTime.now().toString())
                 .updatedAt(LocalDateTime.now().toString())
@@ -135,6 +138,9 @@ public class ThreadServiceImpl implements ThreadService {
                 t.getVideoId(),
                 t.getChannelId(),
                 t.getAuthorId(),
+                t.getAuthorDisplayName(),
+                t.getAuthorAvatarUrl(),
+                t.getAuthorLink(),
                 t.getTotalReplyCount(),
                 t.getCreatedAt(),
                 t.getUpdatedAt()

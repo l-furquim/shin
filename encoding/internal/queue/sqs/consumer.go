@@ -52,6 +52,16 @@ func (c *Consumer) processMessages(ctx context.Context, handler func([]byte) err
 			continue
 		}
 
+		// Extend visibility to 30 min before processing so long transcodings
+		// don't cause the message to reappear and be processed a second time.
+		if _, visErr := c.client.ChangeMessageVisibility(ctx, &sqs.ChangeMessageVisibilityInput{
+			QueueUrl:          aws.String(c.queueURL),
+			ReceiptHandle:     msg.ReceiptHandle,
+			VisibilityTimeout: 1800,
+		}); visErr != nil {
+			log.Printf("Warning: failed to extend message visibility: %v", visErr)
+		}
+
 		if err := handler([]byte(*msg.Body)); err != nil {
 			log.Printf("Error handling message: %v", err)
 			continue

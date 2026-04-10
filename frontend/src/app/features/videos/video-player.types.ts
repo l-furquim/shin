@@ -12,5 +12,7 @@ export interface DashEventPayload {
 }
 
 export interface DashPlayerHandle {
+  getCurrentTime(): number;
+  setSource(manifestUrl: string, options?: { startAt?: number; autoPlay?: boolean }): void;
   reset(): void;
 }
