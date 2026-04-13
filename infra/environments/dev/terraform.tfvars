@@ -8,7 +8,7 @@ creator_pictures_bucket_name = "shin-dev-creator-pictures"
 
 sns_topic_names = [
   "raw-upload-created",
-  "video-published"
+  "video-published",
 ]
 
 sns_fanout_subscriptions = {

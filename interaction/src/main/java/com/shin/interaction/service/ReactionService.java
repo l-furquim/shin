@@ -4,6 +4,8 @@ import com.shin.interaction.dto.CreateReactionResponse;
 import com.shin.interaction.dto.DeleteReactionResponse;
 import com.shin.interaction.model.REACTION_TYPE;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface ReactionService {
@@ -20,6 +22,6 @@ public interface ReactionService {
             UUID userId
     );
 
-
+    Map<String, String> getBatchReactions(List<UUID> videoIds, UUID userId);
 
 }

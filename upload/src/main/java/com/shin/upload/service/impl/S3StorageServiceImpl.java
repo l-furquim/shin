@@ -221,6 +221,38 @@ public class S3StorageServiceImpl implements StorageService {
         }
     }
 
+    @Override
+    public PresignedUpload generatedPresignedThumbnailUpload(String bucket, String contentType, String videoId, String userId, String originalName, Long fileSize) {
+
+        final var finalKey = "/thumbnails/".concat(videoId).concat("/custom/png");
+        Map<String, String> metadata = new HashMap<>(Map.of(
+                "videoid", videoId,
+                "userid", userId,
+                "filename", originalName
+        ));
+
+        if (fileSize != null) {
+            metadata.put("filesize", String.valueOf(fileSize));
+        }
+        if (contentType != null && !contentType.isBlank()) {
+            metadata.put("contenttype", contentType);
+        }
+
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .metadata(metadata)
+                .key(finalKey)
+                .build();
+
+        var response = presigner.presignPutObject(PutObjectPresignRequest.builder()
+                .putObjectRequest(putObjectRequest)
+                .signatureDuration(PRESIGN_DURATION)
+                .build());
+
+        return new PresignedUpload(response.url().toString(), response.expiration().getEpochSecond());
+    }
+
     private String resolveBucket(String bucket) {
         if ("raw".equals(bucket)) return rawBucket;
         if ("processed".equals(bucket)) return processedBucket;

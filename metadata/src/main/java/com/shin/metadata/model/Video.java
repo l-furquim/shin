@@ -83,12 +83,21 @@ public class Video {
 
     private String fileType;
 
-    // TODO: likeCount is no longer updated by this service — fetch from interaction-service via API or event-driven sync
     @Builder.Default
     private Long likeCount = 0L;
 
     @Builder.Default
+    private Long dislikeCount = 0L;
+
+    @Builder.Default
+    private Long commentCount = 0L;
+
+    @Builder.Default
     private Long viewCount = 0L;
+
+    private String creatorDisplayName;
+
+    private String creatorAvatarUrl;
 
     private LocalDateTime publishedAt;
 

@@ -8,9 +8,9 @@
 		<version>1.0.0-SNAPSHOT</version>
 		<relativePath>../parent-pom</relativePath>
 	</parent>
-	<artifactId>comment-service</artifactId>
+	<artifactId>commentEntity-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>comment-service</name>
+	<name>commentEntity-service</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
@@ -30,6 +30,14 @@
 			<groupId>com.shin</groupId>
 			<artifactId>shin-commons</artifactId>
 		</dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.3</version>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>

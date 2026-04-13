@@ -114,6 +114,40 @@ public class RouteConfig {
                         .uri("lb://metadata-service")
                 )
 
+                .route("metadata-tags", r -> r
+                        .path("/api/v1/tags/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("metadataCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/metadata"))
+                                .retry(retryConfig -> retryConfig.setRetries(3))
+                        )
+                        .uri("lb://metadata-service")
+                )
+
+                .route("metadata-categories", r -> r
+                        .path("/api/v1/categories/**")
+                        .filters(f -> f
+                                .filter(correlationIdFilter.apply(new Object()))
+                                .filter(clientIpResolverFilter.apply(new Object()))
+                                .requestRateLimiter(config -> config
+                                        .setRateLimiter(apiRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .filter(authContextFilter.apply(new Object()))
+                                .circuitBreaker(config -> config
+                                        .setName("metadataCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/metadata"))
+                                .retry(retryConfig -> retryConfig.setRetries(3))
+                        )
+                        .uri("lb://metadata-service")
+                )
+
                 .route("metadata-playlists", r -> r
                         .path("/api/v1/playlists/**")
                         .filters(f -> f

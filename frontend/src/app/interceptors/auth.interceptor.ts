@@ -69,6 +69,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req.clone({ withCredentials: true }));
   }
 
+  if (req.url.includes('X-Amz-Signature') || req.url.includes('.amazonaws.com')) {
+    return next(req);
+  }
+
   const authStore = inject(AuthStore);
   const authService = inject(AuthService);
 

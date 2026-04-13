@@ -1,6 +1,5 @@
 package com.shin.metadata.dto;
 
-import com.shin.metadata.model.VideoCategory;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
@@ -16,7 +15,7 @@ public record PatchVideoByIdRequest(
     String resolutions,
     String uploadKey,
     String thumbnailUrl,
-    VideoCategory videoCategory,
+    Long categoryId,
     VideoVisibility visibility,
     VideoLanguage defaultLanguage,
     Boolean onlyForAdults,

@@ -40,9 +40,7 @@ export class UploadService {
     const blob = request.file.slice(start, end);
 
     return this.http
-      .put(url, blob, {
-        headers: { 'Content-Type': request.file.type },
-      })
+      .put(url, blob)
       .pipe(
         map(() => ({
           chunkNumber: index + 1,

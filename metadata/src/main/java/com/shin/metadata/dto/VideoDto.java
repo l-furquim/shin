@@ -18,7 +18,6 @@ public record VideoDto(
     Statistics statistics,
     Boolean likedByMe,
     FileDetails fileDetails,
-    ProcessingDetails processingDetails,
     Channel channel,
     Set<String> tags,
     LocalDateTime publishedAt,

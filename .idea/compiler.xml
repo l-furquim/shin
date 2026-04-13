@@ -7,14 +7,6 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="config-server" />
-        <module name="shin-commons" />
-        <module name="comment-service" />
-        <module name="search-service" />
-        <module name="streaming-service" />
-        <module name="upload-service" />
-        <module name="metadata-service" />
-        <module name="eureka-server" />
       </profile>
       <profile name="Annotation profile for user-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -29,11 +21,29 @@
         <module name="gateway" />
         <module name="interaction-service" />
       </profile>
+      <profile name="Annotation profile for streaming-service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+        </processorPath>
+        <module name="config-server" />
+        <module name="shin-commons" />
+        <module name="comment-service" />
+        <module name="search-service" />
+        <module name="streaming-service" />
+        <module name="upload-service" />
+        <module name="metadata-service" />
+        <module name="eureka-server" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="auth-service (1)" target="21" />
       <module name="metadata-service (1)" target="21" />
       <module name="subscription-service (1)" target="21" />
+      <module name="video-aggregator-service" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -54,6 +64,7 @@
       <module name="subscription-service (1)" options="-parameters" />
       <module name="upload-service" options="-parameters" />
       <module name="user-service" options="-parameters" />
+      <module name="video-aggregator-service" options="-parameters" />
     </option>
   </component>
 </project>

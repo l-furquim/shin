@@ -1,9 +1,12 @@
 package com.shin.metadata.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shin.metadata.client.UserServiceClient;
 import com.shin.metadata.dto.CreateVideoRequest;
+import com.shin.metadata.dto.CreatorResponse;
 import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
+import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.VideoService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,8 @@ public class VideoInitializedConsumer {
 
     private final ObjectMapper objectMapper;
     private final VideoService videoService;
+    private final VideoRepository videoRepository;
+    private final UserServiceClient userServiceClient;
     private final StringRedisTemplate stringRedisTemplate;
 
     @SqsListener(queueNames = "${spring.cloud.aws.queues.video-initialized-queue}")
@@ -49,9 +54,24 @@ public class VideoInitializedConsumer {
                     event.userId(),
                     event.resolutions()
             ));
+
+            enrichWithCreatorInfo(UUID.fromString(event.videoId()), UUID.fromString(event.userId()));
         } catch (Exception e) {
             stringRedisTemplate.delete(dedupKey);
             log.error("Error consuming VideoInitializedEvent messageId={}", messageId, e);
+        }
+    }
+
+    private void enrichWithCreatorInfo(UUID videoId, UUID creatorId) {
+        try {
+            CreatorResponse creator = userServiceClient.getCreatorById(creatorId);
+            videoRepository.findById(videoId).ifPresent(video -> {
+                video.setCreatorDisplayName(creator.displayName());
+                video.setCreatorAvatarUrl(creator.avatar());
+                videoRepository.save(video);
+            });
+        } catch (Exception e) {
+            log.debug("Could not fetch creator info for creatorId={} on video init", creatorId);
         }
     }
 

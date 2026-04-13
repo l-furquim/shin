@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 
 @RestController
 @RequestMapping("${api.version}/uploads")
@@ -26,6 +28,17 @@ public class UploadController {
         final var response = uploadService.initiateRawUpload(userId, data);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping("/thumbnail")
+    public ResponseEntity<ThumbnailUploadResponse> thumbnailUpload(
+            @RequestBody ThumbnailUploadRequest request,
+            @RequestHeader("X-User-Id") UUID userId
+    ) {
+        final var response = this.uploadService.thumbnailUpload(request, userId);
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @PostMapping("/chunked")
     public ResponseEntity<ChunkedUploadResponse> initiateChunkedUpload(

@@ -47,7 +47,7 @@ public class VodController {
     ) {
        this.vodService.handlePlaybackEvent(viewEventRequest,userId);
 
-       return ResponseEntity.accepted().build();
+       return ResponseEntity.ok().build();
     }
 
 }

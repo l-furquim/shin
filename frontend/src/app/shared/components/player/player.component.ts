@@ -110,7 +110,7 @@ export class PlayerComponent {
       this.dashPlayer = await this.videoPlayerService.attachPlayer({
         videoElement: element,
         manifestUrl,
-        autoPlay: true,
+        autoPlay: false,
         withCredentials: false,
         onStreamInitialized: () => this.streamReady.emit(),
         onError: () => {

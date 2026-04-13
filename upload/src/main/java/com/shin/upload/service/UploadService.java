@@ -2,6 +2,8 @@ package com.shin.upload.service;
 
 import com.shin.upload.dto.*;
 
+import java.util.UUID;
+
 
 public interface UploadService {
 
@@ -11,5 +13,8 @@ public interface UploadService {
 
     CompleteUploadResponse completeUpload(String uploadId);
 
+    ThumbnailUploadResponse thumbnailUpload(ThumbnailUploadRequest request, UUID userId);
+
     void cancelUpload(String uploadId);
+
 }

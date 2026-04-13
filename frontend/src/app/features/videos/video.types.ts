@@ -69,7 +69,7 @@ export interface VideoItem {
   description: string;
   visibility: VideoVisibility;
   categoryId: string;
-  thumbnails: Map<string, Thumbnail>;
+  thumbnails: Record<string, Thumbnail>;
   contentDetails?: ContentDetails;
   statistics?: Statistics;
   likedByMe: boolean;
@@ -96,4 +96,17 @@ export interface SearchVideosResponse {
   prevPageToken: string;
   pageInfo: PageInfo;
   items: VideoItem[];
+}
+
+export interface TagIdentifier {
+  name: string;
+}
+
+export interface PatchVideoRequest {
+  title?: string;
+  description?: string;
+  visibility?: VideoVisibility;
+  categoryId?: number;
+  tagsToAdd?: TagIdentifier[];
+  tagsToRemove?: TagIdentifier[];
 }

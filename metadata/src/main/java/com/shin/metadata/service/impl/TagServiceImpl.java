@@ -1,6 +1,6 @@
 package com.shin.metadata.service.impl;
 
-import com.shin.metadata.dto.TagIdentifier;
+import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidVideoRequestException;
 import com.shin.metadata.model.Tag;
 import com.shin.metadata.repository.TagRepository;
@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -99,6 +100,30 @@ public class TagServiceImpl implements TagService {
                 log.info("Created new tag: {}", normalizedName);
                 return saved;
             });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ListTagsResponse searchTags(String query) {
+        List<Tag> tags = query != null && !query.isBlank()
+                ? tagRepository.findByNameContainingIgnoreCase(query)
+                : tagRepository.findAll();
+        List<TagDto> items = tags.stream()
+                .map(t -> new TagDto(t.getId(), t.getName()))
+                .toList();
+        return new ListTagsResponse(items);
+    }
+
+    @Override
+    @Transactional
+    public TagDto createTag(CreateTagRequest request) {
+        String normalizedName = request.name().trim().toLowerCase();
+        if (tagRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new InvalidVideoRequestException("Tag with name '" + normalizedName + "' already exists");
+        }
+        Tag tag = Tag.builder().name(normalizedName).build();
+        tag = tagRepository.save(tag);
+        return new TagDto(tag.getId(), tag.getName());
     }
 
     private Tag findByNameOrThrow(String normalizedName) {

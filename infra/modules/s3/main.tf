@@ -133,6 +133,29 @@ resource "aws_s3_bucket_notification" "raw_bucket_notifications" {
   }
 }
 
+resource "aws_s3_bucket_notification" "thumbnail_bucket_notifications" {
+
+  bucket = aws_s3_bucket.thumbnail_bucket
+
+  queue {
+    queue_arn     = var.thumbnail_job_queue_arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_suffix = "/custom.png"
+  }
+
+  queue {
+    queue_arn     = var.thumbnail_job_queue_arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_suffix = "/custom.jpg"
+  }
+
+  queue {
+    queue_arn     = var.thumbnail_job_queue_arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_suffix = "/custom.webp"
+  }
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "processed_bucket" {
   bucket = aws_s3_bucket.processed_bucket.id
 

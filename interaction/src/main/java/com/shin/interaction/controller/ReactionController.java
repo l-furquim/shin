@@ -31,7 +31,7 @@ public class ReactionController {
 
        final var response = this.reactionService.create(reactionType.get(), videoId, userId);
 
-       return ResponseEntity.status(204).body(response);
+       return ResponseEntity.ok(response);
    }
 
    @DeleteMapping

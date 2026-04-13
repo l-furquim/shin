@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpResourceRequest } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
-import type { InitVideoResponse, SearchVideosRequest, SearchVideosResponse, VideoItem } from './video.types';
+import type { InitVideoResponse, PatchVideoRequest, SearchVideosRequest, SearchVideosResponse, VideoItem } from './video.types';
 
 @Injectable({ providedIn: 'root' })
 export class VideoService {
@@ -35,6 +35,12 @@ export class VideoService {
         ...(request.limit && { limit: request.limit }),
       },
     };
+  }
+
+  patchVideo(id: string, request: PatchVideoRequest): Observable<VideoItem> {
+    return this.http
+      .patch<VideoItem>(`/api/v1/videos/${id}`, request)
+      .pipe(catchError((error) => this.handleHttpError(error, 'atualizar vídeo')));
   }
 
   listVideos(request: SearchVideosRequest): Observable<SearchVideosResponse> {

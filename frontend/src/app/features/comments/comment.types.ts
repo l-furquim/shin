@@ -5,6 +5,9 @@ export interface CommentDto {
   parentId: string | null;
   videoId: string;
   authorId: string;
+  authorDisplayName: string | null;
+  authorAvatarUrl: string | null;
+  authorUrl: string | null;
   textDisplay: string;
   textOriginal: string;
   likeCount: number;
@@ -30,6 +33,9 @@ export interface ThreadDto {
   videoId: string;
   channelId: string;
   authorId: string;
+  authorDisplayName: string | null;
+  authorAvatarUrl: string | null;
+  authorUrl: string | null;
   totalReplyCount: number;
   createdAt: string;
   updatedAt: string;

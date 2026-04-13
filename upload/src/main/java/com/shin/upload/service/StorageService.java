@@ -53,4 +53,13 @@ public interface StorageService {
         String bucket,
         List<String> keys
     );
+
+    PresignedUpload generatedPresignedThumbnailUpload(
+            String bucket,
+            String contentType,
+            String videoId,
+            String userId,
+            String originalName,
+            Long fileSize
+    );
 }

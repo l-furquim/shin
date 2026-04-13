@@ -1,6 +1,7 @@
 package com.shin.upload.service.impl;
 
 import com.shin.upload.dto.*;
+import com.shin.upload.exceptions.InvalidThumbnailUploadException;
 import com.shin.upload.exceptions.InvalidVideoUploadException;
 import com.shin.upload.exceptions.UploadNotFoundException;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +32,7 @@ public class UploadServiceImpl implements UploadService {
 
     private static final long CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
     private static final int MAX_RAW_SIZE = 100 * 1024 * 1024; // 100 MB
+    private static final int MAX_THUMB_SIZE = 200 * 1000; // 200 KB
     private static final Duration UPLOAD_STATE_TTL = Duration.ofHours(24);
 
     private final StorageService storageService;
@@ -142,6 +144,30 @@ public class UploadServiceImpl implements UploadService {
     }
 
     @Override
+    public ThumbnailUploadResponse thumbnailUpload(ThumbnailUploadRequest request, UUID userId) {
+
+        if (request.fileSize() > MAX_THUMB_SIZE) {
+            throw new InvalidThumbnailUploadException("File too large for thumbnail upload. Max size: 200MB");
+        }
+
+        this.validateThumbnailFile(request.contentType());
+
+        final var presignedUpload = storageService.generatedPresignedThumbnailUpload(
+                "thumbnail",
+                request.contentType(),
+                request.videoId().toString(),
+                userId.toString(),
+                "custom",
+                request.fileSize()
+        );
+
+        return new  ThumbnailUploadResponse(
+                request.videoId().toString(),
+                presignedUpload
+        );
+    }
+
+    @Override
     public void cancelUpload(String uploadId) {
         UploadState state = redisTemplate.opsForValue().get("upload:" + uploadId);
         if (state == null) {
@@ -205,6 +231,14 @@ public class UploadServiceImpl implements UploadService {
 
         if (!contentType.startsWith("video/")) {
             throw new InvalidVideoUploadException("Invalid content type. Must be video/*");
+        }
+    }
+
+    private void validateThumbnailFile(String contentType) {
+        List<String> allowedExtensions = List.of("png", "jpg", "jpeg");
+
+        if (!allowedExtensions.contains(contentType)) {
+           throw new InvalidThumbnailUploadException("Invalid content type. Allowed: " + String.join(", ", allowedExtensions));
         }
     }
 

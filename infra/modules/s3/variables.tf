@@ -32,3 +32,7 @@ variable "enable_lifecycle_rules" {
 variable "raw_upload_events_topic_arn" {
   type = string
 }
+
+variable "thumbnail_job_queue_arn" {
+  type = string
+}

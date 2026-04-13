@@ -1,6 +1,7 @@
 package com.shin.metadata.service.impl;
 
 import com.shin.commons.models.PageInfo;
+import com.shin.metadata.client.InteractionServiceClient;
 import com.shin.metadata.client.UserServiceClient;
 import com.shin.metadata.dto.*;
 import com.shin.metadata.exception.InvalidVideoRequestException;
@@ -14,6 +15,7 @@ import com.shin.metadata.producer.VideoPublishedProducer;
 import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.ProcessingProgressService;
 import com.shin.metadata.service.TagService;
+import com.shin.metadata.service.VideoCategoryService;
 import com.shin.metadata.service.VideoService;
 import com.shin.metadata.service.ViewService;
 import lombok.RequiredArgsConstructor;
@@ -46,8 +48,10 @@ public class VideoServiceImpl implements VideoService {
 
     private final VideoRepository videoRepository;
     private final TagService tagService;
+    private final VideoCategoryService videoCategoryService;
     private final ViewService viewService;
     private final UserServiceClient userServiceClient;
+    private final InteractionServiceClient interactionServiceClient;
     private final ProcessingProgressService processingProgressService;
 
     private final VideoPublishedProducer videoPublishedProducer;
@@ -109,7 +113,7 @@ public class VideoServiceImpl implements VideoService {
         Video video = videoRepository.findById(id)
                 .orElseThrow(() -> new InvalidVideoRequestException("Video with ID " + id + " not found"));
 
-        Boolean likedByMe = null;
+        Boolean likedByMe = resolveLikedByMeBatch(List.of(id), userId).get(id.toString());
 
         Long effectiveViewCount = fields.contains(VideoField.STATISTICS)
                 ? viewService.getEffectiveVideoViews(video.getId(), video.getViewCount())
@@ -147,7 +151,7 @@ public class VideoServiceImpl implements VideoService {
         if (request.resolutions() != null) video.updateResolutions(request.resolutions());
         if (request.uploadKey() != null) video.setUploadKey(request.uploadKey());
         if (request.thumbnailUrl() != null) video.setThumbnailUrl(request.thumbnailUrl());
-        if (request.videoCategory() != null) video.setVideoCategory(request.videoCategory());
+        if (request.categoryId() != null) video.setVideoCategory(videoCategoryService.findCategoryOrThrow(request.categoryId()));
         if (request.visibility() != null) video.setVisibility(request.visibility());
         if (request.defaultLanguage() != null) video.setDefaultLanguage(request.defaultLanguage());
         if (request.onlyForAdults() != null) video.setOnlyForAdults(request.onlyForAdults());
@@ -263,11 +267,14 @@ public class VideoServiceImpl implements VideoService {
             effectiveViewsByVideoId = viewService.getEffectiveVideoViews(persistedViewsByVideoId);
         }
 
+        List<UUID> videoIds = videos.stream().map(Video::getId).toList();
+        Map<String, Boolean> likedByMeByVideoId = resolveLikedByMeBatch(videoIds, userId);
+
         Map<UUID, Long> finalEffectiveViewsByVideoId = effectiveViewsByVideoId;
         List<VideoDto> items = videos.stream()
                 .map(v -> toDto(
                         v,
-                        null,
+                        likedByMeByVideoId.get(v.getId().toString()),
                         fields,
                         isOwner(v, userId),
                         finalEffectiveViewsByVideoId.getOrDefault(v.getId(), v.getViewCount() == null ? 0L : v.getViewCount())
@@ -323,7 +330,7 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType) {
         Video video = videoRepository.findById(UUID.fromString(videoId))
@@ -484,22 +491,15 @@ public class VideoServiceImpl implements VideoService {
                 ? new Statistics(
                 video.getLikeCount(),
                 effectiveViewCount,
-                null)
+                video.getCommentCount())
                 : null;
 
         FileDetails fileDetails = (fields.contains(VideoField.FILE_DETAILS) && isOwner)
                 ? new FileDetails(video.getFileName(), video.getFileSize(), video.getFileType())
                 : null;
 
-        ProcessingDetails processingDetails = (fields.contains(VideoField.PROCESSING_DETAILS) && isOwner)
-                ? new ProcessingDetails(
-                video.getStatus(),
-                null,
-                processingProgressService.getProgress(video.getId()))
-                : null;
-
         Channel channel = fields.contains(VideoField.CHANNEL)
-                ? resolveChannel(video.getCreatorId())
+                ? resolveChannel(video)
                 : null;
 
         Set<String> tagNames = fields.contains(VideoField.TAGS) && video.getTags() != null
@@ -521,7 +521,6 @@ public class VideoServiceImpl implements VideoService {
                 statistics,
                 likedByMe,
                 fileDetails,
-                processingDetails,
                 channel,
                 tagNames,
                 video.getPublishedAt(),
@@ -531,16 +530,38 @@ public class VideoServiceImpl implements VideoService {
         );
     }
 
-    private Channel resolveChannel(UUID creatorId) {
+    private Channel resolveChannel(Video video) {
+        UUID creatorId = video.getCreatorId();
         if (creatorId == null) {
             return new Channel(null, null, null);
         }
+        if (video.getCreatorDisplayName() != null) {
+            return new Channel(creatorId.toString(), video.getCreatorDisplayName(), video.getCreatorAvatarUrl());
+        }
         try {
             CreatorResponse creator = userServiceClient.getCreatorById(creatorId);
-            return new Channel(creator.id().toString(), creator.displayName(), creator.avatar());
+            video.setCreatorDisplayName(creator.displayName());
+            video.setCreatorAvatarUrl(creator.avatar());
+            videoRepository.save(video);
+            return new Channel(creatorId.toString(), creator.displayName(), creator.avatar());
         } catch (Exception e) {
             log.warn("Could not resolve channel info for creatorId {}: {}", creatorId, e.getMessage());
             return new Channel(creatorId.toString(), null, null);
+        }
+    }
+
+    private Map<String, Boolean> resolveLikedByMeBatch(List<UUID> videoIds, UUID userId) {
+        if (userId == null || videoIds == null || videoIds.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            Map<String, String> reactions = interactionServiceClient.getBatchReactions(videoIds, userId);
+            Map<String, Boolean> result = new HashMap<>();
+            reactions.forEach((vid, reactionType) -> result.put(vid, "like".equalsIgnoreCase(reactionType)));
+            return result;
+        } catch (Exception e) {
+            log.debug("Could not fetch batch reactions for userId={}", userId);
+            return Map.of();
         }
     }
 
@@ -549,16 +570,12 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private Map<String, Thumbnail> buildThumbnailMap(String baseThumbnailUrl) {
-        String normalizedBase = baseThumbnailUrl.endsWith("/")
-                ? baseThumbnailUrl.substring(0, baseThumbnailUrl.length() - 1)
-                : baseThumbnailUrl;
-
         Map<String, Thumbnail> thumbnails = new LinkedHashMap<>();
         for (ThumbnailProfile profile : THUMBNAIL_PROFILES) {
             thumbnails.put(
                     profile.profile(),
                     new Thumbnail(
-                            normalizedBase + "/" + profile.profile() + ".jpg",
+                            baseThumbnailUrl + "/" + profile.profile() + ".jpg",
                             profile.width(),
                             profile.height()
                     )

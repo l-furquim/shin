@@ -12,6 +12,7 @@ import com.shin.user.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class CreatorServiceImpl implements CreatorService {
     private final SecurityService securityService;
 
     @Override
+    @Transactional
     public CreateCreatorResponse createCreatorWithUser(
             MultipartFile avatar,
             MultipartFile banner,

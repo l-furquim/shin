@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -116,6 +117,26 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
         WHERE v.id = :videoId
     """)
     int applyViewDelta(@Param("videoId") UUID videoId, @Param("delta") Long delta);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE Video v SET v.likeCount = GREATEST(0, COALESCE(v.likeCount, 0) + 1) WHERE v.id = :videoId")
+    int incrementLikeCount(@Param("videoId") UUID videoId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE Video v SET v.likeCount = GREATEST(0, COALESCE(v.likeCount, 0) - 1) WHERE v.id = :videoId")
+    int decrementLikeCount(@Param("videoId") UUID videoId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE Video v SET v.dislikeCount = GREATEST(0, COALESCE(v.dislikeCount, 0) + 1) WHERE v.id = :videoId")
+    int incrementDislikeCount(@Param("videoId") UUID videoId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE Video v SET v.dislikeCount = GREATEST(0, COALESCE(v.dislikeCount, 0) - 1) WHERE v.id = :videoId")
+    int decrementDislikeCount(@Param("videoId") UUID videoId);
 
     @Modifying
     @Query("""

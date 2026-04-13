@@ -1,4 +1,8 @@
 export interface Tag {
-  id: string;
+  id: number;
   name: string;
+}
+
+export interface TagSearchResponse {
+  items: Tag[];
 }

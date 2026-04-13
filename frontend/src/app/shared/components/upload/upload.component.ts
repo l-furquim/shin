@@ -1,5 +1,5 @@
 import { Resolution } from '@/features/videos/video.types';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, EventEmitter, inject, Output, signal } from '@angular/core';
 import { lastValueFrom, tap } from 'rxjs';
 import { ZardButtonComponent } from '../button';
 import { ZardSelectComponent, ZardSelectItemComponent } from '../select';
@@ -273,6 +273,9 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
   `,
 })
 export class UploadComponent {
+  @Output() readonly fileSelected = new EventEmitter<void>();
+  @Output() readonly videoIdReady = new EventEmitter<string>();
+
   protected readonly state = signal<UploadState>('idle');
   protected readonly uploadProgress = signal(0);
   protected readonly currentChunk = signal(0);
@@ -374,6 +377,7 @@ export class UploadComponent {
     this.uploadProgress.set(0);
     this.errorMessage.set('');
     this.state.set('file-selected');
+    this.fileSelected.emit();
   }
 
   clearFile(event: MouseEvent): void {
@@ -409,6 +413,7 @@ export class UploadComponent {
       );
 
       this.uploadedVideoId.set(uploadData.videoId);
+      this.videoIdReady.emit(uploadData.videoId);
       this.totalChunks.set(uploadData.totalChunks);
       this.currentStage.set('chunks');
 

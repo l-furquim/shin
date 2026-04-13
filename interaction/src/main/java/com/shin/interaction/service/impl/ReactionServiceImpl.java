@@ -19,6 +19,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -77,6 +79,12 @@ public class ReactionServiceImpl implements ReactionService {
 
             dynamoDbClient.transactWriteItems(r -> r.transactItems(deleteTransaction, counterTransaction));
 
+            if (type == REACTION_TYPE.LIKE) {
+                videoLikedProducer.sendRemoveEvent(videoId, userId);
+            } else if (type == REACTION_TYPE.DESLIKE) {
+                videoDeslikedProducer.sendRemoveEvent(videoId, userId);
+            }
+
         } catch (TransactionCanceledException e) {
             log.info("Transaction failed for videoId={}, userId={}", videoId, userId);
         } catch (Exception e) {
@@ -87,6 +95,11 @@ public class ReactionServiceImpl implements ReactionService {
 
         final var counts = reactionCountRepository.getCount(videoId.toString());
         return new DeleteReactionResponse(counts.getLikesCount(), counts.getDeslikesCount());
+    }
+
+    @Override
+    public Map<String, String> getBatchReactions(List<UUID> videoIds, UUID userId) {
+        return reactionRepository.findReactionsByUserAndVideoIds(userId, videoIds);
     }
 
     private boolean handleReaction(Reaction reaction, Long likeDelta, Long deslikeDelta) {

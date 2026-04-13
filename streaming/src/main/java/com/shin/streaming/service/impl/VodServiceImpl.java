@@ -4,7 +4,8 @@ import com.shin.streaming.client.MetadataServiceClient;
 import com.shin.streaming.config.CloudFrontConfig;
 import com.shin.streaming.dto.*;
 import com.shin.streaming.exception.*;
-import com.shin.streaming.producer.PlaybackProgressProducer;
+import com.shin.streaming.producer.ViewCountProducer;
+import com.shin.streaming.repository.VodSessionRepository;
 import com.shin.streaming.service.AuthService;
 import com.shin.streaming.service.StorageService;
 import com.shin.streaming.service.VodService;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cloudfront.cookie.CookiesForCustomPolicy;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -25,14 +25,17 @@ public class VodServiceImpl implements VodService {
 
     private static final List<String> RESOLUTIONS_ALLOWED = List.of("1080p", "720p", "480p", "360p");
 
+    // A view qualifies when the user has watched at least this many seconds (for videos >= threshold)
+    private static final long SHORT_VIDEO_THRESHOLD_SECONDS = 30;
+    private static final double SHORT_VIDEO_MIN_RATIO = 0.75;
+    private static final long LONG_VIDEO_MIN_WATCH_SECONDS = 30;
+
     private final MetadataServiceClient metadataServiceClient;
     private final StorageService storageService;
     private final AuthService authService;
-
-    private final PlaybackProgressProducer playbackProgressProducer;
-
+    private final VodSessionRepository vodSessionRepository;
+    private final ViewCountProducer viewCountProducer;
     private final CloudFrontConfig cloudFrontConfig;
-
 
     @Override
     public WatchVodResult watchVod(UUID userId, UUID videoId, String videoUrl, String[] resolutions) {
@@ -50,27 +53,25 @@ public class VodServiceImpl implements VodService {
 
         String playbackToken = authService.generatePlaybackToken(sessionId, videoId, userId);
 
-        return new WatchVodResult(new WatchVodResponse(videoDetails,manifests , playbackToken), cookies);
+        return new WatchVodResult(new WatchVodResponse(videoDetails, manifests, playbackToken), cookies);
     }
 
     @Override
     public void handlePlaybackEvent(ViewEventRequest request, UUID userId) {
-       if (request.playbackSessionToken() == null || request.playbackSessionToken().isBlank())  {
-           throw new VideoAccessDeniedException("Invalid playback session token");
-       }
+        if (request.playbackSessionToken() == null || request.playbackSessionToken().isBlank()) {
+            throw new VideoAccessDeniedException("Invalid playback session token");
+        }
 
-       final var jwtDecoded = this.authService.getToken(request.playbackSessionToken());
-       final var isExpired = jwtDecoded.getExpiresAt().before(Date.from(Instant.now()));
+        final var jwt = authService.getToken(request.playbackSessionToken());
+        if (jwt.getExpiresAt().before(Date.from(Instant.now()))) {
+            throw new InvalidTokenException();
+        }
 
-       if (isExpired) {
-           throw new InvalidTokenException();
-       }
+        final var videoId    = jwt.getClaim("videoId").asString();
+        final var sessionId  = jwt.getClaim("sessionId").asString();
+        final var claimedUserId = jwt.getSubject();
 
-        final var videoId = jwtDecoded.getClaim("videoId").asString();
-        final var sessionId = jwtDecoded.getClaim("sessionId").asString();
-        final var userClaimedId =  jwtDecoded.getSubject();
-
-        if (!userClaimedId.equals(userId.toString())) {
+        if (!claimedUserId.equals(userId.toString())) {
             throw new VideoAccessDeniedException("You cannot access this video");
         }
 
@@ -80,19 +81,33 @@ public class VodServiceImpl implements VodService {
             throw new VideoAccessDeniedException("You cannot access this video");
         }
 
-        if (!request.totalDurationSeconds().equals(videoDetails.duration())) {
-            throw new InvalidPlackbayEvent();
+        long videoDuration = videoDetails.duration() != null ? videoDetails.duration() : 0L;
+        if (videoDuration <= 0) {
+            log.warn("Video duration not available for videoId={}, skipping view qualification", videoId);
+            return;
         }
 
-        this.playbackProgressProducer.sendEvent(new PlaybackProgressEvent(
-                sessionId,
-                videoId,
-                userClaimedId,
-                request.watchTimeSeconds(),
-                request.currentPositionSeconds(),
-                LocalDateTime.now()
-        ));
+        long newTotal = vodSessionRepository.accumulateWatchTime(
+                sessionId, videoId, claimedUserId, request.watchTimeSeconds()
+        );
 
+        log.debug("Session {} accumulated {}s / {}s for videoId={}", sessionId, newTotal, videoDuration, videoId);
+
+        if (isViewQualified(newTotal, videoDuration)) {
+            boolean counted = vodSessionRepository.markViewCounted(sessionId);
+            if (counted) {
+                viewCountProducer.send(UUID.fromString(videoId), userId);
+                log.info("View counted for videoId={} userId={} sessionId={}", videoId, userId, sessionId);
+            }
+        }
+    }
+
+    private boolean isViewQualified(long totalWatchSeconds, long videoDurationSeconds) {
+        if (videoDurationSeconds >= SHORT_VIDEO_THRESHOLD_SECONDS) {
+            return totalWatchSeconds >= LONG_VIDEO_MIN_WATCH_SECONDS;
+        }
+        long threshold = Math.max(1L, (long) (videoDurationSeconds * SHORT_VIDEO_MIN_RATIO));
+        return totalWatchSeconds >= threshold;
     }
 
     private VideoDetails fetchVideoDetails(UUID videoId) {
@@ -117,9 +132,8 @@ public class VodServiceImpl implements VodService {
 
     private void checkAccess(UUID userId, VideoDetails video, String videoUrl) {
         switch (video.visibility()) {
-            case "PUBLIC" -> {  }
+            case "PUBLIC" -> { }
             case "NOT_LISTED" -> {
-                // TODO: Implement a more robust way, validating the signature of the url
                 if (videoUrl == null || videoUrl.isBlank()) {
                     throw new VideoAccessDeniedException("Access denied");
                 }
@@ -134,10 +148,10 @@ public class VodServiceImpl implements VodService {
     }
 
     private void checkResolutions(String[] resolutions) {
-       for (String resolution : resolutions) {
-           if (!RESOLUTIONS_ALLOWED.contains(resolution)) {
-              throw new InvalidWatchVodRequest();
-           }
-       }
+        for (String resolution : resolutions) {
+            if (!RESOLUTIONS_ALLOWED.contains(resolution)) {
+                throw new InvalidWatchVodRequest();
+            }
+        }
     }
 }
