@@ -1,14 +1,20 @@
 package com.shin.streaming.repository;
 
+import com.shin.streaming.model.PlaybackSession;
+import io.awspring.cloud.dynamodb.DynamoDbTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -18,6 +24,7 @@ public class VodSessionRepository {
     private static final long SESSION_TTL_SECONDS = 24 * 60 * 60L;
 
     private final DynamoDbClient dynamoDbClient;
+    private final DynamoDbTemplate dynamoDbTemplate;
 
     @Value("${dynamo.vod-sessions-table}")
     private String tableName;
@@ -45,6 +52,20 @@ public class VodSessionRepository {
 
         AttributeValue accumulated = response.attributes().get("accumulatedWatchSeconds");
         return accumulated != null ? Long.parseLong(accumulated.n()) : watchTimeSeconds;
+    }
+
+    public Optional<PlaybackSession> findById(String sessionId) {
+        QueryConditional keyCondition = QueryConditional
+                .keyEqualTo(Key.builder().partitionValue(sessionId).build());
+
+        QueryEnhancedRequest queryRequest = QueryEnhancedRequest.builder()
+                .queryConditional(keyCondition)
+                .build();
+
+        return dynamoDbTemplate.query(queryRequest, PlaybackSession.class)
+                .items()
+                .stream()
+                .findFirst();
     }
 
     public boolean markViewCounted(String sessionId) {

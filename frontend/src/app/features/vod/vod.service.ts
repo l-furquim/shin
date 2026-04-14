@@ -20,16 +20,18 @@ export class VodService {
         params,
         withCredentials: true, // required: CloudFront signed cookies are set via Set-Cookie
       })
-      .pipe(
-        map((response) => this.toWatchVodResponse(response, resolution)),
-      )
+      .pipe(map((response) => this.toWatchVodResponse(response, resolution)))
       .pipe(catchError((error) => this.handleError(error, 'carregar vídeo')));
   }
 
-  private toWatchVodResponse(response: WatchVodApiResponse, resolution: Resolution): WatchVodResponse {
+  private toWatchVodResponse(
+    response: WatchVodApiResponse,
+    resolution: Resolution,
+  ): WatchVodResponse {
     const manifestUrl = this.getManifestForResolution(response.manifests, resolution);
 
     return {
+      lastWatch: response.lastWatch,
       videoDetails: response.videoDetails,
       playbackToken: response.playbackToken,
       manifestUrl: this.normalizeManifestUrl(manifestUrl),
@@ -51,7 +53,9 @@ export class VodService {
 
     const first = manifests[0];
     if (first) {
-      const firstValue = Object.values(first).find((value): value is string => typeof value === 'string');
+      const firstValue = Object.values(first).find(
+        (value): value is string => typeof value === 'string',
+      );
       if (firstValue) {
         return firstValue;
       }

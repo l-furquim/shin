@@ -25,12 +25,12 @@ public class AuthServiceImpl implements AuthService {
     private final CloudFrontConfig cloudFrontConfig;
 
     @Override
-    public String generatePlaybackToken(UUID sessionId, UUID videoId, UUID userId) {
+    public String generatePlaybackToken(String sessionId, UUID videoId, UUID userId) {
         Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
         return JWT.create()
                 .withIssuer("shin")
                 .withSubject(userId.toString())
-                .withClaim("sessionId", sessionId.toString())
+                .withClaim("sessionId", sessionId)
                 .withClaim("videoId", videoId.toString())
                 .withExpiresAt(Date.from(Instant.now().plusSeconds(cloudFrontConfig.getCookieValiditySeconds())))
                 .sign(algorithm);

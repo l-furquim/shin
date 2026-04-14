@@ -9,6 +9,7 @@ import type { Resolution } from '@/features/videos/video.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <video-player
+      [currentTime]="this.currentTime()"
       [manifestUrl]="manifestUrl()"
       (playing)="playing.emit()"
       (paused)="paused.emit()"
@@ -50,6 +51,7 @@ import type { Resolution } from '@/features/videos/video.types';
   `,
 })
 export class VideoPlayerSectionComponent {
+  readonly currentTime = input<number>(0);
   readonly manifestUrl = input<string | null>(null);
   readonly availableResolutions = input<Resolution[]>([]);
   readonly selectedResolution = input<Resolution | null>(null);

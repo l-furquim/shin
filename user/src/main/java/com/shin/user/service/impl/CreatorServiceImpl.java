@@ -73,15 +73,18 @@ public class CreatorServiceImpl implements CreatorService {
         var creatorSaved = creatorRepository.save(creator);
         log.info("New creator profile created with id: {}", creatorSaved.getId());
 
+
+        String avatarPath = null;
+        String bannerPath = null;
+
         if (avatar != null && !avatar.isEmpty()) {
-            storageService.uploadAvatar(avatar, userSaved.getId());
+            avatarPath = storageService.uploadAvatar(avatar, userSaved.getId());
         }
 
         if (banner != null && !banner.isEmpty()) {
-            storageService.uploadBanner(banner, userSaved.getId());
+            bannerPath = storageService.uploadBanner(banner, userSaved.getId());
         }
 
-        String[] pictures = storageService.getAvatarAndBannerUrls(userSaved.getId());
 
         return new CreateCreatorResponse(
                 userSaved.getId(),
@@ -89,8 +92,8 @@ public class CreatorServiceImpl implements CreatorService {
                 userSaved.getEmail(),
                 creatorSaved.getUsername(),
                 creatorSaved.getChannelUrl(),
-                pictures[0],
-                pictures[1],
+                avatarPath,
+                bannerPath,
                 userSaved.getLanguageTag(),
                 userSaved.getShowAdultContent(),
                 creatorSaved.getCreatedAt()
@@ -100,16 +103,10 @@ public class CreatorServiceImpl implements CreatorService {
     @Override
     public UpdateCreatorResponse updateCreator(
             UUID id,
-            UUID requesterId,
             UpdateCreatorRequest request,
             MultipartFile avatar,
             MultipartFile banner
     ) {
-        if (!id.equals(requesterId)) {
-            log.info("User with id {} attempted to update creator with id {}", requesterId, id);
-            throw new UnauthorizedOperationException("Unauthorized operation");
-        }
-
         var creator = findCreatorByIdOrThrow(id);
         var user = findUserByIdOrThrow(id);
 

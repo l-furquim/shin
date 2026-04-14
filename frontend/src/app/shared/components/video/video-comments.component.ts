@@ -3,19 +3,21 @@ import {
   Component,
   DestroyRef,
   inject,
+  Input,
   input,
   OnInit,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { catchError, of, switchMap } from 'rxjs';
 import { CommentService } from '@/features/comments/comment.service';
 import type { CommentDto } from '@/features/comments/comment.types';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardIconComponent } from '@/shared/components/icon';
 import { ZardAvatarComponent } from '@/shared/components/avatar';
+import { Creator } from '@/features/creator/creator.types';
 
 @Component({
   selector: 'video-comments',
@@ -25,9 +27,9 @@ import { ZardAvatarComponent } from '@/shared/components/avatar';
     <section class="space-y-5">
       <h2 class="text-base font-semibold">{{ comments().length }} comentários</h2>
 
-      @if (userId()) {
+      @if (this.user) {
         <div class="flex gap-3">
-          <z-avatar [zSrc]="''" [zFallback]="userInitials()" zSize="sm" class="shrink-0" />
+          <z-avatar [zSrc]="this.user.avatar" zSize="sm" class="shrink-0" />
           <div class="flex flex-1 flex-col gap-2">
             <textarea
               [(ngModel)]="newText"
@@ -59,8 +61,8 @@ import { ZardAvatarComponent } from '@/shared/components/avatar';
       @for (comment of comments(); track comment.id) {
         <div class="flex gap-3">
           <z-avatar
-            [zSrc]="'https://' + comment.authorAvatarUrl"
-            [zFallback]="initials(comment)"
+            [zSrc]="comment.authorAvatarUrl ?? ''"
+            [zFallback]="this.initials()"
             zSize="sm"
             class="shrink-0"
           />
@@ -80,7 +82,7 @@ import { ZardAvatarComponent } from '@/shared/components/avatar';
                 {{ comment.likeCount }}
               </button>
               <button type="button" class="hover:text-foreground">Responder</button>
-              @if (comment.authorId === userId()) {
+              @if (comment.authorId === this.user?.id) {
                 <button
                   type="button"
                   class="hover:text-destructive"
@@ -115,7 +117,8 @@ export class VideoCommentsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly videoId = input.required<string>();
-  readonly userId = input<string | null>(null);
+
+  @Input() user!: Creator | null;
 
   protected readonly comments = signal<CommentDto[]>([]);
   protected readonly loading = signal(false);
@@ -128,10 +131,6 @@ export class VideoCommentsComponent implements OnInit {
     this.loadComments();
   }
 
-  protected userInitials(): string {
-    return (this.userId() ?? '?').slice(0, 2).toUpperCase();
-  }
-
   protected initials(comment: CommentDto): string {
     return (comment.authorDisplayName ?? comment.authorId).slice(0, 2).toUpperCase();
   }
@@ -142,7 +141,7 @@ export class VideoCommentsComponent implements OnInit {
 
     this.submitting.set(true);
     this.commentService
-      .createComment({ videoId: this.videoId(), channelId: this.userId() ?? '', content: text })
+      .createComment({ videoId: this.videoId(), channelId: this.user?.id ?? '', content: text })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         catchError(() => of(null)),

@@ -35,15 +35,14 @@ public class CreatorController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping
     public ResponseEntity<UpdateCreatorResponse> update(
-        @PathVariable UUID id,
         @RequestHeader("X-User-Id") UUID userId,
         @Valid @RequestPart(value = "data", required = false) UpdateCreatorRequest request,
         @RequestPart(value = "avatar", required = false) MultipartFile avatar,
         @RequestPart(value = "banner", required = false) MultipartFile banner
     ) {
-        UpdateCreatorResponse response = creatorService.updateCreator(id, userId, request, avatar, banner);
+        UpdateCreatorResponse response = creatorService.updateCreator(userId, request, avatar, banner);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

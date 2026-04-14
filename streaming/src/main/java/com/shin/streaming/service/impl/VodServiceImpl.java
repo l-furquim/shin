@@ -43,7 +43,21 @@ public class VodServiceImpl implements VodService {
         VideoDetails videoDetails = fetchVideoDetails(videoId);
         checkAccess(userId, videoDetails, videoUrl);
 
-        UUID sessionId = UUID.randomUUID();
+        final var sessionId = videoId.toString().concat(":").concat(userId.toString());
+
+        final var lastWatchHistory = this.vodSessionRepository.findById(
+               sessionId
+        );
+
+        final var watchResponse = lastWatchHistory.map(playbackSession -> new LastWatchVod(
+                playbackSession.getAccumulatedWatchSeconds(),
+                playbackSession.isViewCounted()
+        )).orElse(null);
+
+        if (watchResponse != null) {
+            log.debug("Watch Vod returned: {}", watchResponse);
+        }
+
         CookiesForCustomPolicy signed = storageService.generateSignedCookiesForVideo(videoId);
         List<String> cookies = buildCookieHeaders(signed);
 
@@ -53,7 +67,7 @@ public class VodServiceImpl implements VodService {
 
         String playbackToken = authService.generatePlaybackToken(sessionId, videoId, userId);
 
-        return new WatchVodResult(new WatchVodResponse(videoDetails, manifests, playbackToken), cookies);
+        return new WatchVodResult(new WatchVodResponse(watchResponse, videoDetails, manifests, playbackToken), cookies);
     }
 
     @Override
@@ -67,8 +81,8 @@ public class VodServiceImpl implements VodService {
             throw new InvalidTokenException();
         }
 
-        final var videoId    = jwt.getClaim("videoId").asString();
-        final var sessionId  = jwt.getClaim("sessionId").asString();
+        final var videoId = jwt.getClaim("videoId").asString();
+        final var sessionId = jwt.getClaim("sessionId").asString();
         final var claimedUserId = jwt.getSubject();
 
         if (!claimedUserId.equals(userId.toString())) {

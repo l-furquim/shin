@@ -28,7 +28,7 @@ public class StorageServiceImpl implements StorageService {
     private String cloudFrontUrl;
 
     @Override
-    public void uploadAvatar(MultipartFile file, UUID id) {
+    public String uploadAvatar(MultipartFile file, UUID id) {
         try {
             String key = "creators/" + id.toString() + "/" + "avatar.png";
 
@@ -42,6 +42,7 @@ public class StorageServiceImpl implements StorageService {
 
             log.info("Avatar uploaded successfully for creator with ID: {}", id);
 
+            return this.getBaseS3Path(id).concat("avatar.png");
         } catch (Exception e) {
             log.error("Error while uploading the avatar: {}", e.getMessage());
             throw new PictureUploadException("Error while uploading the avatar");
@@ -49,7 +50,7 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public void uploadBanner(MultipartFile file, UUID id) {
+    public String uploadBanner(MultipartFile file, UUID id) {
         try {
             String key = "creators/" + id.toString() + "/"  + "banner.png";
 
@@ -63,6 +64,7 @@ public class StorageServiceImpl implements StorageService {
 
             log.info("Banner uploaded successfully for creator with ID: {}", id);
 
+            return this.getBaseS3Path(id).concat("banner.png");
         } catch (Exception e) {
             log.error("Error while uploading the banner: {}", e.getMessage());
             throw new PictureUploadException("Error while uploading the avatar");
@@ -72,8 +74,8 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public String[] getAvatarAndBannerUrls(UUID id) {
         return new String[] {
-                cloudFrontUrl + "/creators/" + id.toString() + "/"  + "avatar.png",
-                cloudFrontUrl + "/creators/" + id.toString() + "/"  + "banner.png"
+             this.getBaseS3Path(id).concat("avatar.png"),
+             this.getBaseS3Path(id).concat("banner.png")
         };
     }
 
@@ -116,4 +118,9 @@ public class StorageServiceImpl implements StorageService {
         deleteAvatar(id);
         deleteBanner(id);
     }
+
+    private String getBaseS3Path(UUID id) {
+        return  "https://".concat(cloudFrontUrl).concat("/creators/").concat(id.toString()).concat("/");
+    }
+
 }

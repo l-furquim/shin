@@ -15,7 +15,6 @@ public interface CreatorService {
 
          UpdateCreatorResponse updateCreator(
                  UUID id,
-                 UUID requesterId,
                  UpdateCreatorRequest request,
                  MultipartFile avatar,
                  MultipartFile banner

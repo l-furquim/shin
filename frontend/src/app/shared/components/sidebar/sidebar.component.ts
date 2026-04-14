@@ -1,18 +1,23 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { ZardAvatarComponent } from '../avatar';
 import { ZardButtonComponent } from '../button';
 import { ZardIconComponent, type ZardIcon } from '../icon';
+import { AuthStore } from '@/core/stores/auth.store';
 
 @Component({
   selector: 'app-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="w-full border-b border-sidebar-border bg-sidebar md:h-screen md:w-64 md:border-r md:border-b-0">
+    <aside
+      class="w-full border-b border-sidebar-border bg-sidebar md:h-screen md:w-64 md:border-r md:border-b-0"
+    >
       <nav class="flex h-full flex-col p-3 md:p-4">
         <div class="mb-4 px-2">
-          <p class="text-xs font-medium tracking-wider text-sidebar-foreground/60 uppercase">Navegacao</p>
+          <p class="text-xs font-medium tracking-wider text-sidebar-foreground/60 uppercase">
+            Navegacao
+          </p>
         </div>
 
         <ul class="space-y-1">
@@ -34,7 +39,7 @@ import { ZardIconComponent, type ZardIcon } from '../icon';
           }
         </ul>
 
-          <div class="mt-4 border-t border-sidebar-border pt-4">
+        <div class="mt-4 border-t border-sidebar-border pt-4">
           <a
             z-button
             zType="default"
@@ -50,20 +55,27 @@ import { ZardIconComponent, type ZardIcon } from '../icon';
         <div class="mt-auto pt-4">
           <button
             z-button
-            zType="outline"
+            zType="ghost"
             zSize="lg"
-            class="w-full justify-start gap-2 border-sidebar-border bg-background/60 text-sidebar-foreground"
+            class="w-full justify-start gap-2 text-sidebar-foreground"
           >
-            <z-avatar zSrc="https://github.com/shadcn.png" zFallback="LH" zSize="sm" />
-            <span class="truncate">Lucas Hernandes</span>
+            <z-avatar [zSrc]="this.authStore.creator()?.avatar ?? ''" zFallback="LH" zSize="sm" />
+            <span class="truncate">{{ this.authStore.creator()?.displayName }}</span>
           </button>
         </div>
       </nav>
     </aside>
   `,
-  imports: [RouterLink, RouterLinkActive, ZardAvatarComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    ZardAvatarComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+  ],
 })
 export class SidebarComponent {
+  protected readonly authStore = inject(AuthStore);
   protected readonly exactMatchOptions = { exact: true };
   protected readonly subsetMatchOptions = { exact: false };
 

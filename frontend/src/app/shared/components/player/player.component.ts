@@ -24,6 +24,7 @@ import { ZardAlertComponent } from '@/shared/components/alert';
         #videoElement
         controls
         class="aspect-video w-full bg-black"
+        [currentTime]="currentTime()"
         (play)="playing.emit()"
         (pause)="paused.emit()"
         (ended)="ended.emit()"
@@ -43,6 +44,7 @@ import { ZardAlertComponent } from '@/shared/components/alert';
 })
 export class PlayerComponent {
   readonly manifestUrl = input<string | null>(null);
+  readonly currentTime = input<number>(0);
 
   readonly timeUpdate = output<number>();
   readonly playing = output<void>();

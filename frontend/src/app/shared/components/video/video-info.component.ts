@@ -20,14 +20,10 @@ import type { VideoItem } from '@/features/videos/video.types';
       </p>
     </div>
 
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-center gap-3">
         @if (video()?.channel?.avatarUrl) {
-          <img
-            [src]="cloudFrontBase() + video()?.channel?.avatarUrl"
-            [alt]="video()!.channel.name"
-            class="h-10 w-10 rounded-full object-cover"
-          />
+          <img [src]="video()!.channel.avatarUrl" class="h-10 w-10 rounded-full object-cover" />
         } @else {
           <div class="flex h-10 w-10 items-center justify-center rounded-full bg-stone-200">
             <z-icon zType="user" zSize="sm" class="text-stone-500" />

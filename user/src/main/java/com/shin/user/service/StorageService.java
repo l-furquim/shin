@@ -6,8 +6,8 @@ import java.util.UUID;
 
 public interface StorageService {
 
-    void uploadAvatar(MultipartFile file, UUID id);
-    void uploadBanner(MultipartFile file, UUID id);
+    String uploadAvatar(MultipartFile file, UUID id);
+    String uploadBanner(MultipartFile file, UUID id);
 
     String[] getAvatarAndBannerUrls(UUID id);
 

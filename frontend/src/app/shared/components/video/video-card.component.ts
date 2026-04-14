@@ -1,25 +1,26 @@
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { Component, inject, Input, OnInit, signal } from '@angular/core';
 import { ZardCardComponent } from '../card';
-import type { VideoItem } from '@/features/videos/video.types';
+import type { Thumbnail, VideoItem } from '@/features/videos/video.types';
 import { Router } from '@angular/router';
+import { ZardAvatarComponent } from '../avatar';
 
 @Component({
   selector: 'video-card',
   template: `
-    <z-card (click)="onClick()" class="w-sm flex flex-col hover:cursor-pointer">
+    <z-card (click)="onClick()" class="w-xs flex bg-none shadow-none flex-col hover:cursor-pointer">
       <img
         class="rounded-md"
-        [src]="this.video.thumbnails['maxres']?.url"
+        [src]="this.thumbResolution()?.url"
         alt="{{ video.title }}"
-        [width]="350"
-        [height]="200"
+        [width]="this.thumbResolution()?.width"
+        [height]="this.thumbResolution()?.height"
       />
       <h3 class="font-semibold text-md pt-3">{{ video.title }}</h3>
       <div
         class="flex items-center gap-2 pt-4 text-sm hover:cursor-pointer hover:text-gray-60"
         (click)="onChannelClick()"
       >
-        <img class="rounded-full w-9 h-8" [src]="'https://' + video.channel.avatarUrl" />
+        <z-avatar [zSrc]="video.channel.avatarUrl"></z-avatar>
         <p>{{ video.channel.name }}</p>
       </div>
       <div class="flex items-center gap-2 pt-4 text-sm">
@@ -28,14 +29,17 @@ import { Router } from '@angular/router';
       </div>
     </z-card>
   `,
-  imports: [ZardCardComponent],
+  imports: [ZardCardComponent, ZardAvatarComponent],
 })
 export class VideoCard implements OnInit {
   @Input() video!: VideoItem;
+
   private readonly router = inject(Router);
+  readonly thumbResolution = signal<Thumbnail | null>(null);
 
   ngOnInit() {
     console.log(this.video);
+    this.thumbResolution.set(this.video.thumbnails['maxres']);
   }
 
   async onClick() {

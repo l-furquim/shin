@@ -71,6 +71,7 @@ import { environment } from '../../../../environments/environment';
           <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 lg:flex-row lg:gap-8">
             <div class="flex min-w-0 flex-1 flex-col gap-6">
               <video-player-section
+                [currentTime]="this.vod()?.lastWatch?.accumulatedWatchTime ?? 0"
                 [manifestUrl]="manifestUrl()"
                 [availableResolutions]="availableResolutions()"
                 [selectedResolution]="selectedResolution()"
@@ -102,7 +103,7 @@ import { environment } from '../../../../environments/environment';
 
               <div class="h-px bg-border"></div>
 
-              <video-comments [videoId]="videoId" [userId]="userId()" />
+              <video-comments [videoId]="videoId" [user]="this.authStore.creator()" />
             </div>
 
             <aside class="w-full shrink-0 space-y-3 lg:w-80 xl:w-96">
@@ -116,7 +117,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class VideoComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly authStore = inject(AuthStore);
   private readonly vodService = inject(VodService);
   private readonly videoService = inject(VideoService);
   private readonly interactionService = inject(InteractionService);
@@ -124,6 +124,7 @@ export class VideoComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
 
+  readonly authStore = inject(AuthStore);
   protected readonly cloudFrontBase = signal(`https://${environment.defaultCloudfrontUrl}`);
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
@@ -199,24 +200,39 @@ export class VideoComponent implements OnInit {
       });
   }
 
-  protected onPlay(): void { this.tracker.onPlay(); }
-  protected onPause(): void { this.tracker.onPause(); }
-  protected onEnded(): void { this.tracker.onEnded(); }
-  protected onTimeUpdate(currentTime: number): void { this.tracker.onTimeUpdate(currentTime); }
+  protected onPlay(): void {
+    this.tracker.onPlay();
+  }
+  protected onPause(): void {
+    this.tracker.onPause();
+  }
+  protected onEnded(): void {
+    this.tracker.onEnded();
+  }
+  protected onTimeUpdate(currentTime: number): void {
+    this.tracker.onTimeUpdate(currentTime);
+  }
   protected onStreamReady(): void {}
 
   protected onResolutionChange(resolution: Resolution): void {
-    if (!this.videoId || this.selectedResolution() === resolution || this.resolutionLoading()) return;
+    if (!this.videoId || this.selectedResolution() === resolution || this.resolutionLoading())
+      return;
 
     this.resolutionLoading.set(true);
     this.resolutionError.set(false);
 
     this.vodService
       .watchVod(this.videoId, resolution)
-      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
       .subscribe((vod) => {
         this.resolutionLoading.set(false);
-        if (!vod) { this.resolutionError.set(true); return; }
+        if (!vod) {
+          this.resolutionError.set(true);
+          return;
+        }
         this.selectedResolution.set(resolution);
         this.vod.set(vod);
         if (isPlatformBrowser(this.platformId)) {
@@ -230,17 +246,29 @@ export class VideoComponent implements OnInit {
     if (this.likedByMe()) {
       this.interactionService
         .removeReaction(this.videoId, 'like')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
-          if (res !== null) { this.likedByMe.set(false); this.likeCount.set(res.likesCount); }
+          if (res !== null) {
+            this.likedByMe.set(false);
+            this.likeCount.set(res.likesCount);
+          }
         });
     } else {
       if (this.dislikedByMe()) this.dislikedByMe.set(false);
       this.interactionService
         .react(this.videoId, 'like')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
-          if (res !== null) { this.likedByMe.set(true); this.likeCount.set(res.likesCount); }
+          if (res !== null) {
+            this.likedByMe.set(true);
+            this.likeCount.set(res.likesCount);
+          }
         });
     }
   }
@@ -250,15 +278,26 @@ export class VideoComponent implements OnInit {
     if (this.dislikedByMe()) {
       this.interactionService
         .removeReaction(this.videoId, 'dislike')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
-        .subscribe((res) => { if (res !== null) this.dislikedByMe.set(false); });
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
+        .subscribe((res) => {
+          if (res !== null) this.dislikedByMe.set(false);
+        });
     } else {
       if (this.likedByMe()) this.likedByMe.set(false);
       this.interactionService
         .react(this.videoId, 'dislike')
-        .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          catchError(() => of(null)),
+        )
         .subscribe((res) => {
-          if (res !== null) { this.dislikedByMe.set(true); this.likeCount.set(res.likesCount); }
+          if (res !== null) {
+            this.dislikedByMe.set(true);
+            this.likeCount.set(res.likesCount);
+          }
         });
     }
   }
