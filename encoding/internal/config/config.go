@@ -16,7 +16,7 @@ type Config struct {
 	Port                     string
 	JobRequestQueueURL       string
 	EncodingFinishedQueueURL string
-	ChunkProcessedTopicARN   string
+	EncodingProgressQueueURL string
 	RawBucketName            string
 	ProcessedBucketName      string
 	Env                      Env
@@ -28,7 +28,7 @@ func LoadConfig(env Env) *Config {
 		Port:                     getEnv("PORT", "8080"),
 		JobRequestQueueURL:       mustGetEnv("DECODE_JOB_QUEUE_URL"),
 		EncodingFinishedQueueURL: mustGetEnv("ENCODING_FINISHED_EVENTS_QUEUE_URL"),
-		ChunkProcessedTopicARN:   getEnv("CHUNK_PROCESSED_TOPIC_ARN", ""),
+		EncodingProgressQueueURL: mustGetEnv("ENCODING_PROGRESS_QUEUE_URL"),
 		RawBucketName:            mustGetEnv("RAW_BUCKET_NAME"),
 		ProcessedBucketName:      mustGetEnv("PROCESSED_BUCKET_NAME"),
 		Region:                   getEnv("AWS_REGION", "us-east-1"),

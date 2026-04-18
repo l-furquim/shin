@@ -28,6 +28,8 @@ module "s3" {
   thumbnail_bucket_name        = var.thumbnail_bucket_name
   creator_pictures_bucket_name = var.creator_pictures_bucket_name
   raw_upload_events_topic_arn  = module.sns.topic_arns["raw-upload-created"]
+  thumbnail_upload_arn         = module.sqs.queue_arns["thumbnail-upload"]
+  thumbnail_upload_queue_url   = module.sqs.queue_urls["thumbnail-upload"]
 
   depends_on = [module.sns]
 }
@@ -157,6 +159,7 @@ module "thumbnail" {
 
   env                          = var.env
   thumbnail_job_queue_arn      = module.sqs.queue_arns["thumbnail-job"]
+  thumbnail_upload_queue_arn   = module.sqs.queue_arns["thumbnail-upload"]
   thumbnail_finished_queue_arn = module.sqs.queue_arns["thumbnail-finished-events"]
   thumbnail_finished_queue_url = module.sqs.queue_urls["thumbnail-finished-events"]
   raw_bucket_arn               = module.s3.raw_bucket_arn

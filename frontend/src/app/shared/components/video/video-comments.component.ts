@@ -10,18 +10,18 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { catchError, of, switchMap } from 'rxjs';
 import { CommentService } from '@/features/comments/comment.service';
-import type { CommentDto } from '@/features/comments/comment.types';
+import type { CommentDto, ThreadDto } from '@/features/comments/comment.types';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardIconComponent } from '@/shared/components/icon';
 import { ZardAvatarComponent } from '@/shared/components/avatar';
+import { VideoCommentItemComponent } from './video-comment-item.component';
 import { Creator } from '@/features/creator/creator.types';
 
 @Component({
   selector: 'video-comments',
-  imports: [FormsModule, DatePipe, ZardButtonComponent, ZardIconComponent, ZardAvatarComponent],
+  imports: [FormsModule, ZardButtonComponent, ZardIconComponent, ZardAvatarComponent, VideoCommentItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-5">
@@ -59,41 +59,12 @@ import { Creator } from '@/features/creator/creator.types';
       }
 
       @for (comment of comments(); track comment.id) {
-        <div class="flex gap-3">
-          <z-avatar
-            [zSrc]="comment.authorAvatarUrl ?? ''"
-            [zFallback]="this.initials()"
-            zSize="sm"
-            class="shrink-0"
-          />
-          <div class="flex-1 space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold">
-                {{ comment.authorDisplayName ?? comment.authorId }}
-              </span>
-              <span class="text-muted-foreground text-xs">
-                {{ comment.createdAt | date: 'dd/MM/y' }}
-              </span>
-            </div>
-            <p class="text-sm leading-relaxed">{{ comment.textDisplay }}</p>
-            <div class="flex items-center gap-3 text-xs text-muted-foreground">
-              <button type="button" class="flex items-center gap-1 hover:text-foreground">
-                <z-icon zType="thumbs-up" zSize="sm" />
-                {{ comment.likeCount }}
-              </button>
-              <button type="button" class="hover:text-foreground">Responder</button>
-              @if (comment.authorId === this.user?.id) {
-                <button
-                  type="button"
-                  class="hover:text-destructive"
-                  (click)="deleteComment(comment.id)"
-                >
-                  Excluir
-                </button>
-              }
-            </div>
-          </div>
-        </div>
+        <video-comment-item
+          [comment]="comment"
+          [replyCount]="threads().get(comment.id)?.totalReplyCount ?? 0"
+          [user]="user"
+          (deleted)="onCommentDeleted($event)"
+        />
       }
 
       @if (loading()) {
@@ -121,6 +92,7 @@ export class VideoCommentsComponent implements OnInit {
   @Input() user!: Creator | null;
 
   protected readonly comments = signal<CommentDto[]>([]);
+  protected readonly threads = signal<Map<string, ThreadDto>>(new Map());
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
   protected readonly submitting = signal(false);
@@ -129,10 +101,6 @@ export class VideoCommentsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadComments();
-  }
-
-  protected initials(comment: CommentDto): string {
-    return (comment.authorDisplayName ?? comment.authorId).slice(0, 2).toUpperCase();
   }
 
   protected submit(): void {
@@ -155,16 +123,8 @@ export class VideoCommentsComponent implements OnInit {
       });
   }
 
-  protected deleteComment(commentId: string): void {
-    this.commentService
-      .deleteComment(commentId)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        catchError(() => of(null)),
-      )
-      .subscribe(() => {
-        this.comments.update((list) => list.filter((c) => c.id !== commentId));
-      });
+  protected onCommentDeleted(commentId: string): void {
+    this.comments.update((list) => list.filter((c) => c.id !== commentId));
   }
 
   private loadComments(): void {
@@ -175,9 +135,11 @@ export class VideoCommentsComponent implements OnInit {
       .listThreads(this.videoId())
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        switchMap((threads) => {
-          if (!threads.items.length) return of(null);
-          const ids = threads.items.map((t) => t.id);
+        switchMap((threadRes) => {
+          if (!threadRes.items.length) return of(null);
+          const map = new Map(threadRes.items.map((t) => [t.id, t]));
+          this.threads.set(map);
+          const ids = threadRes.items.map((t) => t.id);
           return this.commentService.listComments({ ids, maxResults: ids.length });
         }),
         catchError(() => of(null)),
@@ -185,7 +147,11 @@ export class VideoCommentsComponent implements OnInit {
       .subscribe((res) => {
         this.loading.set(false);
         if (res === null) {
-          this.error.set(true);
+          if (!this.threads().size) {
+            this.error.set(false);
+          } else {
+            this.error.set(true);
+          }
           return;
         }
         if (res) {

@@ -19,7 +19,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class S3StorageServiceImpl implements StorageService {
@@ -35,6 +34,9 @@ public class S3StorageServiceImpl implements StorageService {
 
     @Value("${spring.cloud.aws.s3.buckets.processed}")
     private String processedBucket;
+
+    @Value("${spring.cloud.aws.s3.buckets.thumbnails}")
+    private String thumbnailBucket;
 
     public S3StorageServiceImpl(S3Client client, S3Presigner presigner) {
         this.client = client;
@@ -222,40 +224,47 @@ public class S3StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public PresignedUpload generatedPresignedThumbnailUpload(String bucket, String contentType, String videoId, String userId, String originalName, Long fileSize) {
+    public PresignedUpload generatePresignedThumbnailUpload(String bucket, String contentType, String videoId, String userId, String originalName, Long fileSize) {
+        try {
+            final var finalKey = "thumbnails/".concat(videoId).concat("/custom/custom.png");
 
-        final var finalKey = "/thumbnails/".concat(videoId).concat("/custom/png");
-        Map<String, String> metadata = new HashMap<>(Map.of(
+            Map<String, String> metadata = new HashMap<>(Map.of(
                 "videoid", videoId,
                 "userid", userId,
-                "filename", originalName
-        ));
+                "filename", originalName,
+                "thumbnailkind", "custom"
+            ));
 
-        if (fileSize != null) {
-            metadata.put("filesize", String.valueOf(fileSize));
-        }
-        if (contentType != null && !contentType.isBlank()) {
-            metadata.put("contenttype", contentType);
-        }
+            if (fileSize != null) {
+                metadata.put("filesize", String.valueOf(fileSize));
+            }
+            if (contentType != null && !contentType.isBlank()) {
+                metadata.put("contenttype", contentType);
+            }
 
-
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(resolveBucket(bucket))
                 .metadata(metadata)
                 .key(finalKey)
+                .contentType(contentType)
                 .build();
 
-        var response = presigner.presignPutObject(PutObjectPresignRequest.builder()
+            var response = presigner.presignPutObject(PutObjectPresignRequest.builder()
                 .putObjectRequest(putObjectRequest)
                 .signatureDuration(PRESIGN_DURATION)
                 .build());
 
-        return new PresignedUpload(response.url().toString(), response.expiration().getEpochSecond());
+            return new PresignedUpload(response.url().toString(), response.expiration().getEpochSecond());
+        } catch (Exception e) {
+            logger.error("Error generating presigned thumbnail upload: {}", e.getMessage(), e);
+            throw new PresignException(e.getMessage());
+        }
     }
 
     private String resolveBucket(String bucket) {
         if ("raw".equals(bucket)) return rawBucket;
         if ("processed".equals(bucket)) return processedBucket;
+        if ("thumbnail".equals(bucket) || "thumbnails".equals(bucket)) return thumbnailBucket;
         throw new IllegalArgumentException("Unknown bucket alias: " + bucket);
     }
 }

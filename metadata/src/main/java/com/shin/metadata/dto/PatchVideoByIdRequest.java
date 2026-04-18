@@ -1,6 +1,5 @@
 package com.shin.metadata.dto;
 
-import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
 import jakarta.validation.Valid;
@@ -11,7 +10,7 @@ import java.util.Set;
 public record PatchVideoByIdRequest(
     String title,
     String description,
-    Double duration,
+    Long duration,
     String resolutions,
     String uploadKey,
     String thumbnailUrl,
@@ -21,6 +20,5 @@ public record PatchVideoByIdRequest(
     Boolean onlyForAdults,
     @Valid Set<TagIdentifier> tagsToAdd,
     @Valid Set<TagIdentifier> tagsToRemove,
-    LocalDateTime scheduledPublishAt,
-    ProcessingStatus status
+    LocalDateTime scheduledPublishAt
 ) {}

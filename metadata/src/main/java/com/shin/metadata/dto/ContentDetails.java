@@ -4,7 +4,7 @@ import com.shin.metadata.model.enums.VideoLanguage;
 
 public record ContentDetails(
         String resolutions,
-        Double duration,
+        Long duration,
         String processedPath,
         VideoLanguage defaultLanguage,
         String publishedLocale,

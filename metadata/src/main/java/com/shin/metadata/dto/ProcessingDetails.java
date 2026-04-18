@@ -1,9 +1,9 @@
 package com.shin.metadata.dto;
 
-import com.shin.metadata.model.enums.ProcessingStatus;
+import com.shin.metadata.model.enums.TranscodingStatus;
 
 public record ProcessingDetails(
-        ProcessingStatus processingStatus,
+        TranscodingStatus transcodingStatus,
         String processingFailureReason,
         ProcessingProgress processingProgress
 ) {

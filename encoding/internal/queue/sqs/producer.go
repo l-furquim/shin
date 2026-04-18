@@ -34,3 +34,30 @@ func (p *TranscodingCompletedProducer) Send(ctx context.Context, payload any) er
 
 	return err
 }
+
+type EncodingProgressProducer struct {
+	c        *sqs.Client
+	queueURL string
+}
+
+func NewEncodingProgressProducer(c *sqs.Client, queueURL string) *EncodingProgressProducer {
+	return &EncodingProgressProducer{
+		c:        c,
+		queueURL: queueURL,
+	}
+}
+
+func (p *EncodingProgressProducer) Send(ctx context.Context, payload any) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	message := string(body)
+	_, err = p.c.SendMessage(ctx, &sqs.SendMessageInput{
+		QueueUrl:    aws.String(p.queueURL),
+		MessageBody: aws.String(message),
+	})
+
+	return err
+}

@@ -4,6 +4,35 @@ set SCRIPT_DIR (dirname (status --current-filename))
 set PROJECT_ROOT (realpath "$SCRIPT_DIR/..")
 set TERRAFORM_PATH "$PROJECT_ROOT/infra"
 set TFVARS_FILE "environments/dev/terraform.tfvars"
+set TF_AWS_REGION (test -n "$AWS_REGION" && echo $AWS_REGION || echo "us-east-1")
+
+function import_dynamodb_table_if_needed --argument-names resource_name table_name
+    set -l state_address "module.dynamodb.aws_dynamodb_table.$resource_name"
+    set -l state_entries (terraform -chdir=$TERRAFORM_PATH state list 2>/dev/null)
+
+    if contains -- "$state_address" $state_entries
+        return
+    end
+
+    if aws dynamodb describe-table --table-name "$table_name" --region "$TF_AWS_REGION" >/dev/null 2>&1
+        echo "Importing existing DynamoDB table into Terraform state: $table_name"
+        terraform -chdir=$TERRAFORM_PATH import \
+            -var-file="$TFVARS_FILE" \
+            "$state_address" \
+            "$table_name" >/dev/null
+    end
+end
+
+function import_existing_dynamodb_tables
+    import_dynamodb_table_if_needed video_reactions video_reactions
+    import_dynamodb_table_if_needed video_reaction_counters video_reaction_counters
+    import_dynamodb_table_if_needed playback_sessions playback_sessions
+    import_dynamodb_table_if_needed channel_subscriptions channel_subscriptions
+    import_dynamodb_table_if_needed user_subscriptions user_subscriptions
+    import_dynamodb_table_if_needed channel_subscription_counters channel_subscription_counters
+    import_dynamodb_table_if_needed comments comments
+    import_dynamodb_table_if_needed comment_threads comment_threads
+end
 
 cd $PROJECT_ROOT
 
@@ -108,6 +137,14 @@ set -l apply_status $status
 printf "%s\n" "$apply_output"
 
 if test $apply_status -ne 0
+    set -l handled_error 0
+
+    if string match -q "*ResourceInUseException: Table already exists:*" "$apply_output"
+        echo "DynamoDB table already exists. Importing existing tables and retrying apply..."
+        import_existing_dynamodb_tables
+        set handled_error 1
+    end
+
     if string match -q "*OriginAccessControlAlreadyExists*" "$apply_output"
         echo "CloudFront OAC already exists. Importing existing CloudFront resources and retrying apply..."
 
@@ -144,6 +181,10 @@ if test $apply_status -ne 0
             terraform -chdir=$TERRAFORM_PATH import -var-file="$TFVARS_FILE" module.cloudfront.aws_cloudfront_distribution.s3_distribution "$dist_id" >/dev/null 2>&1
         end
 
+        set handled_error 1
+    end
+
+    if test $handled_error -eq 1
         terraform -chdir=$TERRAFORM_PATH apply \
           -var-file="$TFVARS_FILE" \
           -auto-approve
@@ -160,26 +201,45 @@ set -Ux PROCESSED_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_
 set -Ux THUMBNAIL_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
 set -Ux CREATOR_PICTURES_BUCKET_NAME (terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator_pictures"')
 
-set -Ux OPENSEARCH_COLLETION_ENDPOINT (terraform -chdir=$TERRAFORM_PATH output -raw open_search_collection_endpoint)
+set -Ux OPENSEARCH_COLLECTION_ENDPOINT (terraform -chdir=$TERRAFORM_PATH output -raw open_search_collection_endpoint)
+set -Ux OPENSEARCH_COLLETION_ENDPOINT $OPENSEARCH_COLLECTION_ENDPOINT
 set -Ux OPENSEARCH_DASHBOARD_ENDPOINT (terraform -chdir=$TERRAFORM_PATH output -raw open_search_dashboard_endpoint)
 
 set -Ux DECODE_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 set -Ux THUMBNAIL_JOB_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
 set -Ux ENCODING_FINISHED_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."encoding-finished-events"')
 set -Ux THUMBNAIL_FINISHED_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-finished-events"')
-set -Ux RAW_UPLOAD_METADATA_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."raw-upload-metadata-queue"')
+set -Ux VIDEO_UPLOAD_CREATED_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-upload-created"')
+set -Ux VIEW_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."view-events"')
 set -Ux ENCODING_FINISHED_EVENTS_QUEUE_NAME (basename $ENCODING_FINISHED_EVENTS_QUEUE_URL)
 set -Ux THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME (basename $THUMBNAIL_FINISHED_EVENTS_QUEUE_URL)
-set -Ux RAW_UPLOAD_METADATA_QUEUE_NAME (basename $RAW_UPLOAD_METADATA_QUEUE_URL)
-set -Ux SUBSCRIPTION_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."subscription-events"')
+set -Ux VIDEO_UPLOAD_CREATED_QUEUE_NAME (basename $VIDEO_UPLOAD_CREATED_QUEUE_URL)
+set -Ux VIEW_EVENTS_QUEUE_NAME (basename $VIEW_EVENTS_QUEUE_URL)
+set -Ux ENCODING_FINISHED_DLQ_NAME "$ENCODING_FINISHED_EVENTS_QUEUE_NAME-dlq"
+set -Ux THUMBNAIL_FINISHED_DLQ_NAME "$THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME-dlq"
+set -Ux VIEW_EVENTS_DLQ_NAME "$VIEW_EVENTS_QUEUE_NAME-dlq"
+set -Ux THREAD_CREATED_METADATA_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thread-created-metadata"')
+set -Ux THREAD_CREATED_NOTIFICATION_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thread-created-notification"')
+set -Ux COMMENT_REPLY_METADATA_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."comment-reply-metadata"')
+set -Ux COMMENT_REPLY_NOTIFICATION_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."comment-reply-notification"')
+set -Ux VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-published-opensearch-indexer"')
+set -Ux VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-published-notification"')
+set -Ux ENCODING_PROGRESS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."encoding-progress"')
+set -Ux VIDEO_UPDATED_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-updated-events"')
+set -Ux THREAD_CREATED_METADATA_QUEUE_NAME (basename $THREAD_CREATED_METADATA_QUEUE_URL)
+set -Ux THREAD_CREATED_NOTIFICATION_QUEUE_NAME (basename $THREAD_CREATED_NOTIFICATION_QUEUE_URL)
+set -Ux COMMENT_REPLY_METADATA_QUEUE_NAME (basename $COMMENT_REPLY_METADATA_QUEUE_URL)
+set -Ux COMMENT_REPLY_NOTIFICATION_QUEUE_NAME (basename $COMMENT_REPLY_NOTIFICATION_QUEUE_URL)
+set -Ux VIDEO_PUBLISHED_QUEUE_NAME (basename $VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL)
+set -Ux VIDEO_PUBLISHED_NOTIFICATION_QUEUE_NAME (basename $VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL)
+set -Ux VIDEO_UPDATED_EVENTS_QUEUE_NAME (basename $VIDEO_UPDATED_EVENTS_QUEUE_URL)
 set -Ux LIKE_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."like-events"')
-set -Ux VIEW_EVENTS_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."view-events"')
 set -Ux DECODE_JOB_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."decode-job"')
 set -Ux THUMBNAIL_JOB_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-job"')
 set -Ux ENCODING_FINISHED_EVENTS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."encoding-finished-events"')
+set -Ux ENCODING_PROGRESS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."encoding-progress"')
 set -Ux THUMBNAIL_FINISHED_EVENTS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-finished-events"')
-set -Ux RAW_UPLOAD_METADATA_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."raw-upload-metadata-queue"')
-set -Ux VIDEO_INITIALIZED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-initialized"')
+set -Ux VIDEO_UPLOAD_CREATED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-upload-created"')
 set -Ux LIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
 set -Ux DISLIKE_EVENTS_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."dislike-events"')
 set -Ux CHANNEL_SUBSCRIBED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-subscribed"')
@@ -189,14 +249,26 @@ set -Ux THREAD_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_qu
 set -Ux COMMENT_REPLY_CREATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-created"')
 set -Ux COMMENT_UPDATED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-updated"')
 set -Ux COMMENT_DELETED_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-deleted"')
-set -Ux PLAYBACK_PROGRESS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-playback-started"')
-set -Ux VIDEO_UPDATED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-updated"')
-set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-opensearch-indexer"')
-set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-notification-service"')
-set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-opensearch-indexer"')
-set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_URL (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-notification-service"')
+set -Ux PLAYBACK_PROGRESS_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-playback-progress"')
+set -Ux THREAD_CREATED_METADATA_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thread-created-metadata"')
+set -Ux THREAD_CREATED_NOTIFICATION_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thread-created-notification"')
+set -Ux COMMENT_REPLY_METADATA_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-metadata"')
+set -Ux COMMENT_REPLY_NOTIFICATION_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-notification"')
+set -Ux VIDEO_UPDATED_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-updated-events"')
+set -Ux VIDEO_UPDATED_EVENTS_QUEUE_ARN $VIDEO_UPDATED_QUEUE_ARN
+set -Ux VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-published-opensearch-indexer"')
+set -Ux VIDEO_PUBLISHED_NOTIFICATION_QUEUE_ARN (terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-published-notification"')
 
+# Backward-compatible aliases
+set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN $VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN
+set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_ARN $VIDEO_PUBLISHED_NOTIFICATION_QUEUE_ARN
+set -Ux VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL $VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL
+set -Ux VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_URL $VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL
+
+set -Ux RAW_UPLOAD_CREATED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."raw-upload-created"')
 set -Ux VIDEO_PUBLISHED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."video-published"')
+set -Ux THREAD_CREATED_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."thread-created"')
+set -Ux COMMENT_REPLY_TOPIC_ARN (terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."comment-reply"')
 
 set -l cf_url (terraform -chdir=$TERRAFORM_PATH output -raw cloud_front_cdn_url 2>/dev/null)
 if test $status -eq 0 -a -n "$cf_url"

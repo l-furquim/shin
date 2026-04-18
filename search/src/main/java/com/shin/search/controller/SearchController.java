@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.version}/search")
@@ -31,7 +33,8 @@ public class SearchController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(defaultValue = "false") boolean forAdults,
             @RequestParam(defaultValue = "20") int maxResults,
-            @RequestParam(required = false) String pageToken
+            @RequestParam(required = false) String pageToken,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
         maxResults = Math.min(Math.max(maxResults, 1), 50);
 
@@ -42,7 +45,7 @@ public class SearchController {
         SearchVideosResponse response = searchService.search(
                 q, tagList, language, category, dateFrom, dateTo,
                 forAdults ? null : false,
-                maxResults, pageToken
+                maxResults, pageToken, userId
         );
 
         return ResponseEntity.ok(response);

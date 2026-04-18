@@ -1,7 +1,14 @@
 import { HttpClient, HttpErrorResponse, HttpResourceRequest } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
-import type { InitVideoResponse, PatchVideoRequest, SearchVideosRequest, SearchVideosResponse, VideoItem } from './video.types';
+import type {
+  GetVideoProgressResponse,
+  InitVideoResponse,
+  PatchVideoRequest,
+  SearchVideosRequest,
+  SearchVideosResponse,
+  VideoItem,
+} from './video.types';
 
 @Injectable({ providedIn: 'root' })
 export class VideoService {
@@ -28,6 +35,7 @@ export class VideoService {
       method: 'GET',
       params: {
         ...(request.id && { id: request.id }),
+        ...(request.channelId && { channelId: request.channelId }),
         ...(request.fields && { fields: request.fields }),
         ...(request.myRating && { myRating: request.myRating }),
         ...(request.categoryId && { categoryId: request.categoryId }),
@@ -55,6 +63,12 @@ export class VideoService {
     return this.http
       .get<SearchVideosResponse>('/api/v1/videos', { params })
       .pipe(catchError((error) => this.handleHttpError(error, 'listar vídeos')));
+  }
+
+  getProgress(id: string): Observable<GetVideoProgressResponse> {
+    return this.http
+      .get<GetVideoProgressResponse>(`/api/v1/videos/${id}/progress`)
+      .pipe(catchError((error) => this.handleHttpError(error, 'buscar progresso')));
   }
 
   private handleHttpError(error: unknown, operation: string): Observable<never> {

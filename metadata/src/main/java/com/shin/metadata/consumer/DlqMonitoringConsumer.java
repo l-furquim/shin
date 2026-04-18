@@ -19,9 +19,9 @@ public class DlqMonitoringConsumer {
                 .register(meterRegistry);
     }
 
-    @SqsListener(queueNames = "${spring.cloud.aws.queues.encode-finished-dlq}")
+    @SqsListener(queueNames = "${spring.cloud.aws.queues.encoding-finished-dlq}")
     public void consumeEncodingDlq(String message, @Header("id") String messageId) {
-        handleDlqMessage("encode-finished-dlq", messageId, message);
+        handleDlqMessage("encoding-finished-dlq", messageId, message);
     }
 
     @SqsListener(queueNames = "${spring.cloud.aws.queues.thumbnail-finished-dlq}")
@@ -29,14 +29,9 @@ public class DlqMonitoringConsumer {
         handleDlqMessage("thumbnail-finished-dlq", messageId, message);
     }
 
-    @SqsListener(queueNames = "${spring.cloud.aws.queues.raw-upload-metadata-dlq}")
-    public void consumeRawUploadDlq(String message, @Header("id") String messageId) {
-        handleDlqMessage("raw-upload-metadata-dlq", messageId, message);
-    }
-
-    @SqsListener(queueNames = "${spring.cloud.aws.queues.view-count-dlq}")
+    @SqsListener(queueNames = "${spring.cloud.aws.queues.view-events-dlq}")
     public void consumeViewCountDlq(String message, @Header("id") String messageId) {
-        handleDlqMessage("view-count-dlq", messageId, message);
+        handleDlqMessage("view-events-dlq", messageId, message);
     }
 
     private void handleDlqMessage(String queueName, String messageId, String message) {

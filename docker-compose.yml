@@ -54,15 +54,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8761/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -89,15 +81,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8888/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -125,15 +109,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -149,14 +125,21 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - CONFIG_SERVER_USERNAME=configuser
       - CONFIG_SERVER_PASSWORD=configpass
+      - VIDEO_UPLOAD_CREATED_QUEUE_NAME=${VIDEO_UPLOAD_CREATED_QUEUE_NAME:-shin-dev-video-upload-created}
       - ENCODING_FINISHED_EVENTS_QUEUE_NAME=${ENCODING_FINISHED_EVENTS_QUEUE_NAME:-shin-dev-encoding-finished-events}
       - THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME=${THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME:-shin-dev-thumbnail-finished-events}
-      - RAW_UPLOAD_METADATA_QUEUE_NAME=${RAW_UPLOAD_METADATA_QUEUE_NAME:-shin-dev-raw-upload-metadata-queue}
+      - ENCODING_FINISHED_DLQ_NAME=${ENCODING_FINISHED_DLQ_NAME:-shin-dev-encoding-finished-events-dlq}
+      - THUMBNAIL_FINISHED_DLQ_NAME=${THUMBNAIL_FINISHED_DLQ_NAME:-shin-dev-thumbnail-finished-events-dlq}
+      - VIEW_EVENTS_DLQ_NAME=${VIEW_EVENTS_DLQ_NAME:-shin-dev-view-events-dlq}
       - LIKE_EVENTS_ARN=${LIKE_EVENTS_ARN}
       - DISLIKE_EVENTS_ARN=${DISLIKE_EVENTS_ARN}
       - CHANNEL_SUBSCRIBED_ARN=${CHANNEL_SUBSCRIBED_ARN}
       - CHANNEL_UNSUBSCRIBED_ARN=${CHANNEL_UNSUBSCRIBED_ARN}
       - VIEW_EVENTS_ARN=${VIEW_EVENTS_ARN}
+      - THREAD_CREATED_ARN=${THREAD_CREATED_ARN}
+      - COMMENT_DELETED_ARN=${COMMENT_DELETED_ARN}
+      - ENCODING_PROGRESS_QUEUE_ARN=${ENCODING_PROGRESS_QUEUE_ARN}
+      - VIDEO_PUBLISHED_TOPIC_ARN=${VIDEO_PUBLISHED_TOPIC_ARN}
       - VIEW_DEDUPE_TTL=${VIEW_DEDUPE_TTL:-PT1H}
       - VIEW_FLUSH_INTERVAL_MS=${VIEW_FLUSH_INTERVAL_MS:-10000}
       - VIEW_FLUSH_BATCH_SIZE=${VIEW_FLUSH_BATCH_SIZE:-500}
@@ -180,15 +163,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8081/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -211,8 +186,7 @@ services:
       - SHIN_AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - RAW_UPLOAD_METADATA_QUEUE_ARN=${RAW_UPLOAD_METADATA_QUEUE_ARN}
-      - VIDEO_INITIALIZED_QUEUE_ARN=${VIDEO_INITIALIZED_QUEUE_ARN}
+      - VIDEO_UPLOAD_CREATED_QUEUE_ARN=${VIDEO_UPLOAD_CREATED_QUEUE_ARN}
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -225,15 +199,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8082/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -266,15 +232,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8083/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
     networks:
       - shin-network
   auth:
@@ -305,15 +263,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8084/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
   encoding:
     build:
       context: ./encoding
@@ -323,6 +273,7 @@ services:
     environment:
       DECODE_JOB_QUEUE_URL: ${DECODE_JOB_QUEUE_URL}
       ENCODING_FINISHED_EVENTS_QUEUE_URL: ${ENCODING_FINISHED_EVENTS_QUEUE_URL}
+      ENCODING_PROGRESS_QUEUE_URL: ${ENCODING_PROGRESS_QUEUE_URL}
       RAW_BUCKET_NAME: ${RAW_BUCKET_NAME}
       PROCESSED_BUCKET_NAME: ${PROCESSED_BUCKET_NAME}
       AWS_REGION: ${AWS_REGION}
@@ -351,7 +302,7 @@ services:
   #      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
   #      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
   #      - OPENSEARCH_COLLECTION_ENDPOINT=${OPENSEARCH_COLLECTION_ENDPOINT}
-  #      - VIDEO_PUBLISHED_QUEUE_NAME=${VIDEO_PUBLISHED_QUEUE_NAME:-shin-dev-video-video-published-opensearch-indexer}
+  #      - VIDEO_PUBLISHED_QUEUE_NAME=${VIDEO_PUBLISHED_QUEUE_NAME:-shin-dev-video-published-opensearch-indexer}
   #    depends_on:
   #      eureka-server:
   #        condition: service_healthy
@@ -406,15 +357,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8086/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -446,15 +389,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8085/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -486,20 +421,11 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8086/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
-
 
   comment:
     build:
@@ -511,8 +437,8 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - CONFIG_SERVER_USERNAME=configuser
       - CONFIG_SERVER_PASSWORD=configpass
-      - THREAD_CREATED_ARN=${THREAD_CREATED_ARN}
-      - COMMENT_REPLY_CREATED_ARN=${COMMENT_REPLY_CREATED_ARN}
+      - THREAD_CREATED_TOPIC_ARN=${THREAD_CREATED_TOPIC_ARN}
+      - COMMENT_REPLY_TOPIC_ARN=${COMMENT_REPLY_TOPIC_ARN}
       - COMMENT_UPDATED_ARN=${COMMENT_UPDATED_ARN}
       - COMMENT_DELETED_ARN=${COMMENT_DELETED_ARN}
       - AWS_REGION=${AWS_REGION}
@@ -529,15 +455,7 @@ services:
     networks:
       - shin-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8087/actuator/health",
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8087/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5

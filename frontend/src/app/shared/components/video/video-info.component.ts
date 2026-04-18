@@ -29,7 +29,11 @@ import type { VideoItem } from '@/features/videos/video.types';
             <z-icon zType="user" zSize="sm" class="text-stone-500" />
           </div>
         }
-        <p class="font-semibold leading-none">{{ video()?.channel?.name ?? '—' }}</p>
+        <a
+          [href]="'/creators/' + video()?.channel?.id"
+          class="font-semibold leading-none hover:border-b "
+          >{{ video()?.channel?.name ?? '—' }}</a
+        >
       </div>
 
       <div class="flex items-center gap-2">

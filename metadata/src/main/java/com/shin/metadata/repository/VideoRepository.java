@@ -1,8 +1,6 @@
 package com.shin.metadata.repository;
 
 import com.shin.metadata.model.Video;
-import com.shin.metadata.model.enums.VideoVisibility;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -108,6 +106,230 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
         @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
         @Param("cursorId") UUID cursorId,
         Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByChannelWithoutCursorDesc(
+        @Param("channelId") UUID channelId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByChannelWithCursorDesc(
+        @Param("channelId") UUID channelId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByChannelWithoutCursorAsc(
+        @Param("channelId") UUID channelId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByChannelWithCursorAsc(
+        @Param("channelId") UUID channelId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByChannelAndCategoryWithoutCursorDesc(
+        @Param("channelId") UUID channelId,
+        @Param("categoryId") Long categoryId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByChannelAndCategoryWithCursorDesc(
+        @Param("channelId") UUID channelId,
+        @Param("categoryId") Long categoryId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByChannelAndCategoryWithoutCursorAsc(
+        @Param("channelId") UUID channelId,
+        @Param("categoryId") Long categoryId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.creatorId = :channelId
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByChannelAndCategoryWithCursorAsc(
+        @Param("channelId") UUID channelId,
+        @Param("categoryId") Long categoryId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByIdsWithoutCursorDesc(
+            @Param("ids") List<UUID> ids,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByIdsWithCursorDesc(
+            @Param("ids") List<UUID> ids,
+            @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+            @Param("cursorId") UUID cursorId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByIdsWithoutCursorAsc(
+            @Param("ids") List<UUID> ids,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByIdsWithCursorAsc(
+            @Param("ids") List<UUID> ids,
+            @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+            @Param("cursorId") UUID cursorId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByIdsAndCategoryWithoutCursorDesc(
+            @Param("ids") List<UUID> ids,
+            @Param("categoryId") Long categoryId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByIdsAndCategoryWithCursorDesc(
+            @Param("ids") List<UUID> ids,
+            @Param("categoryId") Long categoryId,
+            @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+            @Param("cursorId") UUID cursorId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND v.videoCategory.id = :categoryId
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByIdsAndCategoryWithoutCursorAsc(
+            @Param("ids") List<UUID> ids,
+            @Param("categoryId") Long categoryId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.visibility = 'PUBLIC'
+        AND v.id IN :ids
+        AND v.videoCategory.id = :categoryId
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByIdsAndCategoryWithCursorAsc(
+            @Param("ids") List<UUID> ids,
+            @Param("categoryId") Long categoryId,
+            @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+            @Param("cursorId") UUID cursorId,
+            Pageable pageable
     );
 
     @Modifying

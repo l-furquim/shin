@@ -33,6 +33,10 @@ variable "raw_upload_events_topic_arn" {
   type = string
 }
 
-variable "thumbnail_job_queue_arn" {
+variable "thumbnail_upload_arn" {
+  type = string
+}
+
+variable "thumbnail_upload_queue_url" {
   type = string
 }

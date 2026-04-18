@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"transcoding-service/internal/config"
@@ -52,30 +51,8 @@ func (w *TranscodingWorker) Handle(ctx context.Context, msg []byte, cfg *config.
 		return err
 	}
 
-	var processingErr error
-
-	defer func() {
-		if processingErr != nil {
-			w.service.SendFailureNotification(ctx, job.VideoId, processingErr.Error())
-		}
-	}()
-
-	processedPath, duration, fileInfo, err := w.service.ProcessJob(ctx, job, cfg)
-	if err != nil {
-		processingErr = err
-		return err
-	}
-
-	defer func() {
-		log.Printf("Cleaning up job directory: %s", processedPath)
-		if err := os.RemoveAll(processedPath); err != nil {
-			log.Printf("Failed to clean up job directory %s: %v", processedPath, err)
-		}
-	}()
-
-	err = w.service.SendChunksToStorage(ctx, processedPath, job, duration, fileInfo, cfg)
-	if err != nil {
-		processingErr = err
+	if err := w.service.ProcessJob(ctx, job, cfg); err != nil {
+		w.service.SendFailureNotification(ctx, job.VideoId, err.Error())
 		return err
 	}
 

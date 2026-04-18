@@ -34,6 +34,10 @@ public final class ErrorCodes {
     public static final String REFRESH_TOKEN_GENERATION_ERROR = "REFRESH_TOKEN_GENERATION_ERROR";
     public static final String SESSION_RETRIEVAL_ERROR = "SESSION_RETRIEVAL_ERROR";
 
+
+    public static final String VIDEO_STILL_PROCESSING = "VIDEO_STILL_PROCESSING";
+
+    public static final String FORBIDDEN_VIDEO_OPERATION = "FORBIDDEN_VIDEO_OPERATION";
     public static final String FORBIDDEN_SUBSCRIPTION = "FORBIDDEN_SUBSCRIPTION";
     public static final String SUBSCRIPTION_ERROR = "SUBSCRIPTION_ERROR";
 

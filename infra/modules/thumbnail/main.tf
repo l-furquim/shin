@@ -8,14 +8,14 @@ resource "aws_lambda_layer_version" "ffmpeg" {
 data "aws_iam_policy_document" "processor" {
   statement {
     actions   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-    resources = [var.thumbnail_job_queue_arn]
+    resources = [var.thumbnail_job_queue_arn, var.thumbnail_upload_queue_arn]
   }
   statement {
     actions   = ["s3:GetObject", "s3:HeadObject"]
-    resources = ["${var.raw_bucket_arn}/*"]
+    resources = ["${var.raw_bucket_arn}/*", "${var.thumbnail_bucket_arn}/*"]
   }
   statement {
-    actions   = ["s3:PutObject", "s3:HeadObject"]
+    actions   = ["s3:PutObject"]
     resources = ["${var.thumbnail_bucket_arn}/*"]
   }
   statement {
@@ -27,6 +27,14 @@ data "aws_iam_policy_document" "processor" {
 resource "aws_iam_policy" "processor" {
   name   = "shin-${var.env}-thumbnail-processor-policy"
   policy = data.aws_iam_policy_document.processor.json
+}
+
+resource "aws_lambda_event_source_mapping" "thumbnail_upload" {
+  event_source_arn = var.thumbnail_upload_queue_arn
+  function_name    = module.lambda_processor.function_name
+  batch_size       = 1
+
+  depends_on = [module.lambda_processor]
 }
 
 module "lambda_processor" {

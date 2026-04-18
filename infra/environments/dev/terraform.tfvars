@@ -9,29 +9,41 @@ creator_pictures_bucket_name = "shin-dev-creator-pictures"
 sns_topic_names = [
   "raw-upload-created",
   "video-published",
+  "thread-created",
+  "comment-reply",
 ]
 
 sns_fanout_subscriptions = {
   "raw-upload-created" = [
     "decode-job",
-    "thumbnail-job",
-    "raw-upload-metadata-queue"
+    "thumbnail-job"
+  ]
+
+
+  "comment-reply" : [
+    "comment-reply-metadata",
+    "comment-reply-notification"
+  ]
+
+  "thread-created" : [
+    "thread-created-metadata",
+    "thread-created-notification"
   ]
 
   "video-published" = [
-    "video-video-published-opensearch-indexer",
-    "video-video-published-notification-service"
+    "video-published-opensearch-indexer",
+    "video-published-notification"
   ]
 }
 
 sqs_queue_names = [
   "decode-job",
   "thumbnail-job",
-  "raw-upload-metadata-queue",
+  "thumbnail-upload",
+  "video-upload-created",
   "encoding-finished-events",
   "thumbnail-finished-events",
   "view-events",
-  "video-initialized",
   "like-events",
   "dislike-events",
   "channel-subscribed",
@@ -41,9 +53,14 @@ sqs_queue_names = [
   "comment-updated",
   "comment-deleted",
   "video-playback-progress",
-  "video-video-published-opensearch-indexer",
-  "video-video-published-notification-service",
-  "video-updated"
+  "video-published-opensearch-indexer",
+  "video-published-notification",
+  "thread-created-metadata",
+  "thread-created-notification",
+  "comment-reply-metadata",
+  "comment-reply-notification",
+  "video-updated-events",
+  "encoding-progress",
 ]
 
 jwt_secret = "shin-dev-secret"

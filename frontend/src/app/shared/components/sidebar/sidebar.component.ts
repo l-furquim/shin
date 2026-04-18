@@ -88,13 +88,6 @@ export class SidebarComponent {
       exact: true,
     },
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: 'layout-dashboard' as ZardIcon,
-      url: '/dashboard',
-      exact: true,
-    },
-    {
       id: 'explore',
       label: 'Explore',
       icon: 'search' as ZardIcon,
@@ -107,6 +100,13 @@ export class SidebarComponent {
       icon: 'users' as ZardIcon,
       url: '/channels',
       exact: false,
+    },
+    {
+      id: 'studio',
+      label: 'Studio',
+      icon: 'layout-dashboard' as ZardIcon,
+      url: '/studio',
+      exact: true,
     },
   ];
 }

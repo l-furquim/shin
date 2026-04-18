@@ -31,7 +31,7 @@ public class UploadController {
 
     @PostMapping("/thumbnail")
     public ResponseEntity<ThumbnailUploadResponse> thumbnailUpload(
-            @RequestBody ThumbnailUploadRequest request,
+            @Valid @RequestBody ThumbnailUploadRequest request,
             @RequestHeader("X-User-Id") UUID userId
     ) {
         final var response = this.uploadService.thumbnailUpload(request, userId);

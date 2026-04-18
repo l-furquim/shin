@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shin.metadata.client.UserServiceClient;
 import com.shin.metadata.dto.CreateVideoRequest;
 import com.shin.metadata.dto.CreatorResponse;
-import com.shin.metadata.model.enums.ProcessingStatus;
+import com.shin.metadata.dto.RawUploadCreatedEvent;
+import com.shin.metadata.model.enums.TranscodingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 import com.shin.metadata.repository.VideoRepository;
 import com.shin.metadata.service.VideoService;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class VideoInitializedConsumer {
+public class VideoUploadCreatedConsumer {
 
     private static final String PROCESSED_KEY_PREFIX = "processed:";
     private static final Duration DEDUP_TTL = Duration.ofDays(4);
@@ -32,33 +33,38 @@ public class VideoInitializedConsumer {
     private final UserServiceClient userServiceClient;
     private final StringRedisTemplate stringRedisTemplate;
 
-    @SqsListener(queueNames = "${spring.cloud.aws.queues.video-initialized-queue}")
+    @SqsListener(queueNames = "${spring.cloud.aws.queues.video-upload-created-queue}")
     public void consume(String message, @Header("id") String messageId) {
         String dedupKey = PROCESSED_KEY_PREFIX + messageId;
         Boolean isNew = stringRedisTemplate.opsForValue().setIfAbsent(dedupKey, "1", DEDUP_TTL);
         if (Boolean.FALSE.equals(isNew)) {
-            log.info("Skipping duplicate video initialized event messageId={}", messageId);
+            log.info("Skipping duplicate video upload created event messageId={}", messageId);
             return;
         }
 
         try {
-            VideoInitializedEvent event = objectMapper.readValue(message, VideoInitializedEvent.class);
-            log.info("Received VideoInitializedEvent videoId={}", event.videoId());
+            RawUploadCreatedEvent event = objectMapper.readValue(message, RawUploadCreatedEvent.class);
+            log.info("Received VideoUploadCreatedEvent videoId={}", event.videoId());
 
+            VideoVisibility visibility = parseVisibility(event.visibility());
             videoService.createVideo(new CreateVideoRequest(
                     UUID.fromString(event.videoId()),
-                    event.title(),
+                    event.title() != null ? event.title() : "Untitled",
                     "",
-                    VideoVisibility.valueOf(event.visibility()),
-                    ProcessingStatus.valueOf(event.status()),
+                    visibility,
+                    TranscodingStatus.PROCESSING,
                     event.userId(),
-                    event.resolutions()
+                    event.resolutions(),
+                    event.s3Key(),
+                    event.fileName(),
+                    event.fileSize(),
+                    event.contentType()
             ));
 
             enrichWithCreatorInfo(UUID.fromString(event.videoId()), UUID.fromString(event.userId()));
         } catch (Exception e) {
             stringRedisTemplate.delete(dedupKey);
-            log.error("Error consuming VideoInitializedEvent messageId={}", messageId, e);
+            log.error("Error consuming VideoUploadCreatedEvent messageId={}", messageId, e);
         }
     }
 
@@ -71,16 +77,18 @@ public class VideoInitializedConsumer {
                 videoRepository.save(video);
             });
         } catch (Exception e) {
-            log.debug("Could not fetch creator info for creatorId={} on video init", creatorId);
+            log.debug("Could not fetch creator info for creatorId={} on video upload created", creatorId);
         }
     }
 
-    private record VideoInitializedEvent(
-            String videoId,
-            String userId,
-            String title,
-            String visibility,
-            String status,
-            String resolutions
-    ) {}
+    private VideoVisibility parseVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) {
+            return VideoVisibility.PRIVATE;
+        }
+        try {
+            return VideoVisibility.valueOf(visibility.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return VideoVisibility.PRIVATE;
+        }
+    }
 }

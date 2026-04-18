@@ -18,7 +18,7 @@ public class ViewCountProducer {
     private final SqsTemplate sqsTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${spring.cloud.aws.queues.view-count-queue}")
+    @Value("${spring.cloud.aws.queues.view-events-queue}")
     private String queue;
 
     public void send(UUID videoId, UUID userId) {

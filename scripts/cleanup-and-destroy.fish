@@ -20,20 +20,52 @@ set SQS_QUEUES \
     "shin-$ENV-decode-job-dlq" \
     "shin-$ENV-thumbnail-job" \
     "shin-$ENV-thumbnail-job-dlq" \
+    "shin-$ENV-video-upload-created" \
+    "shin-$ENV-video-upload-created-dlq" \
     "shin-$ENV-encoding-finished-events" \
     "shin-$ENV-encoding-finished-events-dlq" \
     "shin-$ENV-thumbnail-finished-events" \
     "shin-$ENV-thumbnail-finished-events-dlq" \
-    "shin-$ENV-subscription-events" \
-    "shin-$ENV-subscription-events-dlq" \
     "shin-$ENV-like-events" \
     "shin-$ENV-like-events-dlq" \
+    "shin-$ENV-dislike-events" \
+    "shin-$ENV-dislike-events-dlq" \
     "shin-$ENV-view-events" \
-    "shin-$ENV-view-events-dlq"
+    "shin-$ENV-view-events-dlq" \
+    "shin-$ENV-channel-subscribed" \
+    "shin-$ENV-channel-subscribed-dlq" \
+    "shin-$ENV-channel-unsubscribed" \
+    "shin-$ENV-channel-unsubscribed-dlq" \
+    "shin-$ENV-thread-created" \
+    "shin-$ENV-thread-created-dlq" \
+    "shin-$ENV-comment-reply-created" \
+    "shin-$ENV-comment-reply-created-dlq" \
+    "shin-$ENV-comment-updated" \
+    "shin-$ENV-comment-updated-dlq" \
+    "shin-$ENV-comment-deleted" \
+    "shin-$ENV-comment-deleted-dlq" \
+    "shin-$ENV-video-playback-progress" \
+    "shin-$ENV-video-playback-progress-dlq" \
+    "shin-$ENV-thread-created-metadata" \
+    "shin-$ENV-thread-created-metadata-dlq" \
+    "shin-$ENV-thread-created-notification" \
+    "shin-$ENV-thread-created-notification-dlq" \
+    "shin-$ENV-comment-reply-metadata" \
+    "shin-$ENV-comment-reply-metadata-dlq" \
+    "shin-$ENV-comment-reply-notification" \
+    "shin-$ENV-comment-reply-notification-dlq" \
+    "shin-$ENV-video-published-opensearch-indexer" \
+    "shin-$ENV-video-published-opensearch-indexer-dlq" \
+    "shin-$ENV-video-published-notification" \
+    "shin-$ENV-video-published-notification-dlq" \
+    "shin-$ENV-video-updated-events" \
+    "shin-$ENV-video-updated-events-dlq"
 
 set SNS_TOPICS \
     "shin-$ENV-raw-upload-created" \
-    "shin-$ENV-video-published"
+    "shin-$ENV-video-published" \
+    "shin-$ENV-thread-created" \
+    "shin-$ENV-comment-reply"
 
 function log_info
     printf "%b[INFO]%b %s\n" $BLUE $NC "$argv"

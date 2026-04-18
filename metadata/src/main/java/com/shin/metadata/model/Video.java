@@ -1,6 +1,5 @@
 package com.shin.metadata.model;
 
-import com.shin.metadata.model.enums.ProcessingStatus;
 import com.shin.metadata.model.enums.VideoLanguage;
 import com.shin.metadata.model.enums.VideoVisibility;
 import jakarta.persistence.*;
@@ -35,8 +34,6 @@ public class Video {
 
     private UUID creatorId;
 
-    private String uploadKey;
-
     private String thumbnailUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,9 +42,6 @@ public class Video {
 
     @Enumerated(EnumType.STRING)
     private VideoVisibility visibility;
-
-    @Enumerated(EnumType.STRING)
-    private ProcessingStatus status;
 
     @Enumerated(EnumType.STRING)
     private VideoLanguage defaultLanguage;
@@ -73,15 +67,7 @@ public class Video {
     @Builder.Default
     private Set<Tag> tags = new HashSet<>();
 
-    private Double duration;
-
     private String resolutions;
-
-    private String fileName;
-
-    private Long fileSize;
-
-    private String fileType;
 
     @Builder.Default
     private Long likeCount = 0L;
@@ -121,10 +107,5 @@ public class Video {
 
     public void updateResolutions(String newResolutions) {
         this.resolutions = newResolutions;
-    }
-
-    public void updateTags(Set<Tag> newTags) {
-        tags.clear();
-        tags.addAll(newTags);
     }
 }

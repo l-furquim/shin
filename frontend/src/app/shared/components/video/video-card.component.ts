@@ -3,17 +3,19 @@ import { ZardCardComponent } from '../card';
 import type { Thumbnail, VideoItem } from '@/features/videos/video.types';
 import { Router } from '@angular/router';
 import { ZardAvatarComponent } from '../avatar';
+import { NgOptimizedImage } from '@angular/common';
 
 @Component({
   selector: 'video-card',
   template: `
-    <z-card (click)="onClick()" class="w-xs flex bg-none shadow-none flex-col hover:cursor-pointer">
+    <z-card
+      (click)="onClick()"
+      class="w-xs flex border-none bg-none shadow-none flex-col hover:cursor-pointer"
+    >
       <img
-        class="rounded-md"
-        [src]="this.thumbResolution()?.url"
+        class="rounded-md w-100 h-60"
+        [ngSrc]="this.thumbResolution()?.url ?? ''"
         alt="{{ video.title }}"
-        [width]="this.thumbResolution()?.width"
-        [height]="this.thumbResolution()?.height"
       />
       <h3 class="font-semibold text-md pt-3">{{ video.title }}</h3>
       <div
@@ -29,7 +31,7 @@ import { ZardAvatarComponent } from '../avatar';
       </div>
     </z-card>
   `,
-  imports: [ZardCardComponent, ZardAvatarComponent],
+  imports: [ZardCardComponent, ZardAvatarComponent, NgOptimizedImage],
 })
 export class VideoCard implements OnInit {
   @Input() video!: VideoItem;

@@ -16,7 +16,7 @@ public class RawUploadMetadataProducer {
     private final SqsTemplate template;
     private final ObjectMapper objectMapper;
 
-    @Value("${spring.cloud.aws.queues.raw-upload-metadata-queue}")
+    @Value("${spring.cloud.aws.queues.video-upload-created-queue}")
     private String queue;
 
     public void send(RawUploadCreatedEvent event) {

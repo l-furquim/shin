@@ -1,29 +1,37 @@
 package com.shin.search.service.impl;
 
 import com.shin.commons.models.PageInfo;
-import com.shin.commons.util.PageTokenUtil;
+import com.shin.search.client.MetadataClient;
 import com.shin.search.dto.SearchVideosResponse;
-import com.shin.search.dto.VideoDto;
 import com.shin.search.dto.VideoPublishedEvent;
+import com.shin.search.exception.handler.MetadataFetchException;
 import com.shin.search.service.SearchService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.query_dsl.*;
+import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -31,8 +39,10 @@ import java.util.*;
 public class SearchServiceImpl implements SearchService {
 
     private static final String INDEX = "videos";
+    private static final String METADATA_FIELDS = "thumbnails,statistics,channel,tags,contentDetails";
 
     private final OpenSearchClient client;
+    private final MetadataClient metadataClient;
 
     @PostConstruct
     void initIndex() {
@@ -106,130 +116,134 @@ public class SearchServiceImpl implements SearchService {
             LocalDate dateTo,
             Boolean forAdults,
             int maxResults,
-            String pageToken
+            String pageToken,
+            UUID userId
     ) {
         try {
-            List<String> searchAfter = decodePageToken(pageToken);
-
-            BoolQuery.Builder bool = new BoolQuery.Builder();
-
-            // Full-text on title, description, tags
-            if (query != null && !query.isBlank()) {
-                bool.must(Query.of(q -> q.multiMatch(mm -> mm
-                        .query(query)
-                        .fields("title^3", "description", "tags^2")
-                        .fuzziness("AUTO")
-                )));
-            } else {
-                bool.must(Query.of(q -> q.matchAll(ma -> ma)));
+            List<String> ids = searchVideoIds(query, tags, language, category, dateFrom, dateTo, forAdults);
+            if (ids.isEmpty()) {
+                return new SearchVideosResponse(null, null, new PageInfo(0L, (long) maxResults), List.of());
             }
 
-            // Filters
-            if (language != null && !language.isBlank()) {
-                bool.filter(Query.of(q -> q.term(t -> t.field("language").value(FieldValue.of(language)))));
-            }
-            if (category != null && !category.isBlank()) {
-                bool.filter(Query.of(q -> q.term(t -> t.field("categoryName").value(FieldValue.of(category)))));
-            }
-            if (tags != null && !tags.isEmpty()) {
-                List<FieldValue> tagValues = tags.stream().map(FieldValue::of).toList();
-                bool.filter(Query.of(q -> q.terms(t -> t
-                        .field("tags")
-                        .terms(tv -> tv.value(tagValues))
-                )));
-            }
-            if (Boolean.FALSE.equals(forAdults)) {
-                bool.filter(Query.of(q -> q.term(t -> t.field("forAdults").value(FieldValue.FALSE))));
-            }
-            if (dateFrom != null || dateTo != null) {
-                bool.filter(Query.of(q -> q.range(r -> {
-                    var range = r.field("publishedAt");
-                    if (dateFrom != null)
-                        range = range.gte(org.opensearch.client.json.JsonData.of(dateFrom.toString()));
-                    if (dateTo != null) range = range.lte(org.opensearch.client.json.JsonData.of(dateTo.toString()));
-                    return range;
-                })));
-            }
-
-            int fetchSize = maxResults + 1;
-
-            SearchRequest.Builder reqBuilder = new SearchRequest.Builder()
-                    .index(INDEX)
-                    .size(fetchSize)
-                    .query(Query.of(q -> q.bool(bool.build())))
-                    .sort(s -> s.field(f -> f.field("publishedAt").order(SortOrder.Desc)))
-                    .sort(s -> s.field(f -> f.field("id").order(SortOrder.Asc)));
-
-            if (!searchAfter.isEmpty()) {
-                reqBuilder.searchAfter(searchAfter);
-            }
-
-            SearchResponse<Map> response = client.search(reqBuilder.build(), Map.class);
-
-            List<Hit<Map>> hits = response.hits().hits();
-            boolean hasMore = hits.size() > maxResults;
-            if (hasMore) hits = hits.subList(0, maxResults);
-
-            List<VideoDto> items = hits.stream().map(this::toDto).toList();
-
-            String nextPageToken = null;
-            if (hasMore && !items.isEmpty()) {
-                VideoDto last = items.getLast();
-                nextPageToken = PageTokenUtil.encode("pt", last.publishedAt(), "id", last.id());
-            }
-
-            long totalHits = response.hits().total() != null ? response.hits().total().value() : items.size();
-
-            return new SearchVideosResponse(nextPageToken, new PageInfo(totalHits, (long) maxResults), items);
-
+            return fetchVideos(ids, pageToken, maxResults, userId);
         } catch (IOException e) {
             log.error("Search failed: {}", e.getMessage(), e);
             throw new RuntimeException("Search failed", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private VideoDto toDto(Hit<Map> hit) {
-        Map<String, Object> src = hit.source() != null ? hit.source() : Map.of();
-        return new VideoDto(
-                str(src, "id"),
-                str(src, "title"),
-                str(src, "description"),
-                str(src, "categoryName"),
-                str(src, "channelName"),
-                str(src, "channelAvatar"),
-                src.get("duration") instanceof Number n ? n.doubleValue() : null,
-                str(src, "thumbnailUrl"),
-                str(src, "videoLink"),
-                str(src, "language"),
-                Boolean.TRUE.equals(src.get("forAdults")),
-                src.get("tags") instanceof List<?> l ? l.stream().map(Object::toString).toList() : List.of(),
-                hit.score(),
-                str(src, "publishedAt")
-        );
+    private List<String> searchVideoIds(
+            String query,
+            List<String> tags,
+            String language,
+            String category,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            Boolean forAdults
+    ) throws IOException {
+        BoolQuery.Builder bool = new BoolQuery.Builder();
+
+        if (query != null && !query.isBlank()) {
+            bool.must(Query.of(q -> q.multiMatch(mm -> mm
+                    .query(query)
+                    .fields("title^3", "description", "tags^2")
+                    .fuzziness("AUTO")
+            )));
+        } else {
+            bool.must(Query.of(q -> q.matchAll(ma -> ma)));
+        }
+
+        if (language != null && !language.isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("language").value(FieldValue.of(language)))));
+        }
+        if (category != null && !category.isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("categoryName").value(FieldValue.of(category)))));
+        }
+        if (tags != null && !tags.isEmpty()) {
+            List<FieldValue> tagValues = tags.stream().map(FieldValue::of).toList();
+            bool.filter(Query.of(q -> q.terms(t -> t
+                    .field("tags")
+                    .terms(tv -> tv.value(tagValues))
+            )));
+        }
+        if (Boolean.FALSE.equals(forAdults)) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("forAdults").value(FieldValue.FALSE))));
+        }
+        if (dateFrom != null || dateTo != null) {
+            bool.filter(Query.of(q -> q.range(r -> {
+                var range = r.field("publishedAt");
+                if (dateFrom != null) {
+                    range = range.gte(JsonData.of(LocalDateTime.of(dateFrom, java.time.LocalTime.MIN).toString()));
+                }
+                if (dateTo != null) {
+                    range = range.lte(JsonData.of(LocalDateTime.of(dateTo, java.time.LocalTime.MAX).toString()));
+                }
+                return range;
+            })));
+        }
+
+        SearchRequest request = new SearchRequest.Builder()
+                .index(INDEX)
+                .size(1000)
+                .query(Query.of(q -> q.bool(bool.build())))
+                .sort(s -> s.field(f -> f.field("publishedAt").order(SortOrder.Desc)))
+                .sort(s -> s.field(f -> f.field("id").order(SortOrder.Asc)))
+                .source(s -> s.filter(f -> f.includes("id")))
+                .build();
+
+        SearchResponse<Map> response = client.search(request, Map.class);
+        List<Hit<Map>> hits = response.hits().hits();
+
+        List<String> ids = new ArrayList<>(hits.size());
+        for (Hit<Map> hit : hits) {
+            if (hit.id() != null && !hit.id().isBlank()) {
+                ids.add(hit.id());
+                continue;
+            }
+            Map source = hit.source();
+            if (source != null && source.get("id") != null) {
+                ids.add(source.get("id").toString());
+            }
+        }
+        return ids;
     }
 
-    private String str(Map<String, Object> src, String key) {
-        Object v = src.get(key);
-        return v != null ? v.toString() : null;
-    }
-
-    private List<String> decodePageToken(String pageToken) {
-        if (pageToken == null || pageToken.isBlank()) return List.of();
-
+    private SearchVideosResponse fetchVideos(
+            List<String> ids,
+            String cursor,
+            int limit,
+            UUID userId
+    ) {
         try {
-            Map<String, String> parts = PageTokenUtil.decode(pageToken);
+            ResponseEntity<SearchVideosResponse> response = metadataClient.search(
+                    null,
+                    String.join(",", ids),
+                    null,
+                    METADATA_FIELDS,
+                    null,
+                    null,
+                    cursor,
+                    limit,
+                    userId
+            );
 
-            String pt = parts.get("pt");
-            String id = parts.get("id");
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                log.error("Could not fetch videos from metadata status={} body={}", response.getStatusCode(), response.getBody());
+                throw new MetadataFetchException();
+            }
 
-            if (pt == null || id == null) return List.of();
-
-            return List.of(pt, id);
-
+            SearchVideosResponse body = response.getBody();
+            return new SearchVideosResponse(
+                    body.nextPageToken(),
+                    body.prevPageToken(),
+                    body.pageInfo(),
+                    body.results()
+            );
+        } catch (MetadataFetchException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("Invalid pageToken, ignoring: {}", e.getMessage());
-            return List.of();
+            log.error("Error fetching videos from metadata", e);
+            throw new MetadataFetchException();
         }
     }
 }

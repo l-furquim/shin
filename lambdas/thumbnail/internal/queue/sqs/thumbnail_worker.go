@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/url"
+	"path"
 	"strings"
 	"thumbnail-processor/internal/config"
-	"thumbnail-processor/internal/event"
 	"thumbnail-processor/internal/model"
 	"thumbnail-processor/internal/service"
 )
@@ -16,6 +17,8 @@ import (
 type ThumbnailWorker struct {
 	service *service.ThumbnailService
 }
+
+var errSkipMessage = errors.New("skip thumbnail message")
 
 type s3NotificationEnvelope struct {
 	Message string `json:"Message"`
@@ -47,6 +50,10 @@ func NewThumbnailWorker(service *service.ThumbnailService) *ThumbnailWorker {
 func (w *ThumbnailWorker) Handle(ctx context.Context, msg []byte, cfg *config.Config) error {
 	job, err := w.resolveJob(ctx, msg, cfg)
 	if err != nil {
+		if errors.Is(err, errSkipMessage) {
+			log.Printf("Skipping thumbnail message: %v", err)
+			return nil
+		}
 		return err
 	}
 
@@ -54,19 +61,14 @@ func (w *ThumbnailWorker) Handle(ctx context.Context, msg []byte, cfg *config.Co
 		return err
 	}
 
-	log.Printf("Thumbnail job completed successfully for video: %s", job.VideoId)
+	log.Printf("Thumbnail job completed successfully for video: %s", job.VideoID)
 	return nil
 }
 
 func (w *ThumbnailWorker) resolveJob(ctx context.Context, msg []byte, cfg *config.Config) (*model.ThumbnailJob, error) {
-	legacyJob, legacyErr := parseLegacyJob(msg)
-	if legacyErr == nil {
-		return legacyJob, nil
-	}
-
 	record, err := parseS3Record(msg)
 	if err != nil {
-		return nil, errors.Join(legacyErr, err)
+		return nil, err
 	}
 
 	decodedKey, decodeErr := url.QueryUnescape(strings.ReplaceAll(record.S3.Object.Key, "+", "%20"))
@@ -75,7 +77,7 @@ func (w *ThumbnailWorker) resolveJob(ctx context.Context, msg []byte, cfg *confi
 	}
 
 	if strings.TrimSpace(decodedKey) == "" {
-		return nil, errors.New("s3 object key is required")
+		return nil, fmt.Errorf("s3 object key is required")
 	}
 
 	bucketName := cfg.RawBucketName
@@ -83,34 +85,31 @@ func (w *ThumbnailWorker) resolveJob(ctx context.Context, msg []byte, cfg *confi
 		bucketName = record.S3.Bucket.Name
 	}
 
+	isCustom := isCustomThumbnailUpload(decodedKey)
 	metadata, err := w.service.Storage.GetObjectMetadata(ctx, decodedKey, bucketName)
 	if err != nil {
-		return nil, err
+		log.Printf("Could not fetch object metadata for s3://%s/%s: %v", bucketName, decodedKey, err)
+		metadata = map[string]string{}
 	}
 
 	videoID := strings.TrimSpace(metadata["videoid"])
 	if videoID == "" {
-		return nil, errors.New("missing required object metadata: videoid")
+		videoID = extractVideoIDFromKey(decodedKey, isCustom)
+	}
+	if videoID == "" {
+		return nil, fmt.Errorf("missing required video id for key: %s", decodedKey)
+	}
+
+	if strings.EqualFold(strings.TrimSpace(metadata["thumbnailkind"]), "generated") {
+		return nil, fmt.Errorf("%w: generated thumbnail artifact key=%s", errSkipMessage, decodedKey)
 	}
 
 	return &model.ThumbnailJob{
-		VideoId: videoID,
-		S3Key:   decodedKey,
+		VideoID:      videoID,
+		SourceKey:    decodedKey,
+		SourceBucket: bucketName,
+		IsCustom:     isCustom,
 	}, nil
-}
-
-func parseLegacyJob(msg []byte) (*model.ThumbnailJob, error) {
-	var jobEvent event.ThumbnailJobEvent
-	if err := json.Unmarshal(msg, &jobEvent); err != nil {
-		return nil, err
-	}
-
-	job := jobEvent.ToModel()
-	if strings.TrimSpace(job.VideoId) == "" || strings.TrimSpace(job.S3Key) == "" {
-		return nil, errors.New("legacy payload missing videoId or s3Key")
-	}
-
-	return job, nil
 }
 
 func parseS3Record(msg []byte) (*s3Record, error) {
@@ -125,13 +124,36 @@ func parseS3Record(msg []byte) (*s3Record, error) {
 	}
 
 	if len(eventPayload.Records) == 0 {
-		return nil, errors.New("s3 notification has no records")
+		return nil, fmt.Errorf("s3 notification has no records")
 	}
 
 	record := eventPayload.Records[0]
 	if !strings.HasPrefix(record.EventSource, "aws:s3") || !strings.HasPrefix(record.EventName, "ObjectCreated:") {
-		return nil, errors.New("message is not an s3 object created event")
+		return nil, fmt.Errorf("message is not an s3 object created event")
 	}
 
 	return &record, nil
+}
+
+func isCustomThumbnailUpload(objectKey string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(objectKey))
+	return strings.HasPrefix(normalized, "thumbnails/") && strings.Contains(normalized, "/custom/custom.")
+}
+
+func extractVideoIDFromKey(objectKey string, isCustom bool) string {
+	cleanKey := strings.TrimPrefix(path.Clean("/"+objectKey), "/")
+	parts := strings.Split(cleanKey, "/")
+
+	if isCustom {
+		if len(parts) >= 2 && parts[0] == "thumbnails" {
+			return strings.TrimSpace(parts[1])
+		}
+		return ""
+	}
+
+	if len(parts) >= 1 {
+		return strings.TrimSpace(parts[0])
+	}
+
+	return ""
 }

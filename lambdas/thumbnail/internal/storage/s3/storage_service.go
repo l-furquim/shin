@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -19,7 +20,7 @@ type StorageService struct {
 	c *s3.Client
 }
 
-const OUTPUT_DIR = "/tmp/thumbnails"
+const outputDir = "/tmp/thumbnails"
 
 func NewStorageService(c *s3.Client) *StorageService {
 	return &StorageService{
@@ -27,7 +28,7 @@ func NewStorageService(c *s3.Client) *StorageService {
 	}
 }
 
-func (s *StorageService) GetRawVideo(ctx context.Context, key string, bucketName string) (string, error) {
+func (s *StorageService) DownloadObject(ctx context.Context, key string, bucketName string) (string, error) {
 	result, err := s.c.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
@@ -41,12 +42,13 @@ func (s *StorageService) GetRawVideo(ctx context.Context, key string, bucketName
 	}
 	defer result.Body.Close()
 
-	if err := os.MkdirAll(OUTPUT_DIR, 0755); err != nil {
-		return "", fmt.Errorf("failed to create output directory %s: %w", OUTPUT_DIR, err)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 	}
 
-	fileName := filepath.Base(key)
-	filePath := filepath.Join(OUTPUT_DIR, fileName)
+	safeKey := strings.ReplaceAll(key, "/", "_")
+	fileName := filepath.Base(safeKey)
+	filePath := filepath.Join(outputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file %s: %w", filePath, err)
@@ -62,13 +64,19 @@ func (s *StorageService) GetRawVideo(ctx context.Context, key string, bucketName
 	return filePath, nil
 }
 
-func (s *StorageService) UploadThumbnail(ctx context.Context, data *[]byte, key string, bucketName string) error {
-	_, err := s.c.PutObject(ctx, &s3.PutObjectInput{
+func (s *StorageService) UploadThumbnail(ctx context.Context, data []byte, key string, bucketName string, contentType string, metadata map[string]string) error {
+	input := &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(key),
-		Body:        bytes.NewReader(*data),
-		ContentType: aws.String("image/jpeg"),
-	})
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String(contentType),
+	}
+
+	if len(metadata) > 0 {
+		input.Metadata = metadata
+	}
+
+	_, err := s.c.PutObject(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to upload thumbnail %s to %s: %w", key, bucketName, err)
 	}

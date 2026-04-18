@@ -7,7 +7,7 @@ public record EncodeFinishedEvent(
         String status,
         String processedPath,
         String[] resolutions,
-        Double duration,
+        Long duration,
         Integer totalFiles,
         String fileName,
         Long fileSize,

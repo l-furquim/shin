@@ -46,7 +46,7 @@ variable "sqs_queue_names" {
   default = [
     "decode-job",
     "thumbnail-job",
-    "raw-upload-metadata-queue",
+    "video-upload-created",
     "encoding-finished-events",
     "thumbnail-finished-events",
     "view-events",
@@ -54,7 +54,6 @@ variable "sqs_queue_names" {
     "comment-reply-created",
     "comment-updated",
     "comment-deleted",
-    "video-initialized",
     "like-events",
     "dislike-events",
     "channel-subscribed",

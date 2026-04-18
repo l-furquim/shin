@@ -5,6 +5,7 @@ import com.shin.search.dto.VideoPublishedEvent;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public interface SearchService {
 
@@ -19,6 +20,7 @@ public interface SearchService {
             LocalDate dateTo,
             Boolean forAdults,
             int maxResults,
-            String pageToken
+            String pageToken,
+            UUID userId
     );
 }

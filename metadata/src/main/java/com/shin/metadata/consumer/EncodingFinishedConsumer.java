@@ -24,7 +24,7 @@ public class EncodingFinishedConsumer {
     private final VideoService videoService;
     private final StringRedisTemplate stringRedisTemplate;
 
-    @SqsListener(queueNames = "${spring.cloud.aws.queues.encode-finished-queue}")
+    @SqsListener(queueNames = "${spring.cloud.aws.queues.encoding-finished-queue}")
     public void consume(String message, @Header("id") String messageId) {
         String dedupKey = PROCESSED_KEY_PREFIX + messageId;
         Boolean isNew = stringRedisTemplate.opsForValue().setIfAbsent(dedupKey, "1", DEDUP_TTL);

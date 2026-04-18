@@ -23,7 +23,7 @@ import { PaginationComponent } from '@/shared/components/pagination/pagination.c
             </h1>
           </section>
 
-          <section class="grid gap-6 grid-cols-3">
+          <section class="w-full grid gap-3 grid-cols-3">
             @if (videos.isLoading()) {
               @for (item of [].constructor(20); track $index) {
                 <video-card-skeleton></video-card-skeleton>

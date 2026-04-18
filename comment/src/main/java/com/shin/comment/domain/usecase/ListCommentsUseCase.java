@@ -24,7 +24,8 @@ public class ListCommentsUseCase {
     private final CommentGateway commentGateway;
 
     public CommentListResponse execute(
-            List<String> ids, String parentId, int maxResults, String pageToken, String textFormat) {
+            List<String> ids, String parentId, int maxResults, String pageToken, String textFormat
+    ) {
 
         boolean hasIds = ids != null && !ids.isEmpty();
         boolean hasParentId = parentId != null && !parentId.isBlank();

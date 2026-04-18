@@ -84,6 +84,7 @@ export interface VideoItem {
 
 export interface SearchVideosRequest {
   id?: string;
+  channelId?: string;
   fields?: string;
   myRating?: 'liked' | 'desliked';
   categoryId?: string;
@@ -109,4 +110,14 @@ export interface PatchVideoRequest {
   categoryId?: number;
   tagsToAdd?: TagIdentifier[];
   tagsToRemove?: TagIdentifier[];
+}
+
+export interface GetVideoProgressResponse {
+  transcodingProgress: number;
+  uploadingProgress: number;
+  failureReason: string;
+  transcodingStatus: string;
+  uploadingStatus: string;
+  fileSizeBytes: number;
+  startedAt: Date;
 }

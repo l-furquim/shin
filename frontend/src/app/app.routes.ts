@@ -7,6 +7,8 @@ import { VideoComponent } from './shared/components/video/video.component';
 import { ExploreComponent } from '@/features/explore/explore.component';
 import { ChannelsComponent } from '@/features/channels/channels.component';
 import { UploadPageComponent } from '@/features/uploads/upload-page.component';
+import { VideoManageComponent } from '@/features/videos/video-manage/video-manage.component';
+import { Studio } from './features/studio/studio.component';
 
 export const routes: Routes = [
   {
@@ -41,8 +43,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'videos/:id/manage',
+    component: VideoManageComponent,
+    canActivate: [authGuard],
+  },
+  {
     path: 'videos/:id',
     component: VideoComponent,
+  },
+  {
+    path: 'studio,',
+    component: Studio,
+    canActivate: [authGuard],
   },
   {
     path: '**',

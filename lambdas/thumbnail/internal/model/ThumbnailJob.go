@@ -1,6 +1,8 @@
 package model
 
 type ThumbnailJob struct {
-	VideoId string `json:"videoId"`
-	S3Key   string `json:"s3Key"`
+	VideoID      string `json:"videoId"`
+	SourceKey    string `json:"sourceKey"`
+	SourceBucket string `json:"sourceBucket"`
+	IsCustom     bool   `json:"isCustom"`
 }

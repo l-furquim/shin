@@ -8,7 +8,6 @@ import java.util.concurrent.CompletableFuture;
 import com.shin.upload.model.UploadState;
 import com.shin.upload.model.enums.UploadStatus;
 import com.shin.upload.producers.RawUploadMetadataProducer;
-import com.shin.upload.producers.VideoInitializedProducer;
 import com.shin.upload.service.StorageService;
 import com.shin.upload.service.UploadService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,13 +28,12 @@ import java.util.stream.IntStream;
 @Service
 public class UploadServiceImpl implements UploadService {
 
-    private static final long CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
-    private static final int MAX_RAW_SIZE = 100 * 1024 * 1024; // 100 MB
-    private static final int MAX_THUMB_SIZE = 200 * 1000; // 200 KB
+    private static final long CHUNK_SIZE = 5 * 1024 * 1024;
+    private static final int MAX_RAW_SIZE = 100 * 1024 * 1024;
+    private static final int MAX_THUMB_SIZE = 200 * 1024;
     private static final Duration UPLOAD_STATE_TTL = Duration.ofHours(24);
 
     private final StorageService storageService;
-    private final VideoInitializedProducer videoInitializedProducer;
     private final RawUploadMetadataProducer rawUploadMetadataProducer;
     private final RedisTemplate<String, UploadState> redisTemplate;
 
@@ -66,6 +63,8 @@ public class UploadServiceImpl implements UploadService {
         rawUploadMetadataProducer.send(new RawUploadCreatedEvent(
             videoId.toString(),
             userId,
+            "Untitled",
+            "PRIVATE",
             finalKey,
             data.fileName(),
             String.join(",", resolutions),
@@ -83,6 +82,7 @@ public class UploadServiceImpl implements UploadService {
 
         UUID videoId = UUID.randomUUID();
         UUID uploadId = UUID.randomUUID();
+        String finalKey = videoId + "/original.mp4";
 
         long totalChunks = (request.fileSize() / CHUNK_SIZE) + (request.fileSize() % CHUNK_SIZE > 0 ? 1 : 0);
 
@@ -109,13 +109,16 @@ public class UploadServiceImpl implements UploadService {
 
         List<PresignedChunk> chunks = storageService.generatePresignedChunks("raw", keys);
 
-        videoInitializedProducer.send(new VideoInitializedEvent(
+        rawUploadMetadataProducer.send(new RawUploadCreatedEvent(
             videoId.toString(),
             userId,
             "Untitled",
             "PRIVATE",
-            UploadStatus.UPLOADING.name(),
-            String.join(",", resolutions)
+            finalKey,
+            request.fileName(),
+            String.join(",", resolutions),
+            request.mimeType(),
+            request.fileSize()
         ));
 
         return new ChunkedUploadResponse(uploadId, videoId, (long) chunks.size(), chunks);
@@ -147,12 +150,12 @@ public class UploadServiceImpl implements UploadService {
     public ThumbnailUploadResponse thumbnailUpload(ThumbnailUploadRequest request, UUID userId) {
 
         if (request.fileSize() > MAX_THUMB_SIZE) {
-            throw new InvalidThumbnailUploadException("File too large for thumbnail upload. Max size: 200MB");
+            throw new InvalidThumbnailUploadException("File too large for thumbnail upload. Max size: 200KB");
         }
 
         this.validateThumbnailFile(request.contentType());
 
-        final var presignedUpload = storageService.generatedPresignedThumbnailUpload(
+        final var presignedUpload = storageService.generatePresignedThumbnailUpload(
                 "thumbnail",
                 request.contentType(),
                 request.videoId().toString(),
@@ -161,7 +164,7 @@ public class UploadServiceImpl implements UploadService {
                 request.fileSize()
         );
 
-        return new  ThumbnailUploadResponse(
+        return new ThumbnailUploadResponse(
                 request.videoId().toString(),
                 presignedUpload
         );
@@ -201,7 +204,6 @@ public class UploadServiceImpl implements UploadService {
         log.info("Assembled {} chunks into key={} for uploadId={} in {} minutes",
             chunks.size(), finalKey, state.id(), elapsed);
 
-
         redisTemplate.delete("upload:" + state.id());
     }
 
@@ -235,10 +237,11 @@ public class UploadServiceImpl implements UploadService {
     }
 
     private void validateThumbnailFile(String contentType) {
-        List<String> allowedExtensions = List.of("png", "jpg", "jpeg");
+        List<String> allowedContentTypes = List.of("image/png", "image/jpeg", "image/jpg", "image/webp");
+        String normalized = contentType == null ? "" : contentType.trim().toLowerCase();
 
-        if (!allowedExtensions.contains(contentType)) {
-           throw new InvalidThumbnailUploadException("Invalid content type. Allowed: " + String.join(", ", allowedExtensions));
+        if (!allowedContentTypes.contains(normalized)) {
+           throw new InvalidThumbnailUploadException("Invalid content type. Allowed: " + String.join(", ", allowedContentTypes));
         }
     }
 

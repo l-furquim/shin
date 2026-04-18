@@ -7,8 +7,6 @@ import java.util.UUID;
 
 public interface VideoService {
 
-    InitVideoResponse initVideo(String userId);
-
     CreateVideoResponse createVideo(CreateVideoRequest request);
 
     VideoDto getVideoById(UUID id, UUID userId, Set<VideoField> fields);
@@ -17,18 +15,16 @@ public interface VideoService {
 
     void deleteVideoById(UUID id);
 
-    void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Double duration, String fileName, Long fileSize, String fileType);
+    void updateVideoProcessingStatus(String videoId, String status, String processedPath, String[] resolutions, Long duration, String fileName, Long fileSize, String fileType);
 
     void updateVideoThumbnail(String videoId, String thumbnailUrl);
 
-    void updateVideoRawUploadMetadata(RawUploadCreatedEvent event);
-
     SearchVideosResponse search(SearchVideosRequest request, UUID userId, Set<VideoField> fields);
-
-    void increaseVideoView(UUID videoId, UUID userId);
 
     void increaseVideoView(UUID videoId, String viewerKey);
 
     WatchVideoResponse getWatchVideoById(UUID id);
+
+    void publish(UUID id, UUID userId);
 
 }

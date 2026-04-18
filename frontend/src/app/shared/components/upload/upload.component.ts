@@ -1,5 +1,13 @@
 import { Resolution } from '@/features/videos/video.types';
-import { ChangeDetectionStrategy, Component, computed, EventEmitter, inject, Output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  Output,
+  signal,
+} from '@angular/core';
 import { lastValueFrom, tap } from 'rxjs';
 import { ZardButtonComponent } from '../button';
 import { ZardSelectComponent, ZardSelectItemComponent } from '../select';
@@ -197,7 +205,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         </div>
       }
 
-      <!-- Progress detail -->
       @if (state() === 'uploading') {
         <div class="rounded-xl border bg-card p-4 space-y-3 text-sm">
           @for (stage of uploadStages; track stage.key) {

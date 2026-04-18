@@ -137,18 +137,37 @@ export PROCESSED_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_
 export THUMBNAIL_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."thumbnail"')
 export CREATOR_PICTURES_BUCKET_NAME=$(terraform -chdir=$TERRAFORM_PATH output -json s3_bucket_names | jq -r '."creator_pictures"')
 
-export OPENSEARCH_COLLETION_ENDPOINT=$(terraform -chdir=$TERRAFORM_PATH output -raw open_search_collection_endpoint)
+export OPENSEARCH_COLLECTION_ENDPOINT=$(terraform -chdir=$TERRAFORM_PATH output -raw open_search_collection_endpoint)
+export OPENSEARCH_COLLETION_ENDPOINT=$OPENSEARCH_COLLECTION_ENDPOINT
 export OPENSEARCH_DASHBOARD_ENDPOINT=$(terraform -chdir=$TERRAFORM_PATH output -raw open_search_dashboard_endpoint)
 
 export DECODE_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."decode-job"')
 export THUMBNAIL_JOB_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thumbnail-job"')
 export ENCODING_FINISHED_EVENTS_QUEUE_URL=$ENCODING_FINISHED_EVENTS_QUEUE_URL
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_URL=$THUMBNAIL_FINISHED_EVENTS_QUEUE_URL
-export RAW_UPLOAD_METADATA_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."raw-upload-metadata-queue"')
+export VIDEO_UPLOAD_CREATED_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-upload-created"')
+export VIEW_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."view-events"')
 export ENCODING_FINISHED_EVENTS_QUEUE_NAME=$(basename "$ENCODING_FINISHED_EVENTS_QUEUE_URL")
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME=$(basename "$THUMBNAIL_FINISHED_EVENTS_QUEUE_URL")
-export RAW_UPLOAD_METADATA_QUEUE_NAME=$(basename "$RAW_UPLOAD_METADATA_QUEUE_URL")
-export VIDEO_INITIALIZED_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-initialized"')
+export VIDEO_UPLOAD_CREATED_QUEUE_NAME=$(basename "$VIDEO_UPLOAD_CREATED_QUEUE_URL")
+export VIEW_EVENTS_QUEUE_NAME=$(basename "$VIEW_EVENTS_QUEUE_URL")
+export ENCODING_FINISHED_DLQ_NAME="${ENCODING_FINISHED_EVENTS_QUEUE_NAME}-dlq"
+export THUMBNAIL_FINISHED_DLQ_NAME="${THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME}-dlq"
+export VIEW_EVENTS_DLQ_NAME="${VIEW_EVENTS_QUEUE_NAME}-dlq"
+export THREAD_CREATED_METADATA_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thread-created-metadata"')
+export THREAD_CREATED_NOTIFICATION_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."thread-created-notification"')
+export COMMENT_REPLY_METADATA_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."comment-reply-metadata"')
+export COMMENT_REPLY_NOTIFICATION_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."comment-reply-notification"')
+export VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-published-opensearch-indexer"')
+export VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-published-notification"')
+export VIDEO_UPDATED_EVENTS_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-updated-events"')
+export THREAD_CREATED_METADATA_QUEUE_NAME=$(basename "$THREAD_CREATED_METADATA_QUEUE_URL")
+export THREAD_CREATED_NOTIFICATION_QUEUE_NAME=$(basename "$THREAD_CREATED_NOTIFICATION_QUEUE_URL")
+export COMMENT_REPLY_METADATA_QUEUE_NAME=$(basename "$COMMENT_REPLY_METADATA_QUEUE_URL")
+export COMMENT_REPLY_NOTIFICATION_QUEUE_NAME=$(basename "$COMMENT_REPLY_NOTIFICATION_QUEUE_URL")
+export VIDEO_PUBLISHED_QUEUE_NAME=$(basename "$VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL")
+export VIDEO_PUBLISHED_NOTIFICATION_QUEUE_NAME=$(basename "$VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL")
+export VIDEO_UPDATED_EVENTS_QUEUE_NAME=$(basename "$VIDEO_UPDATED_EVENTS_QUEUE_URL")
 export LIKE_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."like-events"')
 export DISLIKE_EVENTS_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."dislike-events"')
 export CHANNEL_SUBSCRIBED_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."channel-subscribed"')
@@ -162,14 +181,26 @@ export DECODE_JOB_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_
 export THUMBNAIL_JOB_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-job"')
 export ENCODING_FINISHED_EVENTS_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."encoding-finished-events"')
 export THUMBNAIL_FINISHED_EVENTS_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thumbnail-finished-events"')
-export RAW_UPLOAD_METADATA_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."raw-upload-metadata-queue"')
-export VIDEO_UPDATED_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-updated"')
-export VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-opensearch-indexer"')
-export VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-video-published-notification-service"')
-export VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-opensearch-indexer"')
-export VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_URL=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_urls | jq -r '."video-video-published-notification-service"')
+export VIDEO_UPLOAD_CREATED_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-upload-created"')
+export THREAD_CREATED_METADATA_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thread-created-metadata"')
+export THREAD_CREATED_NOTIFICATION_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."thread-created-notification"')
+export COMMENT_REPLY_METADATA_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-metadata"')
+export COMMENT_REPLY_NOTIFICATION_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."comment-reply-notification"')
+export VIDEO_UPDATED_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-updated-events"')
+export VIDEO_UPDATED_EVENTS_QUEUE_ARN=$VIDEO_UPDATED_QUEUE_ARN
+export VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-published-opensearch-indexer"')
+export VIDEO_PUBLISHED_NOTIFICATION_QUEUE_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sqs_queue_arns | jq -r '."video-published-notification"')
 
+# Backward-compatible aliases
+export VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN=$VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_ARN
+export VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_ARN=$VIDEO_PUBLISHED_NOTIFICATION_QUEUE_ARN
+export VIDEO_VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL=$VIDEO_PUBLISHED_OPENSEARCH_INDEXER_QUEUE_URL
+export VIDEO_VIDEO_PUBLISHED_NOTIFICATION_SERVICE_QUEUE_URL=$VIDEO_PUBLISHED_NOTIFICATION_QUEUE_URL
+
+export RAW_UPLOAD_CREATED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."raw-upload-created"')
 export VIDEO_PUBLISHED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."video-published"')
+export THREAD_CREATED_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."thread-created"')
+export COMMENT_REPLY_TOPIC_ARN=$(terraform -chdir=$TERRAFORM_PATH output -json sns_topic_arns | jq -r '."comment-reply"')
 
 if CLOUDFRONT_CDN_URL=$(terraform -chdir=$TERRAFORM_PATH output -raw cloud_front_cdn_url 2>/dev/null); then
   export CLOUDFRONT_CDN_URL

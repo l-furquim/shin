@@ -7,6 +7,11 @@ variable "thumbnail_job_queue_arn" {
   description = "ARN of the thumbnail-job SQS queue (Lambda trigger)"
 }
 
+variable "thumbnail_upload_queue_arn" {
+  type        = string
+  description = "ARN of the thumbnail-upload SQS queue (custom thumbnail uploads)"
+}
+
 variable "thumbnail_finished_queue_arn" {
   type        = string
   description = "ARN of the thumbnail-finished-events SQS queue"
