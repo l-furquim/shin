@@ -5,6 +5,8 @@ import type {
   CompleteUploadResponse,
   InitiateUploadRequest,
   InitiateUploadResponse,
+  ThumbnailUploadRequest,
+  ThumbnailUploadResponse,
   UploadChunkProgress,
   UploadChunksRequest,
 } from './upload.types';
@@ -31,6 +33,25 @@ export class UploadService {
     return this.http
       .post<CompleteUploadResponse>(`/api/v1/uploads/chunked/${uploadId}/complete`, null)
       .pipe(catchError((error) => this.handleHttpError(error, 'finalizar upload')));
+  }
+
+  initiateThumbnailUpload(request: ThumbnailUploadRequest): Observable<ThumbnailUploadResponse> {
+    return this.http
+      .post<ThumbnailUploadResponse>('/api/v1/uploads/thumbnail', request)
+      .pipe(catchError((error) => this.handleHttpError(error, 'iniciar upload da thumbnail')));
+  }
+
+  uploadThumbnailToPresignedUrl(url: string, file: File, contentType: string): Observable<void> {
+    return this.http
+      .put(url, file, {
+        headers: {
+          'Content-Type': contentType,
+        },
+      })
+      .pipe(
+        map(() => undefined),
+        catchError((error) => this.handleHttpError(error, 'enviar thumbnail')),
+      );
   }
 
   private uploadChunk(request: UploadChunksRequest, index: number): Observable<UploadChunkProgress> {

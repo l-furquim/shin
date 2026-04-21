@@ -220,6 +220,8 @@ Rotas principais no gateway:
 - Publica resultado em `thumbnail-finished-events`
 - `metadata-service` atualiza thumbnail do video
 
+![image](/docs/images/Thumbnail%20upload.png)
+
 ### 4) Publicacao e indexacao de busca
 
 - Ao publicar video, `metadata-service` envia SNS `video-published`
@@ -230,8 +232,12 @@ Rotas principais no gateway:
 
 - `streaming-service` valida acesso ao video
 - Gera cookies assinados do CloudFront + token de playback
+- Retorna o timestamp do ultimo acesso caso exista
+- Aplicar regras referentes a tempo minimo para uma view ser considerada valida 
 - Envia evento de view para fila `view-events`
 - `metadata-service` aplica dedupe e incrementa view count
+
+![image](/docs/images/Streaming.png)
 
 ### 6) Interacoes e social
 

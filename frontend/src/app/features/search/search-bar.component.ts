@@ -31,7 +31,7 @@ import { SearchService } from './search.service';
           />
         </div>
 
-        <div class="md:col-span-3">
+        <!-- <div class="md:col-span-3">
           <input
             z-input
             type="text"
@@ -103,7 +103,7 @@ import { SearchService } from './search.service';
             (change)="forAdults.set(getCheckboxValue($event))"
           />
           Adulto
-        </label>
+        </label> -->
 
         <div class="md:col-span-4 flex gap-2">
           <z-button class="w-full" [zLoading]="isLoading()" type="submit">
@@ -113,7 +113,12 @@ import { SearchService } from './search.service';
             {{ isLoading() ? 'Buscando...' : 'Buscar' }}
           </z-button>
 
-          <z-button zType="outline" type="button" (click)="clearFilters()" [zDisabled]="isLoading()">
+          <z-button
+            zType="outline"
+            type="button"
+            (click)="clearFilters()"
+            [zDisabled]="isLoading()"
+          >
             Limpar
           </z-button>
         </div>

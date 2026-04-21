@@ -12,6 +12,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { catchError, of } from 'rxjs';
+import { toast } from 'ngx-sonner';
 import { SidebarComponent } from '@/shared/components/sidebar/sidebar.component';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardBadgeComponent } from '@/shared/components/badge';
@@ -24,8 +25,12 @@ import { TagInputComponent } from '@/shared/components/tag-input';
 import { CategoryComboboxComponent } from '@/shared/components/category-combobox';
 import { VideoService } from '@/features/videos/video.service';
 import type { VideoItem, VideoVisibility } from '@/features/videos/video.types';
+import { UploadService } from '@/features/uploads/upload.service';
 
 type Tab = 'overview' | 'details' | 'media';
+
+const THUMBNAIL_MAX_SIZE_BYTES = 200 * 1024;
+const THUMBNAIL_ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
 
 @Component({
   selector: 'app-video-manage',
@@ -54,7 +59,7 @@ type Tab = 'overview' | 'details' | 'media';
           <button
             type="button"
             class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            (click)="router.navigate(['/dashboard'])"
+            (click)="router.navigate(['/studio'])"
           >
             <z-icon zType="chevron-left" zSize="sm" />
             Meus vídeos
@@ -84,7 +89,7 @@ type Tab = 'overview' | 'details' | 'media';
               <z-badge [zType]="statusBadgeType()">{{ statusLabel() }}</z-badge>
             </div>
 
-            <div class="border-b -mb-4">
+            <div class="border-b mb-4">
               <nav class="flex gap-6">
                 @for (tab of tabs; track tab.id) {
                   <button
@@ -131,23 +136,23 @@ type Tab = 'overview' | 'details' | 'media';
                     <p class="text-sm font-medium">Status de processamento</p>
                     <z-badge [zType]="statusBadgeType()">{{ statusLabel() }}</z-badge>
                   </div>
-                  @if (video()?.processingDetails?.processingProgress != null) {
+                  @if (video()?.processingDetails?.transcodingProgress != null) {
                     <div class="space-y-1.5">
                       <div class="flex justify-between text-xs text-muted-foreground">
                         <span>Progresso</span>
-                        <span>{{ video()?.processingDetails?.processingProgress ?? 0 }}%</span>
+                        <span>{{ video()?.processingDetails?.transcodingProgress ?? 0 }}%</span>
                       </div>
                       <div class="h-1.5 w-full rounded-full bg-stone-100">
                         <div
                           class="h-1.5 rounded-full bg-foreground transition-all duration-500"
-                          [style.width.%]="video()?.processingDetails?.processingProgress ?? 0"
+                          [style.width.%]="video()?.processingDetails?.transcodingProgress ?? 0"
                         ></div>
                       </div>
                     </div>
                   }
-                  @if (video()?.processingDetails?.processingFailureReason) {
+                  @if (video()?.processingDetails?.transcodingFailureReason) {
                     <p class="text-xs text-destructive">
-                      {{ video()?.processingDetails?.processingFailureReason }}
+                      {{ video()?.processingDetails?.transcodingFailureReason }}
                     </p>
                   }
                 </div>
@@ -311,14 +316,30 @@ type Tab = 'overview' | 'details' | 'media';
                     }
 
                     <div class="space-y-2">
+                      <input
+                        #thumbnailInput
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        class="hidden"
+                        (change)="onThumbnailSelected($event)"
+                      />
                       <p class="text-sm text-muted-foreground">
-                        Formatos aceitos: JPG, PNG, WebP. Tamanho máximo: 2 MB.
+                        Formatos aceitos: JPG, PNG, WebP. Tamanho máximo: 200 KB.
                       </p>
-                      <z-button zType="outline" zDisabled="true">
+                      <z-button
+                        zType="outline"
+                        [zDisabled]="isThumbnailUploading()"
+                        [zLoading]="isThumbnailUploading()"
+                        (click)="thumbnailInput.click()"
+                      >
                         <z-icon zType="cloud-upload" zSize="sm" />
-                        Alterar thumbnail
+                        {{ isThumbnailUploading() ? 'Enviando thumbnail...' : 'Alterar thumbnail' }}
                       </z-button>
-                      <p class="text-xs text-muted-foreground">Em desenvolvimento.</p>
+                      @if (isThumbnailProcessing()) {
+                        <p class="text-xs text-muted-foreground">
+                          Processando nova thumbnail. Isso pode levar alguns segundos.
+                        </p>
+                      }
                     </div>
                   </div>
                 </div>
@@ -405,6 +426,7 @@ export class VideoManageComponent implements OnInit {
   protected readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly videoService = inject(VideoService);
+  private readonly uploadService = inject(UploadService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
 
@@ -417,6 +439,9 @@ export class VideoManageComponent implements OnInit {
   protected readonly isSaving = signal(false);
   protected readonly saveSuccess = signal(false);
   protected readonly saveError = signal('');
+  protected readonly isThumbnailUploading = signal(false);
+  protected readonly isThumbnailProcessing = signal(false);
+  private readonly thumbnailRefreshToken = signal(Date.now());
 
   private readonly originalTags = signal<string[]>([]);
 
@@ -489,7 +514,7 @@ export class VideoManageComponent implements OnInit {
     this.saveSuccess.set(false);
     this.saveError.set('');
 
-    const { title, description, visibility, categoryId, tags } = this.form.controls;
+    const { title, description, categoryId, tags } = this.form.controls;
     const newTags = tags.value;
     const original = this.originalTags();
     const tagsToAdd = newTags.filter((t) => !original.includes(t)).map((name) => ({ name }));
@@ -516,10 +541,186 @@ export class VideoManageComponent implements OnInit {
     }
   }
 
+  protected async onThumbnailSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+
+    if (input) {
+      input.value = '';
+    }
+
+    if (!file || this.isThumbnailUploading()) {
+      return;
+    }
+
+    const validationError = this.validateThumbnailFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    const contentType = this.resolveThumbnailContentType(file);
+    if (!contentType) {
+      toast.error('Não foi possível identificar o tipo da thumbnail. Use JPG, PNG ou WebP.');
+      return;
+    }
+
+    if (!this.videoId) {
+      toast.error('Vídeo inválido para atualização de thumbnail.');
+      return;
+    }
+
+    const previousThumbnail = this.resolveThumbnailUrl(this.video());
+    const hadCustomThumbnail = previousThumbnail?.includes('/custom/') ?? false;
+
+    this.isThumbnailUploading.set(true);
+    this.isThumbnailProcessing.set(false);
+
+    const toastId = toast.loading('Enviando thumbnail...');
+
+    try {
+      const presigned = await firstValueFrom(
+        this.uploadService.initiateThumbnailUpload({
+          videoId: this.videoId,
+          contentType,
+          fileSize: file.size,
+        }),
+      );
+
+      await firstValueFrom(
+        this.uploadService.uploadThumbnailToPresignedUrl(presigned.upload.url, file, contentType),
+      );
+
+      this.isThumbnailProcessing.set(true);
+
+      const changedToCustom = await this.waitForThumbnailProcessing(hadCustomThumbnail);
+
+      this.thumbnailRefreshToken.set(Date.now());
+      if (changedToCustom || hadCustomThumbnail) {
+        toast.success('Thumbnail atualizada com sucesso.', { id: toastId });
+      } else {
+        toast.success('Thumbnail enviada. A atualização pode levar alguns segundos.', { id: toastId });
+      }
+    } catch (error) {
+      this.isThumbnailProcessing.set(false);
+      const message = error instanceof Error ? error.message : 'Não foi possível enviar a thumbnail.';
+      toast.error(message, { id: toastId });
+    } finally {
+      this.isThumbnailUploading.set(false);
+    }
+  }
+
+  private validateThumbnailFile(file: File): string | null {
+    const mimeType = this.resolveThumbnailContentType(file);
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const allowedByExtension = extension === 'png' || extension === 'jpg' || extension === 'jpeg' || extension === 'webp';
+
+    if ((!mimeType || !THUMBNAIL_ALLOWED_MIME_TYPES.has(mimeType)) && !allowedByExtension) {
+      return 'Formato inválido. Use JPG, PNG ou WebP.';
+    }
+
+    if (file.size > THUMBNAIL_MAX_SIZE_BYTES) {
+      return 'Arquivo muito grande. O limite é 200 KB.';
+    }
+
+    return null;
+  }
+
+  private resolveThumbnailContentType(file: File): string | null {
+    const mimeType = (file.type ?? '').toLowerCase();
+    if (THUMBNAIL_ALLOWED_MIME_TYPES.has(mimeType)) {
+      return mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (extension === 'jpg' || extension === 'jpeg') {
+      return 'image/jpeg';
+    }
+    if (extension === 'png') {
+      return 'image/png';
+    }
+    if (extension === 'webp') {
+      return 'image/webp';
+    }
+
+    return null;
+  }
+
+  private async waitForThumbnailProcessing(hadCustomThumbnail: boolean): Promise<boolean> {
+    if (hadCustomThumbnail) {
+      await this.sleep(1500);
+      try {
+        const refreshed = await firstValueFrom(
+          this.videoService.getVideo(
+            this.videoId,
+            'contentDetails,statistics,fileDetails,processingDetails,thumbnails',
+          ),
+        );
+        this.video.set(refreshed);
+      } catch {
+      }
+
+      this.isThumbnailProcessing.set(false);
+      return true;
+    }
+
+    const maxAttempts = 10;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await this.sleep(2000);
+
+      try {
+        const refreshed = await firstValueFrom(
+          this.videoService.getVideo(
+            this.videoId,
+            'contentDetails,statistics,fileDetails,processingDetails,thumbnails',
+          ),
+        );
+
+        this.video.set(refreshed);
+
+        const currentThumbnail = this.resolveThumbnailUrl(refreshed);
+        if (!hadCustomThumbnail && currentThumbnail?.includes('/custom/')) {
+          this.isThumbnailProcessing.set(false);
+          return true;
+        }
+      } catch {
+      }
+    }
+
+    this.isThumbnailProcessing.set(false);
+    return false;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
   protected thumbnailUrl(): string | null {
-    const t = this.video()?.thumbnails;
-    if (!t) return null;
-    return t['maxres']?.url ?? t['high']?.url ?? t['medium']?.url ?? t['default']?.url ?? null;
+    const thumbnail = this.resolveThumbnailUrl(this.video());
+    if (!thumbnail) {
+      return null;
+    }
+
+    const separator = thumbnail.includes('?') ? '&' : '?';
+    return `${thumbnail}${separator}v=${this.thumbnailRefreshToken()}`;
+  }
+
+  private resolveThumbnailUrl(video: VideoItem | null): string | null {
+    const thumbnails = video?.thumbnails;
+    if (!thumbnails) {
+      return null;
+    }
+
+    return (
+      thumbnails['maxres']?.url ??
+      thumbnails['high']?.url ??
+      thumbnails['medium']?.url ??
+      thumbnails['default']?.url ??
+      null
+    );
   }
 
   protected parsedResolutions(): string[] {
@@ -543,24 +744,21 @@ export class VideoManageComponent implements OnInit {
   }
 
   protected statusLabel(): string {
-    const s = this.video()?.processingDetails?.processingStatus;
+    const s = this.video()?.processingDetails?.transcodingStatus;
     const map: Record<string, string> = {
-      UPLOADING: 'Enviando',
-      UPLOADED: 'Enviado',
-      PROCESSING: 'Processando',
-      PROCESSED: 'Pronto',
-      DRAFT: 'Rascunho',
-      FAILED: 'Falhou',
-      EXPIRED: 'Expirado',
+      failed: 'Falhou',
+      queued: 'Enfileirado',
+      processing: 'Processando',
+      done: 'Finalizado',
     };
     return map[s ?? ''] ?? s ?? 'Desconhecido';
   }
 
   protected statusBadgeType(): 'default' | 'secondary' | 'destructive' | 'outline' {
-    const s = this.video()?.processingDetails?.processingStatus;
-    if (s === 'PROCESSED') return 'default';
-    if (s === 'FAILED' || s === 'EXPIRED') return 'destructive';
-    if (s === 'PROCESSING' || s === 'UPLOADING' || s === 'UPLOADED') return 'secondary';
+    const s = this.video()?.processingDetails?.transcodingStatus;
+    if (s === 'done') return 'default';
+    if (s === 'failed') return 'destructive';
+    if (s === 'processing') return 'secondary';
     return 'outline';
   }
 

@@ -37,3 +37,17 @@ export interface CompleteUploadResponse {
   videoId: string;
   status: string;
 }
+
+export interface ThumbnailUploadRequest {
+  videoId: string;
+  contentType: string;
+  fileSize: number;
+}
+
+export interface ThumbnailUploadResponse {
+  videoId: string;
+  upload: {
+    url: string;
+    expiresAt: number;
+  };
+}

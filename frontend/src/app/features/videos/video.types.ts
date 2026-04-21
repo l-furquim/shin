@@ -37,9 +37,9 @@ interface FileDetails {
 }
 
 interface ProcessingDetails {
-  processingStatus: ProcessingStatus;
-  processingFailureReason?: string;
-  processingProgress: number;
+  transcodingStatus: TranscodingStatus;
+  transcodingFailureReason?: string;
+  transcodingProgress: number;
 }
 
 interface Statistics {

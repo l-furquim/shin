@@ -52,7 +52,7 @@ export const routes: Routes = [
     component: VideoComponent,
   },
   {
-    path: 'studio,',
+    path: 'studio',
     component: Studio,
     canActivate: [authGuard],
   },
