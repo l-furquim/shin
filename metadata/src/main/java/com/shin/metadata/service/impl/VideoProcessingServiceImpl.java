@@ -5,6 +5,7 @@ import com.shin.metadata.exception.ForbiddenVideoOperationException;
 import com.shin.metadata.exception.InvalidVideoProcessingException;
 import com.shin.metadata.exception.VideoProcessingNotFound;
 import com.shin.metadata.model.VideoProcessing;
+import com.shin.metadata.model.enums.TranscodingStatus;
 import com.shin.metadata.model.enums.UploadingStatus;
 import com.shin.metadata.repository.VideoProcessingRepository;
 import com.shin.metadata.repository.VideoRepository;
@@ -12,6 +13,7 @@ import com.shin.metadata.service.VideoProcessingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -29,9 +31,8 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
                 .durationSeconds(durationSeconds)
                 .fileSizeBytes(fileSizeBytes)
                 .fileType(fileType)
+                .transcodingStatus(TranscodingStatus.QUEUED)
                 .transcodingProgress(0)
-                .uploadingProgress(0)
-                .uploadingStatus(UploadingStatus.WAITING)
                 .startedAt(java.time.LocalDateTime.now())
                 .build();
 
@@ -46,7 +47,6 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
             Long fileSizeBytes,
             String fileType,
             Integer transcodingProgress,
-            Integer uploadingProgress,
             String failureReason
     ) {
         final var videoProcessing = videoProcessingRepository
@@ -69,12 +69,18 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
             videoProcessing.setFileType(fileType);
         }
 
-        if (transcodingProgress != null && transcodingProgress >= 0) {
-            videoProcessing.setTranscodingProgress(transcodingProgress);
-        }
+        if (transcodingProgress != null && transcodingProgress >= 0 && transcodingProgress <= 100) {
+            // First notification, remove set as processing
+            if (videoProcessing.getTranscodingProgress() == 0) {
+               videoProcessing.setTranscodingStatus(TranscodingStatus.PROCESSING);
+            }
 
-        if (uploadingProgress != null && uploadingProgress >= 0) {
-            videoProcessing.setUploadingProgress(uploadingProgress);
+            videoProcessing.setTranscodingProgress(transcodingProgress);
+
+            if (transcodingProgress == 100) {
+                videoProcessing.setTranscodingStatus(TranscodingStatus.DONE);
+                videoProcessing.setFinishedAt(LocalDateTime.now());
+            }
         }
 
         if (failureReason != null && !failureReason.isBlank()) {
@@ -98,10 +104,8 @@ public class VideoProcessingServiceImpl implements VideoProcessingService {
 
         return new VideoProgressResponse(
                 videoProcessing.getTranscodingProgress(),
-                videoProcessing.getUploadingProgress(),
                 videoProcessing.getFailureReason(),
-                videoProcessing.getTranscodingStatus().toString().toLowerCase(),
-                videoProcessing.getUploadingStatus().toString().toLowerCase(),
+                videoProcessing.getTranscodingStatus().getValue(),
                 videoProcessing.getFileSizeBytes(),
                 videoProcessing.getStartedAt()
         );

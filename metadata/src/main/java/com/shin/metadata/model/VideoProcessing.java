@@ -1,7 +1,6 @@
 package com.shin.metadata.model;
 
 import com.shin.metadata.model.enums.TranscodingStatus;
-import com.shin.metadata.model.enums.UploadingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,7 +20,6 @@ public class VideoProcessing {
     private UUID videoId;
     private String uploadKey;
     private Integer transcodingProgress;
-    private Integer uploadingProgress;
     private String failureReason;
     private String fileName;
     private Long durationSeconds;
@@ -33,12 +31,8 @@ public class VideoProcessing {
     @Enumerated(EnumType.STRING)
     private TranscodingStatus transcodingStatus;
 
-    @Enumerated(EnumType.STRING)
-    private UploadingStatus uploadingStatus;
-
-
     public boolean isProcessed() {
-       return this.uploadingProgress.equals(UploadingStatus.DONE) && this.transcodingStatus.equals(TranscodingStatus.DONE) && this.failureReason == null;
+       return this.transcodingStatus.equals(TranscodingStatus.DONE) && this.failureReason == null;
     }
 
 }

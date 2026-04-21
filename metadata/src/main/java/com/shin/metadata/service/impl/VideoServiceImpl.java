@@ -9,7 +9,6 @@ import com.shin.metadata.model.Tag;
 import com.shin.metadata.model.ThumbnailProfile;
 import com.shin.metadata.model.Video;
 import com.shin.metadata.model.VideoProcessing;
-import com.shin.metadata.model.enums.TranscodingStatus;
 import com.shin.metadata.model.enums.VideoVisibility;
 import com.shin.metadata.producer.VideoPublishedProducer;
 import com.shin.metadata.repository.VideoRepository;
@@ -183,7 +182,6 @@ public class VideoServiceImpl implements VideoService {
         if (request.uploadKey() != null) videoProcessing.setUploadKey(request.uploadKey());
         if (request.thumbnailUrl() != null) video.setThumbnailUrl(request.thumbnailUrl());
         if (request.categoryId() != null) video.setVideoCategory(videoCategoryService.findCategoryOrThrow(request.categoryId()));
-        if (request.visibility() != null) video.setVisibility(request.visibility());
         if (request.defaultLanguage() != null) video.setDefaultLanguage(request.defaultLanguage());
         if (request.onlyForAdults() != null) video.setOnlyForAdults(request.onlyForAdults());
         if (request.scheduledPublishAt() != null) video.setScheduledPublishAt(request.scheduledPublishAt());
@@ -520,9 +518,6 @@ public class VideoServiceImpl implements VideoService {
 
         final var isCompleted = status.equals("completed");
 
-        videoProcessing.setTranscodingStatus(
-                isCompleted ? TranscodingStatus.DONE : TranscodingStatus.FAILED
-        );
 
         if(!isCompleted) {
             log.info("Video failed to be encoded {}", videoId);
@@ -622,6 +617,13 @@ public class VideoServiceImpl implements VideoService {
                 video.getCommentCount())
                 : null;
 
+        ProcessingDetails processingDetails = fields.contains(VideoField.PROCESSING_DETAILS)
+            ? new ProcessingDetails(
+                videoProcessing.getTranscodingProgress(),
+                videoProcessing.getTranscodingStatus().getValue(),
+                videoProcessing.getFailureReason()
+            ) : null;
+
         FileDetails fileDetails = (fields.contains(VideoField.FILE_DETAILS) && isOwner)
                 ? new FileDetails(videoProcessing.getFileName(), videoProcessing.getFileSizeBytes(), videoProcessing.getFileType())
                 : null;
@@ -649,6 +651,7 @@ public class VideoServiceImpl implements VideoService {
                 statistics,
                 likedByMe,
                 fileDetails,
+                processingDetails,
                 channel,
                 tagNames,
                 video.getPublishedAt(),

@@ -37,7 +37,6 @@ public class EncodingProgressConsumer {
                     null,
                     null,
                     event.progress(),
-                    null,
                     event.failure()
             );
 

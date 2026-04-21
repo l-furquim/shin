@@ -60,7 +60,7 @@ public class VideoController {
         return ResponseEntity.ok(videoService.getWatchVideoById(id));
     }
 
-    @PutMapping("/{id}/publish")
+    @PostMapping("/{id}/publish")
     public ResponseEntity<VideoDto> publish(
             @PathVariable("id") UUID id,
             @RequestHeader("X-User-Id") UUID userId

@@ -3,6 +3,8 @@ import type { PageInfo } from '@/shared/core/request.types';
 export type Resolution = '360p' | '480p' | '720p' | '1080p';
 export type VideoVisibility = 'PUBLIC' | 'PRIVATE' | 'NOT_LISTED';
 
+export type TranscodingStatus = 'failed' | 'queued' | 'processing' | 'done';
+
 export type ProcessingStatus =
   | 'UPLOADING'
   | 'UPLOADED'
@@ -106,7 +108,6 @@ export interface TagIdentifier {
 export interface PatchVideoRequest {
   title?: string;
   description?: string;
-  visibility?: VideoVisibility;
   categoryId?: number;
   tagsToAdd?: TagIdentifier[];
   tagsToRemove?: TagIdentifier[];
@@ -114,10 +115,8 @@ export interface PatchVideoRequest {
 
 export interface GetVideoProgressResponse {
   transcodingProgress: number;
-  uploadingProgress: number;
   failureReason: string;
-  transcodingStatus: string;
-  uploadingStatus: string;
+  transcodingStatus: TranscodingStatus;
   fileSizeBytes: number;
   startedAt: Date;
 }

@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
@@ -500,7 +500,6 @@ export class VideoManageComponent implements OnInit {
         this.videoService.patchVideo(this.videoId, {
           title: title.value,
           description: description.value || undefined,
-          visibility: visibility.value,
           categoryId: categoryId.value ?? undefined,
           tagsToAdd: tagsToAdd.length ? tagsToAdd : undefined,
           tagsToRemove: tagsToRemove.length ? tagsToRemove : undefined,

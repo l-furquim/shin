@@ -1,7 +1,6 @@
 package com.shin.metadata.dto;
 
 import com.shin.metadata.model.enums.VideoLanguage;
-import com.shin.metadata.model.enums.VideoVisibility;
 import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
@@ -15,7 +14,6 @@ public record PatchVideoByIdRequest(
     String uploadKey,
     String thumbnailUrl,
     Long categoryId,
-    VideoVisibility visibility,
     VideoLanguage defaultLanguage,
     Boolean onlyForAdults,
     @Valid Set<TagIdentifier> tagsToAdd,

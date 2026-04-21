@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { firstValueFrom, interval } from 'rxjs';
-import { catchError, of, switchMap } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { SidebarComponent } from '@/shared/components/sidebar/sidebar.component';
 import { UploadComponent } from '@/shared/components/upload/upload.component';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -13,7 +11,7 @@ import { ZardIconComponent } from '@/shared/components/icon';
 import { TagInputComponent } from '@/shared/components/tag-input';
 import { CategoryComboboxComponent } from '@/shared/components/category-combobox';
 import { VideoService } from '@/features/videos/video.service';
-import type { ProcessingStatus, VideoVisibility } from '@/features/videos/video.types';
+import type { VideoVisibility } from '@/features/videos/video.types';
 import { Router } from '@angular/router';
 
 @Component({
@@ -42,7 +40,6 @@ import { Router } from '@angular/router';
       <app-sidebar></app-sidebar>
       <main class="w-full px-4 py-10 md:px-8">
         <div class="layout-wrapper mx-auto w-full" [class]="hasFile() ? 'max-w-5xl' : 'max-w-2xl'">
-          <!-- Heading -->
           <section class="mb-8 space-y-1">
             <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Upload de vídeo</h1>
             <p class="text-muted-foreground text-sm">
@@ -140,50 +137,12 @@ import { Router } from '@angular/router';
                     </p>
                   </div>
 
-                  <!-- Processing status -->
-                  @if (activeVideoId()) {
-                    <div class="rounded-lg border p-4 space-y-2.5">
-                      <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium">Processamento</p>
-                        <span
-                          class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                          [class]="processingBadgeClass()"
-                        >
-                          {{ processingStatusLabel() }}
-                        </span>
-                      </div>
-                      @if (processingStatus() !== 'PROCESSED' && processingStatus() !== 'FAILED') {
-                        <div class="space-y-1">
-                          <div class="h-1.5 w-full rounded-full bg-stone-100">
-                            <div
-                              class="h-1.5 rounded-full bg-foreground transition-all duration-700"
-                              [style.width.%]="processingProgress()"
-                            ></div>
-                          </div>
-                          <p class="text-xs text-muted-foreground">
-                            A publicação será liberada quando o processamento terminar.
-                          </p>
-                        </div>
-                      }
-                      @if (processingStatus() === 'PROCESSED') {
-                        <p class="text-xs text-muted-foreground">
-                          Vídeo processado. Você já pode publicar.
-                        </p>
-                      }
-                    </div>
-                  }
-
                   @if (saveError()) {
                     <z-alert zType="destructive" [zDescription]="saveError()" />
                   }
 
                   <z-button
-                    [zDisabled]="
-                      form.invalid ||
-                      isSaving() ||
-                      !activeVideoId() ||
-                      processingStatus() !== 'PROCESSED'
-                    "
+                    [zDisabled]="form.invalid || isSaving() || !activeVideoId() || !readyToPublish()"
                     [zLoading]="isSaving()"
                     class="w-full"
                     (click)="onSaveDetails()"
@@ -198,10 +157,6 @@ import { Router } from '@angular/router';
                     <p class="text-muted-foreground text-center text-xs">
                       Disponível após iniciar o upload.
                     </p>
-                  } @else if (processingStatus() !== 'PROCESSED') {
-                    <p class="text-muted-foreground text-center text-xs">
-                      Aguardando o processamento terminar...
-                    </p>
                   }
                 </form>
               </div>
@@ -211,6 +166,7 @@ import { Router } from '@angular/router';
               <upload-area
                 (fileSelected)="onFileSelected()"
                 (videoIdReady)="onVideoIdReady($event)"
+                (videoReady)="onReadyToPublish($event)"
               ></upload-area>
             </div>
           </div>
@@ -222,16 +178,13 @@ import { Router } from '@angular/router';
 export class UploadPageComponent {
   private readonly router = inject(Router);
   private readonly videoService = inject(VideoService);
-  private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
 
+  protected readonly readyToPublish = signal(false);
   protected readonly hasFile = signal(false);
   protected readonly activeVideoId = signal<string | null>(null);
   protected readonly isSaving = signal(false);
   protected readonly saveError = signal('');
-
-  protected readonly processingStatus = signal<ProcessingStatus>('UPLOADING');
-  protected readonly processingProgress = signal(0);
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(200)]],
@@ -241,14 +194,20 @@ export class UploadPageComponent {
     tags: [[] as string[]],
   });
 
+  onReadyToPublish(ready: boolean) {
+    this.readyToPublish.set(ready);
+  }
+
   onFileSelected(): void {
     this.hasFile.set(true);
+    this.readyToPublish.set(false);
+    this.activeVideoId.set(null);
+    this.saveError.set('');
   }
 
   onVideoIdReady(id: string): void {
-    if (this.activeVideoId()) return;
     this.activeVideoId.set(id);
-    this.startProcessingFlow(id);
+    this.readyToPublish.set(false);
   }
 
   onVisibilityChange(value: string | string[]): void {
@@ -259,7 +218,7 @@ export class UploadPageComponent {
   }
 
   async onSaveDetails(): Promise<void> {
-    if (this.form.invalid || this.isSaving() || !this.activeVideoId()) {
+    if (this.form.invalid || this.isSaving() || !this.activeVideoId() || !this.readyToPublish()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -274,74 +233,19 @@ export class UploadPageComponent {
         this.videoService.patchVideo(this.activeVideoId()!, {
           title: title.value,
           description: description.value || undefined,
-          visibility: visibility.value,
           categoryId: categoryId.value ?? undefined,
           tagsToAdd: tags.value.map((name) => ({ name })),
         }),
       );
+
+      if (visibility.value === 'PUBLIC') {
+        await firstValueFrom(this.videoService.publish(this.activeVideoId()!));
+      }
+
       await this.router.navigate(['/videos', this.activeVideoId(), 'manage']);
     } catch {
       this.saveError.set('Não foi possível publicar o vídeo. Tente novamente.');
       this.isSaving.set(false);
     }
-  }
-
-  private startProcessingFlow(videoId: string): void {
-    this.processingStatus.set('PROCESSING');
-    this.processingProgress.set(0);
-
-    const mockSteps: { delay: number; progress: number }[] = [
-      { delay: 800, progress: 15 },
-      { delay: 2500, progress: 40 },
-      { delay: 5000, progress: 70 },
-      { delay: 7500, progress: 90 },
-    ];
-    for (const step of mockSteps) {
-      setTimeout(() => {
-        if (this.processingStatus() === 'PROCESSING') {
-          this.processingProgress.set(step.progress);
-        }
-      }, step.delay);
-    }
-
-    interval(4000)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap(() => this.videoService.getProgress(videoId).pipe(catchError(() => of(null)))),
-      )
-      .subscribe((video) => {
-        const status = video?.transcodingStatus;
-        const progress = video?.transcodingProgress;
-        if (status) {
-          this.processingStatus.set(status);
-          if (progress != null) this.processingProgress.set(progress);
-        }
-      });
-
-    setTimeout(() => {
-      if (this.processingStatus() === 'PROCESSING') {
-        this.processingStatus.set('PROCESSED');
-        this.processingProgress.set(100);
-      }
-    }, 10_000);
-  }
-
-  protected processingStatusLabel(): string {
-    const map: Record<string, string> = {
-      UPLOADING: 'Enviando',
-      UPLOADED: 'Enviado',
-      PROCESSING: 'Processando',
-      PROCESSED: 'Pronto',
-      FAILED: 'Falhou',
-      EXPIRED: 'Expirado',
-    };
-    return map[this.processingStatus()] ?? this.processingStatus();
-  }
-
-  protected processingBadgeClass(): string {
-    const s = this.processingStatus();
-    if (s === 'PROCESSED') return 'bg-stone-900 text-stone-50';
-    if (s === 'FAILED' || s === 'EXPIRED') return 'bg-red-100 text-red-700';
-    return 'bg-stone-100 text-stone-600';
   }
 }

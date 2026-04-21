@@ -22,7 +22,6 @@ public interface VideoProcessingService {
             Long fileSizeBytes,
             String fileType,
             Integer transcodingProgress,
-            Integer uploadingProgress,
             String failureReason
     );
 

@@ -71,6 +71,12 @@ export class VideoService {
       .pipe(catchError((error) => this.handleHttpError(error, 'buscar progresso')));
   }
 
+  publish(id: string) {
+    return this.http
+      .post(`/api/v1/videos/${id}/publish`, {})
+      .pipe(catchError((error) => this.handleHttpError(error, 'publicar video')));
+  }
+
   private handleHttpError(error: unknown, operation: string): Observable<never> {
     const message =
       error instanceof HttpErrorResponse

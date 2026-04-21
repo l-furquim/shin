@@ -49,56 +49,135 @@ var resolutionMap = map[string]ResolutionConfig{
 	"360p":  {Height: 360, Bitrate: "800k", MaxBitrate: "856k", BufSize: "1200k", Profile: "baseline", Level: "3.0", AudioBitrate: "96k"},
 }
 
+const (
+	progressPublishStep      = 25
+	progressMaxValue         = 100
+	transcodingWeightPercent = 0.5
+	uploadWeightPercent      = 0.5
+)
+
 type progressTracker struct {
-	mu             sync.Mutex
-	transcoding    map[string]float64
-	uploading      map[string]float64
-	numResolutions int
-	lastPublished  int
-	startTime      time.Time
+	mu                     sync.Mutex
+	transcoding            map[string]float64
+	uploading              map[string]float64
+	numResolutions         int
+	lastPublishedMilestone int
+	startTime              time.Time
 }
 
-func (pt *progressTracker) aggregate() int {
+func (pt *progressTracker) aggregateLocked() int {
 	var sum float64
 	for r := range pt.transcoding {
-		sum += pt.transcoding[r]*0.8 + pt.uploading[r]*0.2
+		sum += pt.transcoding[r]*transcodingWeightPercent + pt.uploading[r]*uploadWeightPercent
 	}
-	return int(sum / float64(pt.numResolutions))
+
+	aggregated := sum / float64(pt.numResolutions)
+	if aggregated >= float64(progressMaxValue)-0.000001 {
+		return progressMaxValue
+	}
+
+	return int(aggregated)
 }
 
-func (pt *progressTracker) maybePublish(ctx context.Context, videoId string, producer ProgressSender) {
-	current := pt.aggregate()
-	if current-pt.lastPublished < 1 {
+func milestoneForProgress(progress int) int {
+	if progress <= 0 {
+		return 0
+	}
+	if progress >= progressMaxValue {
+		return progressMaxValue
+	}
+
+	return (progress / progressPublishStep) * progressPublishStep
+}
+
+func clampProgress(pct float64) float64 {
+	if pct < 0 {
+		return 0
+	}
+	if pct > float64(progressMaxValue) {
+		return float64(progressMaxValue)
+	}
+
+	return pct
+}
+
+func (pt *progressTracker) collectPendingMilestonesLocked() ([]int, int64) {
+	currentMilestone := milestoneForProgress(pt.aggregateLocked())
+	if currentMilestone <= pt.lastPublishedMilestone {
+		return nil, 0
+	}
+
+	milestones := make([]int, 0, (currentMilestone-pt.lastPublishedMilestone)/progressPublishStep)
+	for milestone := pt.lastPublishedMilestone + progressPublishStep; milestone <= currentMilestone; milestone += progressPublishStep {
+		milestones = append(milestones, milestone)
+	}
+
+	pt.lastPublishedMilestone = currentMilestone
+	elapsed := int64(time.Since(pt.startTime).Seconds())
+
+	return milestones, elapsed
+}
+
+func (pt *progressTracker) nextMilestoneToPublishLocked() (int, int64) {
+	currentMilestone := milestoneForProgress(pt.aggregateLocked())
+	nextMilestone := pt.lastPublishedMilestone + progressPublishStep
+	if currentMilestone < nextMilestone {
+		return 0, 0
+	}
+
+	pt.lastPublishedMilestone = nextMilestone
+	elapsed := int64(time.Since(pt.startTime).Seconds())
+
+	return nextMilestone, elapsed
+}
+
+func (pt *progressTracker) publishMilestones(ctx context.Context, videoId string, producer ProgressSender, milestones []int, elapsed int64) {
+	if producer == nil {
 		return
 	}
-	pt.lastPublished = current
-	elapsed := int64(time.Since(pt.startTime).Seconds())
-	pt.mu.Unlock()
-	evt := event.EncodingProgressEvent{
-		VideoId:               videoId,
-		Progress:              current,
-		TimeProcessingSeconds: elapsed,
+
+	for _, milestone := range milestones {
+		evt := event.EncodingProgressEvent{
+			VideoId:               videoId,
+			Progress:              milestone,
+			TimeProcessingSeconds: elapsed,
+		}
+
+		if err := producer.Send(ctx, evt); err != nil {
+			log.Printf("[video=%s] failed to publish progress %d%%: %v", videoId, milestone, err)
+		} else {
+			log.Printf("[video=%s] progress %d%% published (%ds elapsed)", videoId, milestone, elapsed)
+		}
 	}
-	if err := producer.Send(ctx, evt); err != nil {
-		log.Printf("[video=%s] failed to publish progress %d%%: %v", videoId, current, err)
-	} else {
-		log.Printf("[video=%s] progress %d%% published (%ds elapsed)", videoId, current, elapsed)
-	}
+}
+
+func (pt *progressTracker) flushPendingMilestones(ctx context.Context, videoId string, producer ProgressSender) {
 	pt.mu.Lock()
+	milestones, elapsed := pt.collectPendingMilestonesLocked()
+	pt.mu.Unlock()
+
+	pt.publishMilestones(ctx, videoId, producer, milestones, elapsed)
+}
+
+func (pt *progressTracker) updateProgress(ctx context.Context, progressMap map[string]float64, resolution string, pct float64, videoId string, producer ProgressSender) {
+	pt.mu.Lock()
+	progressMap[resolution] = clampProgress(pct)
+	milestone, elapsed := pt.nextMilestoneToPublishLocked()
+	pt.mu.Unlock()
+
+	if milestone == 0 {
+		return
+	}
+
+	pt.publishMilestones(ctx, videoId, producer, []int{milestone}, elapsed)
 }
 
 func (pt *progressTracker) updateTranscoding(ctx context.Context, resolution string, pct float64, videoId string, producer ProgressSender) {
-	pt.mu.Lock()
-	pt.transcoding[resolution] = pct
-	pt.maybePublish(ctx, videoId, producer)
-	pt.mu.Unlock()
+	pt.updateProgress(ctx, pt.transcoding, resolution, pct, videoId, producer)
 }
 
 func (pt *progressTracker) updateUploading(ctx context.Context, resolution string, pct float64, videoId string, producer ProgressSender) {
-	pt.mu.Lock()
-	pt.uploading[resolution] = pct
-	pt.maybePublish(ctx, videoId, producer)
-	pt.mu.Unlock()
+	pt.updateProgress(ctx, pt.uploading, resolution, pct, videoId, producer)
 }
 
 func (s *TranscodingService) ProcessJob(ctx context.Context, job *model.TranscodingJob, cfg *config.Config) error {
@@ -205,6 +284,8 @@ func (s *TranscodingService) ProcessJob(ctx context.Context, job *model.Transcod
 		log.Printf("[video=%s] job failed after %.1fs: %v", job.VideoId, time.Since(jobStart).Seconds(), err)
 		return err
 	}
+
+	tracker.flushPendingMilestones(ctx, job.VideoId, s.ProgressProducer)
 
 	totalFiles := 0
 	for _, res := range cleanResolutions {
@@ -381,7 +462,7 @@ func runFFmpegWithProgress(ctx context.Context, label string, args []string, dur
 				if pct > 100 {
 					pct = 100
 				}
-				milestone := int(pct/25) * 25
+				milestone := (int(pct) / progressPublishStep) * progressPublishStep
 				if milestone > lastLoggedMilestone {
 					lastLoggedMilestone = milestone
 					log.Printf("%s ffmpeg %d%%", label, milestone)
