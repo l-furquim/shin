@@ -20,6 +20,7 @@ public interface MetadataClient {
             @RequestParam(name = "fields", required = true) String fields,
             @RequestParam(name = "myRating", required = false) String myRating,
             @RequestParam(name = "categoryId", required = false) String categoryId,
+            @RequestParam(name = "forMine", required = false, defaultValue = "false") boolean forMine,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "limit", required = false, defaultValue = "10") int limit,
             @RequestHeader(name = "X-User-Id", required = false) UUID userId

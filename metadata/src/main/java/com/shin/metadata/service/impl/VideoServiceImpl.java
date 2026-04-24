@@ -270,7 +270,8 @@ public class VideoServiceImpl implements VideoService {
                 ? Long.parseLong(request.categoryId()) : null;
 
         boolean isForward = CURSOR_NEXT.equals(cursorDirection);
-        List<Video> videos = fetchVideos(isForward, request.channelId(), categoryId, cursorTimestamp, cursorId, pageable);
+        UUID ownerId = request.forMine() && userId != null ? userId : null;
+        List<Video> videos = fetchVideos(isForward, request.channelId(), categoryId, cursorTimestamp, cursorId, pageable, ownerId);
 
         boolean hasMore = videos.size() > request.limit();
         if (hasMore) {
@@ -439,8 +440,19 @@ public class VideoServiceImpl implements VideoService {
     }
 
     private List<Video> fetchVideos(boolean isForward, UUID channelId, Long categoryId,
-                                    LocalDateTime cursorTimestamp, UUID cursorId, Pageable pageable) {
+                                    LocalDateTime cursorTimestamp, UUID cursorId, Pageable pageable,
+                                    UUID ownerId) {
         boolean hasCursor = cursorTimestamp != null && cursorId != null;
+
+        if (ownerId != null) {
+            return isForward
+                    ? (hasCursor
+                        ? videoRepository.findByOwnerWithCursorDesc(ownerId, cursorTimestamp, cursorId, pageable)
+                        : videoRepository.findByOwnerWithoutCursorDesc(ownerId, pageable))
+                    : (hasCursor
+                        ? videoRepository.findByOwnerWithCursorAsc(ownerId, cursorTimestamp, cursorId, pageable)
+                        : videoRepository.findByOwnerWithoutCursorAsc(ownerId, pageable));
+        }
 
         if (isForward) {
             if (channelId != null && categoryId != null) {

@@ -19,6 +19,7 @@ public interface SearchService {
             LocalDate dateFrom,
             LocalDate dateTo,
             Boolean forAdults,
+            boolean forMine,
             int maxResults,
             String pageToken,
             UUID userId

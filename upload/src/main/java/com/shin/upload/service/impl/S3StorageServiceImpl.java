@@ -228,23 +228,8 @@ public class S3StorageServiceImpl implements StorageService {
         try {
             final var finalKey = "thumbnails/".concat(videoId).concat("/custom/custom.png");
 
-            Map<String, String> metadata = new HashMap<>(Map.of(
-                "videoid", videoId,
-                "userid", userId,
-                "filename", originalName,
-                "thumbnailkind", "custom"
-            ));
-
-            if (fileSize != null) {
-                metadata.put("filesize", String.valueOf(fileSize));
-            }
-            if (contentType != null && !contentType.isBlank()) {
-                metadata.put("contenttype", contentType);
-            }
-
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(resolveBucket(bucket))
-                .metadata(metadata)
                 .key(finalKey)
                 .contentType(contentType)
                 .build();

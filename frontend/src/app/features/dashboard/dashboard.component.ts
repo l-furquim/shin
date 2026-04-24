@@ -7,8 +7,6 @@ import { VideoCard } from '@/shared/components/video/video-card.component';
 import { VideoCardSkeletonComponent } from '@/shared/components/video/video-card-skeleton.component';
 import { SidebarComponent } from '@/shared/components/sidebar/sidebar.component';
 import { PaginationComponent } from '@/shared/components/pagination/pagination.component';
-import { SearchBar } from '../search/search-bar.component';
-
 @Component({
   selector: 'app-dashboard-page',
   imports: [
@@ -16,7 +14,6 @@ import { SearchBar } from '../search/search-bar.component';
     VideoCardSkeletonComponent,
     SidebarComponent,
     PaginationComponent,
-    SearchBar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -24,7 +21,6 @@ import { SearchBar } from '../search/search-bar.component';
       <app-sidebar></app-sidebar>
       <main class="w-full px-4 py-10 md:px-8">
         <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 lg:gap-10">
-          <app-search-bar></app-search-bar>
           <section class="space-y-3">
             <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">
               Bem-vindo de volta, {{ creatorName() }}

@@ -8,6 +8,7 @@ public record SearchVideosRequest(
         UUID channelId,
         String fields,
         String myRating,
+        boolean forMine,
         String categoryId,
         String cursor,
         int limit

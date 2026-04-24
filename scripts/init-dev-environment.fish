@@ -109,7 +109,22 @@ if not test -f "$THUMBNAIL_DIR/go.sum"
     cd -
 end
 
-if not test -f "$THUMBNAIL_DIR/bootstrap.zip"
+set -l thumbnail_zip "$THUMBNAIL_DIR/bootstrap.zip"
+set -l thumbnail_needs_build 0
+
+if not test -f "$thumbnail_zip"
+    set thumbnail_needs_build 1
+else
+    # Rebuild if any Go source file is newer than the zip
+    for f in (find "$THUMBNAIL_DIR" -name "*.go" -not -path "*/vendor/*")
+        if test "$f" -nt "$thumbnail_zip"
+            set thumbnail_needs_build 1
+            break
+        end
+    end
+end
+
+if test $thumbnail_needs_build -eq 1
     echo "Building thumbnail-processor Lambda..."
     cd "$THUMBNAIL_DIR"
     GOOS=linux GOARCH=amd64 go build -o bootstrap .

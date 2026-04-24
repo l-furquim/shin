@@ -89,6 +89,7 @@ export interface SearchVideosRequest {
   channelId?: string;
   fields?: string;
   myRating?: 'liked' | 'desliked';
+  forMine?: boolean;
   categoryId?: string;
   cursor?: string;
   limit?: number;

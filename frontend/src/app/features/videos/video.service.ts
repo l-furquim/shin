@@ -34,6 +34,7 @@ export class VideoService {
       url: '/api/v1/videos',
       method: 'GET',
       params: {
+        ...(request.forMine && { forMine: request.forMine }),
         ...(request.id && { id: request.id }),
         ...(request.channelId && { channelId: request.channelId }),
         ...(request.fields && { fields: request.fields }),

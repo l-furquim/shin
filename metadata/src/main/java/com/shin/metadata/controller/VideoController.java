@@ -88,12 +88,13 @@ public class VideoController {
             @RequestParam(name = "fields", required = true) String fields,
             @RequestParam(name = "myRating", required = false) String myRating,
             @RequestParam(name = "categoryId", required = false) String categoryId,
+            @RequestParam(name = "forMine", required = false, defaultValue = "false") boolean forMine,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "limit", required = false, defaultValue = "10") int limit,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
         Set<VideoField> requestedFields = VideoField.parse(fields);
-        SearchVideosRequest request = new SearchVideosRequest(id, ids, channelId, fields, myRating, categoryId, cursor, limit);
+        SearchVideosRequest request = new SearchVideosRequest(id, ids, channelId, fields, myRating, forMine, categoryId, cursor, limit);
         return ResponseEntity.ok(videoService.search(request, userId, requestedFields));
     }
 

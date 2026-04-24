@@ -115,6 +115,7 @@ public class SearchServiceImpl implements SearchService {
             LocalDate dateFrom,
             LocalDate dateTo,
             Boolean forAdults,
+            boolean forMine,
             int maxResults,
             String pageToken,
             UUID userId
@@ -125,7 +126,7 @@ public class SearchServiceImpl implements SearchService {
                 return new SearchVideosResponse(null, null, new PageInfo(0L, (long) maxResults), List.of());
             }
 
-            return fetchVideos(ids, pageToken, maxResults, userId);
+            return fetchVideos(ids, pageToken, maxResults, forMine, userId);
         } catch (IOException e) {
             log.error("Search failed: {}", e.getMessage(), e);
             throw new RuntimeException("Search failed", e);
@@ -212,6 +213,7 @@ public class SearchServiceImpl implements SearchService {
             List<String> ids,
             String cursor,
             int limit,
+            boolean forMine,
             UUID userId
     ) {
         try {
@@ -222,6 +224,7 @@ public class SearchServiceImpl implements SearchService {
                     METADATA_FIELDS,
                     null,
                     null,
+                    forMine,
                     cursor,
                     limit,
                     userId

@@ -5,8 +5,9 @@ import { SearchVideosResponse } from '../videos/video.types';
 import { VideoService } from '../videos/video.service';
 import { Creator } from '../creator/creator.types';
 import { SidebarComponent } from '@/shared/components/sidebar/sidebar.component';
-import { VideoCardSkeletonComponent } from '@/shared/components/video/video-card-skeleton.component';
+import { StudioVideoSkeletonComponent } from './studio-video-skeleton.component';
 import { StudioVideoComponent } from './studio-video.component';
+import { PaginationComponent } from '@/shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-studio',
@@ -19,28 +20,40 @@ import { StudioVideoComponent } from './studio-video.component';
             <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Studio</h1>
           </section>
 
-          <section class="w-full flex flex-col gap-5 items-center">
+          <section class="w-full flex flex-col gap-3">
             @if (videos.isLoading()) {
-              @for (item of [].constructor(20); track $index) {
-                <video-card-skeleton></video-card-skeleton>
+              @for (item of [].constructor(10); track $index) {
+                <studio-video-skeleton></studio-video-skeleton>
               }
             }
             @if (videos.error()) {
-              <p class="text-destructive col-span-2">Erro ao carregar vídeos.</p>
+              <p class="text-destructive">Erro ao carregar vídeos.</p>
             }
             @if (videos.hasValue()) {
               @for (video of videos.value().items; track video.id) {
                 <studio-video [video]="video"></studio-video>
               } @empty {
-                <p class="text-muted-foreground col-span-2">Nenhum vídeo encontrado.</p>
+                <p class="text-muted-foreground">Nenhum vídeo encontrado.</p>
               }
+              <app-pagination
+                [nextPageToken]="videos.value().nextPageToken || null"
+                [prevPageToken]="videos.value().prevPageToken || null"
+                [loading]="videos.isLoading()"
+                (next)="onNext($event)"
+                (prev)="onPrev($event)"
+              />
             }
           </section>
         </div>
       </main>
     </div>
   `,
-  imports: [SidebarComponent, VideoCardSkeletonComponent, StudioVideoComponent],
+  imports: [
+    SidebarComponent,
+    StudioVideoSkeletonComponent,
+    StudioVideoComponent,
+    PaginationComponent,
+  ],
 })
 export class Studio {
   readonly authStore = inject(AuthStore);
@@ -52,8 +65,9 @@ export class Studio {
   protected readonly videos = httpResource<SearchVideosResponse>(() =>
     this.videosService.searchVideos({
       channelId: this.creator()?.id,
-      fields: 'contentDetails,statistics,thumbnails, channel',
+      fields: 'contentDetails,statistics,thumbnails,channel,processingDetails',
       limit: 20,
+      forMine: true,
       cursor: this.cursor(),
     }),
   );

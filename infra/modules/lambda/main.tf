@@ -39,10 +39,6 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.environment_variables
   }
-
-  lifecycle {
-    ignore_changes = [filename, source_code_hash]
-  }
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {

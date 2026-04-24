@@ -332,6 +332,54 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.creatorId = :ownerId
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByOwnerWithoutCursorDesc(
+        @Param("ownerId") UUID ownerId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.creatorId = :ownerId
+        AND (v.createdAt < :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id < :cursorId))
+        ORDER BY v.createdAt DESC, v.id DESC
+    """)
+    List<Video> findByOwnerWithCursorDesc(
+        @Param("ownerId") UUID ownerId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.creatorId = :ownerId
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByOwnerWithoutCursorAsc(
+        @Param("ownerId") UUID ownerId,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT v FROM Video v
+        WHERE v.creatorId = :ownerId
+        AND (v.createdAt > :cursorTimestamp
+            OR (v.createdAt = :cursorTimestamp AND v.id > :cursorId))
+        ORDER BY v.createdAt ASC, v.id ASC
+    """)
+    List<Video> findByOwnerWithCursorAsc(
+        @Param("ownerId") UUID ownerId,
+        @Param("cursorTimestamp") LocalDateTime cursorTimestamp,
+        @Param("cursorId") UUID cursorId,
+        Pageable pageable
+    );
+
     @Modifying
     @Query("""
         UPDATE Video v

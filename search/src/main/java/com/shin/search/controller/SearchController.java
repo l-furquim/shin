@@ -32,6 +32,7 @@ public class SearchController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(defaultValue = "false") boolean forAdults,
+            @RequestParam(defaultValue = "false") boolean forMine,
             @RequestParam(defaultValue = "20") int maxResults,
             @RequestParam(required = false) String pageToken,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId
@@ -45,6 +46,7 @@ public class SearchController {
         SearchVideosResponse response = searchService.search(
                 q, tagList, language, category, dateFrom, dateTo,
                 forAdults ? null : false,
+                forMine,
                 maxResults, pageToken, userId
         );
 
