@@ -13,6 +13,21 @@
     <file url="file://$PROJECT_DIR$/parent-pom/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/parent-pom/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/search/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/auth/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/comment/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/commons/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/config-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/eureka-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/interaction/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/metadata/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/parent-pom/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/parent-pom/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/search/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/streaming/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/subscription/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/upload/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/user/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/streaming/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/subscription/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/upload/src/main/java" charset="UTF-8" />

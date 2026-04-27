@@ -1,0 +1,71 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/metadata
+  tag: latest
+
+service:
+  port: 8081
+  containerPort: 8081
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 768Mi
+  limits:
+    cpu: 1500m
+    memory: 1536Mi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: DB_HOST
+    value: "postgres.shin-dev.svc.cluster.local"
+  - name: DB_NAME
+    value: "shin"
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: postgres-creds
+        key: username
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-creds
+        key: password
+  - name: REDIS_HOST
+    value: "redis.shin-dev.svc.cluster.local"
+  - name: REDIS_PORT
+    value: "6379"
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis-creds
+        key: password
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  SHIN_AWS_REGION: "us-east-1"
+  RAW_BUCKET_NAME: "shin-dev-raw-uploads"
+  CLOUDFRONT_CDN_URL: "d1bdx17cpz5q2y.cloudfront.net"
+  VIDEO_UPLOAD_CREATED_QUEUE_NAME: "shin-dev-video-upload-created"
+  ENCODING_FINISHED_EVENTS_QUEUE_NAME: "shin-dev-encoding-finished"
+  THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME: "shin-dev-thumbnail-finished"
+  ENCODING_FINISHED_DLQ_NAME: "shin-dev-encoding-finished-dlq"
+  THUMBNAIL_FINISHED_DLQ_NAME: "shin-dev-thumbnail-finished-dlq"
+  VIEW_EVENTS_DLQ_NAME: "shin-dev-view-events-dlq"
+  ENCODING_PROGRESS_QUEUE_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-encoding-progress"
+  VIDEO_PUBLISHED_TOPIC_ARN: "arn:aws:sns:us-east-1:304361287196:shin-dev-video-published"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["metadata"]

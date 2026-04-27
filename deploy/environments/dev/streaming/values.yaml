@@ -1,0 +1,48 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/streaming
+  tag: latest
+
+service:
+  port: 8089
+  containerPort: 8089
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: JWT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: auth-secrets
+        key: jwt-secret
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  SHIN_AWS_REGION: "us-east-1"
+  CLOUDFRONT_CDN_URL: "d1bdx17cpz5q2y.cloudfront.net"
+  CLOUDFRONT_KEY_PAIR_ID: ""  # fill with CloudFront key pair ID
+  CLOUDFRONT_PRIVATE_KEY_SECRET_ARN: ""  # fill with Secrets Manager ARN
+  VOD_SESSIONS_TABLE: "playback_sessions"
+  VIEW_EVENTS_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-view-events"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["streaming"]

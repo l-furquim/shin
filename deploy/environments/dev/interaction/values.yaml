@@ -1,0 +1,40 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/interaction
+  tag: latest
+
+service:
+  port: 8085
+  containerPort: 8085
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  SHIN_AWS_REGION: "us-east-1"
+  LIKE_EVENTS_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-like-events"
+  DISLIKE_EVENTS_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-dislike-events"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["interaction"]

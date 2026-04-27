@@ -204,6 +204,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "processed_bucket" {
     id     = "transition-old-files"
     status = var.enable_lifecycle_rules ? "Enabled" : "Disabled"
 
+    filter {
+      prefix = ""
+    }
+
     transition {
       days          = 90
       storage_class = "STANDARD_IA"

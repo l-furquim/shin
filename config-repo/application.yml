@@ -7,25 +7,31 @@ spring:
       write-dates-as-timestamps: false
   cloud:
     discovery:
-      enabled: true
-
-eureka:
-  client:
-    enabled: true
-    registry-fetch-interval-seconds: 30
-  instance:
-    lease-renewal-interval-in-seconds: 30
-    lease-expiration-duration-in-seconds: 90
+      enabled: false
 
 management:
   endpoints:
     web:
       base-path: /actuator
       exposure:
-        include: health,info,metrics,refresh
+        include: health,info,metrics,refresh,prometheus
   endpoint:
     health:
+      probes:
+        enabled: true
       show-details: when-authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
@@ -33,3 +39,12 @@ cors:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Kubernetes DNS-based service URLs (used by Feign clients)
+clients:
+  user-service:
+    url: http://user-service.shin-dev.svc.cluster.local:8083
+  metadata-service:
+    url: http://metadata-service.shin-dev.svc.cluster.local:8081
+  interaction-service:
+    url: http://interaction-service.shin-dev.svc.cluster.local:8085

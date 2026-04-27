@@ -71,8 +71,10 @@ sqs_message_retention_seconds  = 345600 # 4 days
 sqs_visibility_timeout_seconds = 300    # 5 minutes
 # sqs_receive_wait_time_seconds  = 20    # Use this only in prod
 
-common_tags = {
-  Owner      = "DevTeam"
-  CostCenter = "Engineering"
-  Terraform  = "true"
-}
+vpc_cidr = "10.20.0.0/16"
+
+eks_cluster_version            = "1.31"
+node_group_apps_instance_types = ["t3.micro"]
+node_group_apps_min_size       = 2
+node_group_apps_max_size       = 6
+node_group_apps_desired_size   = 2

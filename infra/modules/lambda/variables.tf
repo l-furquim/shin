@@ -51,6 +51,11 @@ variable "sqs_trigger_arn" {
   default = null
 }
 
+variable "enable_sqs_trigger" {
+  type    = bool
+  default = true
+}
+
 variable "sqs_batch_size" {
   type    = number
   default = 10

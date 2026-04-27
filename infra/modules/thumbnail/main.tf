@@ -38,17 +38,18 @@ resource "aws_lambda_event_source_mapping" "thumbnail_upload" {
 }
 
 module "lambda_processor" {
-  source          = "../lambda"
-  env             = var.env
-  function_name   = "thumbnail-processor"
-  description     = "Generates video thumbnails at multiple resolutions using FFmpeg"
-  filename        = var.processor_zip
-  source_hash     = var.processor_hash
-  timeout         = 120
-  memory_size     = 1024
-  sqs_trigger_arn = var.thumbnail_job_queue_arn
-  sqs_batch_size  = 1
-  layers          = [aws_lambda_layer_version.ffmpeg.arn]
+  source             = "../lambda"
+  env                = var.env
+  function_name      = "thumbnail-processor"
+  description        = "Generates video thumbnails at multiple resolutions using FFmpeg"
+  filename           = var.processor_zip
+  source_hash        = var.processor_hash
+  timeout            = 120
+  memory_size        = 1024
+  enable_sqs_trigger = true
+  sqs_trigger_arn    = var.thumbnail_job_queue_arn
+  sqs_batch_size     = 1
+  layers             = [aws_lambda_layer_version.ffmpeg.arn]
   environment_variables = {
     RAW_BUCKET_NAME                     = var.raw_bucket_name
     THUMBNAIL_BUCKET_NAME               = var.thumbnail_bucket_name

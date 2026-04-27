@@ -19,6 +19,20 @@
         <option value="$PROJECT_DIR$/video-aggregator/pom.xml" />
         <option value="$PROJECT_DIR$/streaming/pom.xml" />
         <option value="$PROJECT_DIR$/search/pom.xml" />
+        <option value="$PROJECT_DIR$/services/auth/pom.xml" />
+        <option value="$PROJECT_DIR$/services/comment/pom.xml" />
+        <option value="$PROJECT_DIR$/services/commons/pom.xml" />
+        <option value="$PROJECT_DIR$/services/config-server/pom.xml" />
+        <option value="$PROJECT_DIR$/services/eureka-server/pom.xml" />
+        <option value="$PROJECT_DIR$/services/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/services/interaction/pom.xml" />
+        <option value="$PROJECT_DIR$/services/metadata/pom.xml" />
+        <option value="$PROJECT_DIR$/services/parent-pom/pom.xml" />
+        <option value="$PROJECT_DIR$/services/search/pom.xml" />
+        <option value="$PROJECT_DIR$/services/streaming/pom.xml" />
+        <option value="$PROJECT_DIR$/services/subscription/pom.xml" />
+        <option value="$PROJECT_DIR$/services/upload/pom.xml" />
+        <option value="$PROJECT_DIR$/services/user/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

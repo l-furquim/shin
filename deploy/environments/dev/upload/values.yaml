@@ -1,0 +1,51 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/upload
+  tag: latest
+
+service:
+  port: 8082
+  containerPort: 8082
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: REDIS_HOST
+    value: "redis.shin-dev.svc.cluster.local"
+  - name: REDIS_PORT
+    value: "6379"
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis-creds
+        key: password
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  SHIN_AWS_REGION: "us-east-1"
+  RAW_BUCKET_NAME: "shin-dev-raw-uploads"
+  PROCESSED_BUCKET_NAME: "shin-dev-processed-videos"
+  THUMBNAIL_BUCKET_NAME: "shin-dev-thumbnails"
+  VIDEO_UPLOAD_CREATED_QUEUE_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-video-upload-created"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["upload"]

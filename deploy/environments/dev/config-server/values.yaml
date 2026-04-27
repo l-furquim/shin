@@ -1,0 +1,58 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/config-server
+  tag: latest
+
+service:
+  port: 8888
+  containerPort: 8888
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+argocdSyncWave: "0"
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod,native
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: CONFIG_SERVER_ENCRYPT_KEY
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: encrypt-key
+  - name: SPRING_CLOUD_CONFIG_SERVER_GIT_URI
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: git-uri
+  - name: GIT_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: git-username
+  - name: GIT_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: git-password
+
+envConfig:
+  SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL: main
+
+serviceAccount:
+  create: true
+  roleArn: ""

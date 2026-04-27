@@ -51,6 +51,22 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
     .upload-progress {
       transition: width 0.3s ease;
     }
+    .processing-fill {
+      position: relative;
+      overflow: hidden;
+      transition: width 700ms ease-in-out;
+    }
+    .processing-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+      animation: shimmer-sweep 1.8s ease-in-out infinite;
+    }
+    @keyframes shimmer-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
     .drop-zone {
       transition:
         border-color 0.15s ease,
@@ -254,14 +270,39 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
         </div>
       }
 
-      @if (processingState() !== 'queued') {
-        <div class="rounded-xl border bg-card p-4 space-y-2 text-sm">
-          <p class="font-medium text-foreground">
-            {{ this.processingStateTitle() }}
-          </p>
-          <div class="space-y-1 text-muted-foreground">
-            <z-progress-bar [progress]="this.processingProgress()" />
+      @if (uploadState() === 'success' && processingState() === 'queued') {
+        <div class="rounded-xl border bg-card p-4 space-y-1 text-sm">
+          <div class="flex items-center gap-3">
+            <div class="flex gap-1 shrink-0">
+              <span class="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:0ms]"></span>
+              <span class="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:150ms]"></span>
+              <span class="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:300ms]"></span>
+            </div>
+            <p class="text-muted-foreground">Aguardando na fila de processamento...</p>
           </div>
+        </div>
+      }
+
+      @if (processingState() === 'processing' || processingState() === 'done' || processingState() === 'failed') {
+        <div class="rounded-xl border bg-card p-4 space-y-3 text-sm">
+          <div class="flex items-center justify-between">
+            <p class="font-medium text-foreground">{{ this.processingStateTitle() }}</p>
+            @if (processingState() === 'processing') {
+              <span class="text-xs font-mono text-muted-foreground">{{ processingProgress() }}%</span>
+            }
+          </div>
+          @if (processingState() === 'processing') {
+            <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                class="processing-fill h-full rounded-full bg-primary"
+                [style.width.%]="processingProgress()"
+              ></div>
+            </div>
+          } @else if (processingState() === 'done') {
+            <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div class="h-full w-full rounded-full bg-emerald-500 transition-all duration-500"></div>
+            </div>
+          }
         </div>
       }
 
@@ -291,6 +332,7 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 })
 export class UploadComponent implements OnDestroy {
   @Output() readonly fileSelected = new EventEmitter<void>();
+  @Output() readonly uploadStarted = new EventEmitter<void>();
   @Output() readonly videoIdReady = new EventEmitter<string>();
   @Output() readonly videoReady = new EventEmitter<boolean>();
 
@@ -350,7 +392,6 @@ export class UploadComponent implements OnDestroy {
   private startProcessingFlow(): void {
     this.stopProcessingFlow();
     this.videoReady.emit(false);
-    this.processingState.set('processing');
     this.processingProgress.set(0);
 
     this.processingPollingSub = timer(0, 4000)
@@ -487,6 +528,7 @@ export class UploadComponent implements OnDestroy {
     this.videoReady.emit(false);
     this.processingState.set('queued');
     this.processingProgress.set(0);
+    this.uploadStarted.emit();
     this.uploadState.set('uploading');
     this.uploadProgress.set(0);
     this.currentChunk.set(0);

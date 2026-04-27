@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: shin-dev-config-server
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - service: config-server
+  template:
+    metadata:
+      name: "shin-dev-config-server"
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      project: shin
+      source:
+        repoURL: https://github.com/l-furquim/shin
+        targetRevision: main
+        path: deploy/charts/spring-app
+        helm:
+          releaseName: config-server
+          valueFiles:
+            - ../../../environments/dev/config-server/values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: shin-dev
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

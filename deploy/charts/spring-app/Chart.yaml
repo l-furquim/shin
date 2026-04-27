@@ -1,0 +1,9 @@
+apiVersion: v2
+name: spring-app
+description: Generic Helm chart for Shin
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Lucas Hernandes Furquim
+    email: furquimmsw@gmail.com

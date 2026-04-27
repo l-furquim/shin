@@ -1,0 +1,42 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/comment
+  tag: latest
+
+service:
+  port: 8088
+  containerPort: 8088
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  SHIN_AWS_REGION: "us-east-1"
+  THREAD_CREATED_TOPIC_ARN: "arn:aws:sns:us-east-1:304361287196:shin-dev-thread-created"
+  COMMENT_REPLY_TOPIC_ARN: "arn:aws:sns:us-east-1:304361287196:shin-dev-comment-reply"
+  COMMENT_UPDATED_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-comment-updated"
+  COMMENT_DELETED_ARN: "arn:aws:sqs:us-east-1:304361287196:shin-dev-comment-deleted"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["comment"]

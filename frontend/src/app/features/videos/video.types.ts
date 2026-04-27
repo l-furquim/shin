@@ -110,6 +110,8 @@ export interface PatchVideoRequest {
   title?: string;
   description?: string;
   categoryId?: number;
+  defaultLanguage?: string;
+  onlyForAdults?: boolean;
   tagsToAdd?: TagIdentifier[];
   tagsToRemove?: TagIdentifier[];
 }

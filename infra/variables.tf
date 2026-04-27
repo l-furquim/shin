@@ -96,3 +96,78 @@ variable "jwt_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+  type        = string
+  default     = "10.20.0.0/16"
+}
+
+variable "eks_cluster_version" {
+  description = "Kubernetes version for EKS"
+  type        = string
+  default     = "1.31"
+}
+
+variable "node_group_apps_instance_types" {
+  type    = list(string)
+  default = ["t3.large"]
+}
+
+variable "node_group_apps_min_size" {
+  type    = number
+  default = 2
+}
+
+variable "node_group_apps_max_size" {
+  type    = number
+  default = 6
+}
+
+variable "node_group_apps_desired_size" {
+  type    = number
+  default = 2
+}
+
+variable "node_group_spot_instance_types" {
+  type    = list(string)
+  default = ["t3.large", "t3a.large", "m5.large"]
+}
+
+variable "node_group_spot_min_size" {
+  type    = number
+  default = 0
+}
+
+variable "node_group_spot_max_size" {
+  type    = number
+  default = 4
+}
+
+variable "node_group_spot_desired_size" {
+  type    = number
+  default = 0
+}
+
+variable "ecr_repository_names" {
+  description = "ECR repository names to create"
+  type        = list(string)
+  default = [
+    "shin/auth",
+    "shin/user",
+    "shin/metadata",
+    "shin/upload",
+    "shin/interaction",
+    "shin/subscription",
+    "shin/gateway",
+    "shin/config-server",
+    "shin/comment",
+    "shin/search",
+    "shin/streaming",
+  ]
+}
+
+variable "argocdAdminPassword" {
+  type      = string
+  sensitive = true
+}

@@ -1,0 +1,428 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: shin-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ../scripts/initialize-schemas:/docker-entrypoint-initdb.d
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    container_name: shin-redis
+    hostname: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: shin-config
+    hostname: config-server
+    ports:
+      - "${CONFIG_SERVER_PORT}:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE},native
+      - CONFIG_SERVER_ENCRYPT_KEY=${CONFIG_SERVER_ENCRYPT_KEY}
+      - CONFIG_SERVER_USERNAME=${CONFIG_SERVER_USERNAME}
+      - CONFIG_SERVER_PASSWORD=${CONFIG_SERVER_PASSWORD}
+    volumes:
+      - ./config-repo:/app/config-repo
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: shin-gateway
+    hostname: gateway
+    ports:
+      - "${GATEWAY_PORT}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=${CONFIG_SERVER_USERNAME}
+      - CONFIG_SERVER_PASSWORD=${CONFIG_SERVER_PASSWORD}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  metadata:
+    build:
+      context: .
+      dockerfile: metadata/Dockerfile
+    container_name: shin-metadata
+    hostname: metadata-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - VIDEO_UPLOAD_CREATED_QUEUE_NAME=${VIDEO_UPLOAD_CREATED_QUEUE_NAME:-shin-dev-video-upload-created}
+      - ENCODING_FINISHED_EVENTS_QUEUE_NAME=${ENCODING_FINISHED_EVENTS_QUEUE_NAME:-shin-dev-encoding-finished-events}
+      - THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME=${THUMBNAIL_FINISHED_EVENTS_QUEUE_NAME:-shin-dev-thumbnail-finished-events}
+      - ENCODING_FINISHED_DLQ_NAME=${ENCODING_FINISHED_DLQ_NAME:-shin-dev-encoding-finished-events-dlq}
+      - THUMBNAIL_FINISHED_DLQ_NAME=${THUMBNAIL_FINISHED_DLQ_NAME:-shin-dev-thumbnail-finished-events-dlq}
+      - VIEW_EVENTS_DLQ_NAME=${VIEW_EVENTS_DLQ_NAME:-shin-dev-view-events-dlq}
+      - LIKE_EVENTS_ARN=${LIKE_EVENTS_ARN}
+      - DISLIKE_EVENTS_ARN=${DISLIKE_EVENTS_ARN}
+      - CHANNEL_SUBSCRIBED_ARN=${CHANNEL_SUBSCRIBED_ARN}
+      - CHANNEL_UNSUBSCRIBED_ARN=${CHANNEL_UNSUBSCRIBED_ARN}
+      - VIEW_EVENTS_ARN=${VIEW_EVENTS_ARN}
+      - THREAD_CREATED_ARN=${THREAD_CREATED_ARN}
+      - COMMENT_DELETED_ARN=${COMMENT_DELETED_ARN}
+      - ENCODING_PROGRESS_QUEUE_ARN=${ENCODING_PROGRESS_QUEUE_ARN}
+      - VIDEO_PUBLISHED_TOPIC_ARN=${VIDEO_PUBLISHED_TOPIC_ARN}
+      - VIEW_DEDUPE_TTL=${VIEW_DEDUPE_TTL:-PT1H}
+      - VIEW_FLUSH_INTERVAL_MS=${VIEW_FLUSH_INTERVAL_MS:-10000}
+      - VIEW_FLUSH_BATCH_SIZE=${VIEW_FLUSH_BATCH_SIZE:-500}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - THUMBNAIL_BASE_URL=${THUMBNAIL_BASE_URL}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SHIN_AWS_REGION=${SHIN_AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - RAW_BUCKET_NAME=${RAW_BUCKET_NAME}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  upload:
+    build:
+      context: .
+      dockerfile: upload/Dockerfile
+    container_name: shin-upload
+    hostname: upload-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - AWS_REGION=${AWS_REGION}
+      - SHIN_AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - VIDEO_UPLOAD_CREATED_QUEUE_ARN=${VIDEO_UPLOAD_CREATED_QUEUE_ARN}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  user:
+    build:
+      context: .
+      dockerfile: user/Dockerfile
+    container_name: shin-user
+    hostname: user-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - CREATOR_PICTURES_BUCKET_NAME=${CREATOR_PICTURES_BUCKET_NAME}
+      - CLOUDFRONT_CDN_URL=${CLOUDFRONT_CDN_URL}
+      - SHIN_AWS_REGION=${SHIN_AWS_REGION}
+      - CHANNEL_SUBSCRIBED_ARN=${CHANNEL_SUBSCRIBED_ARN}
+      - CHANNEL_UNSUBSCRIBED_ARN=${CHANNEL_UNSUBSCRIBED_ARN}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+    networks:
+      - shin-network
+
+  auth:
+    build:
+      context: .
+      dockerfile: auth/Dockerfile
+    container_name: shin-auth
+    hostname: auth-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      user:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+
+  encoding:
+    build:
+      context: ./encoding
+      dockerfile: Dockerfile
+    container_name: shin-encoding
+    hostname: encoding-service
+    environment:
+      DECODE_JOB_QUEUE_URL: ${DECODE_JOB_QUEUE_URL}
+      ENCODING_FINISHED_EVENTS_QUEUE_URL: ${ENCODING_FINISHED_EVENTS_QUEUE_URL}
+      ENCODING_PROGRESS_QUEUE_URL: ${ENCODING_PROGRESS_QUEUE_URL}
+      RAW_BUCKET_NAME: ${RAW_BUCKET_NAME}
+      PROCESSED_BUCKET_NAME: ${PROCESSED_BUCKET_NAME}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+    networks:
+      - shin-network
+
+  #  search:
+  #    build:
+  #      context: .
+  #      dockerfile: search/Dockerfile
+  #    container_name: shin-search
+  #    hostname: search-service
+  #    environment:
+  #      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+  #      - CONFIG_SERVER_USERNAME=configuser
+  #      - CONFIG_SERVER_PASSWORD=configpass
+  #      - SPRING_DATA_REDIS_HOST=redis
+  #      - SPRING_DATA_REDIS_PORT=6379
+  #      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+  #      - AWS_REGION=${AWS_REGION:-us-east-1}
+  #      - SHIN_AWS_REGION=${SHIN_AWS_REGION:-us-east-1}
+  #      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+  #      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+  #      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+  #      - OPENSEARCH_COLLECTION_ENDPOINT=${OPENSEARCH_COLLECTION_ENDPOINT}
+  #      - VIDEO_PUBLISHED_QUEUE_NAME=${VIDEO_PUBLISHED_QUEUE_NAME:-shin-dev-video-published-opensearch-indexer}
+  #    depends_on:
+  #      config-server:
+  #        condition: service_healthy
+  #      redis:
+  #        condition: service_healthy
+  #    networks:
+  #      - shin-network
+  #    healthcheck:
+  #      test:
+  #        [
+  #          "CMD",
+  #          "wget",
+  #          "--no-verbose",
+  #          "--tries=1",
+  #          "--spider",
+  #          "http://localhost:8087/actuator/health",
+  #        ]
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 5
+  #      start_period: 90s
+
+  streaming:
+    build:
+      context: .
+      dockerfile: streaming/Dockerfile
+    container_name: shin-streaming
+    hostname: streaming-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SHIN_AWS_REGION=${SHIN_AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - CLOUDFRONT_CDN_URL=${CLOUDFRONT_CDN_URL}
+      - CLOUDFRONT_KEY_PAIR_ID=${CLOUDFRONT_KEY_PAIR_ID}
+      - CLOUDFRONT_PRIVATE_KEY_SECRET_ARN=${CLOUDFRONT_PRIVATE_KEY_SECRET_ARN}
+      - VIEW_EVENTS_ARN=${VIEW_EVENTS_ARN}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      metadata:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  interaction:
+    build:
+      context: .
+      dockerfile: interaction/Dockerfile
+    container_name: shin-interaction
+    hostname: interaction-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - LIKE_EVENTS_ARN=${LIKE_EVENTS_ARN}
+      - DISLIKE_EVENTS_ARN=${DISLIKE_EVENTS_ARN}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  subscription:
+    build:
+      context: .
+      dockerfile: subscription/Dockerfile
+    container_name: shin-subscription
+    hostname: subscription-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - CHANNEL_SUBSCRIBED_ARN=${CHANNEL_SUBSCRIBED_ARN}
+      - CHANNEL_UNSUBSCRIBED_ARN=${CHANNEL_UNSUBSCRIBED_ARN}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  comment:
+    build:
+      context: .
+      dockerfile: comment/Dockerfile
+    container_name: shin-comment
+    hostname: comment-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - CONFIG_SERVER_USERNAME=configuser
+      - CONFIG_SERVER_PASSWORD=configpass
+      - THREAD_CREATED_TOPIC_ARN=${THREAD_CREATED_TOPIC_ARN}
+      - COMMENT_REPLY_TOPIC_ARN=${COMMENT_REPLY_TOPIC_ARN}
+      - COMMENT_UPDATED_ARN=${COMMENT_UPDATED_ARN}
+      - COMMENT_DELETED_ARN=${COMMENT_DELETED_ARN}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shin-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8088/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+networks:
+  shin-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

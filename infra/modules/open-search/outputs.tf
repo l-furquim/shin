@@ -5,3 +5,7 @@ output "open_search_collection_endpoint" {
 output "open_search_dashboard_endpoint" {
   value = aws_opensearchserverless_collection.main.dashboard_endpoint
 }
+
+output "open_search_collection_arn" {
+  value = aws_opensearchserverless_collection.main.arn
+}

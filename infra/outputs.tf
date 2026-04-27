@@ -95,3 +95,41 @@ output "open_search_collection_endpoint" {
 output "open_search_dashboard_endpoint" {
   value = module.open_search.open_search_dashboard_endpoint
 }
+
+# ─── EKS ──────────────────────────────────────────────────────────────────────
+output "eks_cluster_name" {
+  description = "EKS cluster name"
+  value       = module.eks.cluster_name
+}
+
+output "eks_cluster_endpoint" {
+  description = "EKS cluster API endpoint"
+  value       = module.eks.cluster_endpoint
+}
+
+output "eks_oidc_provider_url" {
+  description = "OIDC provider URL for IRSA"
+  value       = module.eks.oidc_provider_url
+}
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = module.vpc.vpc_id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet IDs"
+  value       = module.vpc.private_subnets
+}
+
+# ─── ECR ──────────────────────────────────────────────────────────────────────
+output "ecr_repository_urls" {
+  description = "ECR repository URLs"
+  value       = module.ecr.repository_urls
+}
+
+# ─── IRSA ─────────────────────────────────────────────────────────────────────
+output "irsa_role_arns" {
+  description = "Map of service name to IRSA role ARN"
+  value       = module.eks_irsa.role_arns
+}

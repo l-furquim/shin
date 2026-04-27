@@ -1,0 +1,9 @@
+name: Deploy Services to kubernetes
+
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4

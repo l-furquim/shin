@@ -1,0 +1,13 @@
+{{- if .Values.envConfig }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spring-app.fullname" . }}-env
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "spring-app.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.envConfig }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}

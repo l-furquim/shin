@@ -39,7 +39,7 @@ import { Router } from '@angular/router';
     <div class="min-h-screen md:flex">
       <app-sidebar></app-sidebar>
       <main class="w-full px-4 py-10 md:px-8">
-        <div class="layout-wrapper mx-auto w-full" [class]="hasFile() ? 'max-w-5xl' : 'max-w-2xl'">
+        <div class="layout-wrapper mx-auto w-full" [class]="hasStartedUpload() ? 'max-w-5xl' : 'max-w-2xl'">
           <section class="mb-8 space-y-1">
             <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Upload de vídeo</h1>
             <p class="text-muted-foreground text-sm">
@@ -49,12 +49,12 @@ import { Router } from '@angular/router';
 
           <div
             [class]="
-              hasFile()
+              hasStartedUpload()
                 ? 'grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_360px]'
                 : 'flex flex-col gap-6'
             "
           >
-            @if (hasFile()) {
+            @if (hasStartedUpload()) {
               <div class="space-y-5 rounded-2xl border bg-card p-6">
                 <div class="space-y-0.5">
                   <p class="font-semibold">Detalhes do vídeo</p>
@@ -162,9 +162,10 @@ import { Router } from '@angular/router';
               </div>
             }
 
-            <div [class]="hasFile() ? 'lg:sticky lg:top-6' : ''">
+            <div [class]="hasStartedUpload() ? 'lg:sticky lg:top-6' : ''">
               <upload-area
                 (fileSelected)="onFileSelected()"
+                (uploadStarted)="onUploadStarted()"
                 (videoIdReady)="onVideoIdReady($event)"
                 (videoReady)="onReadyToPublish($event)"
               ></upload-area>
@@ -182,6 +183,7 @@ export class UploadPageComponent {
 
   protected readonly readyToPublish = signal(false);
   protected readonly hasFile = signal(false);
+  protected readonly hasStartedUpload = signal(false);
   protected readonly activeVideoId = signal<string | null>(null);
   protected readonly isSaving = signal(false);
   protected readonly saveError = signal('');
@@ -203,6 +205,10 @@ export class UploadPageComponent {
     this.readyToPublish.set(false);
     this.activeVideoId.set(null);
     this.saveError.set('');
+  }
+
+  onUploadStarted(): void {
+    this.hasStartedUpload.set(true);
   }
 
   onVideoIdReady(id: string): void {

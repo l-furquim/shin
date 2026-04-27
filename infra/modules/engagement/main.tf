@@ -26,6 +26,7 @@ module "lambda_processor" {
   filename                            = var.processor_zip
   source_hash                         = var.processor_hash
   timeout                             = 60
+  enable_sqs_trigger                  = true
   sqs_trigger_arn                     = var.playback_progress_queue_arn
   sqs_batch_size                      = 25
   sqs_maximum_batching_window_seconds = 1

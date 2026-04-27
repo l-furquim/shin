@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: shin-dev-services
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/l-furquim/shin
+        revision: main
+        directories:
+          - path: deploy/environments/dev/*
+          - path: deploy/environments/dev/config-server
+            exclude: true
+  template:
+    metadata:
+      name: "shin-dev-{{.path.basename}}"
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: shin
+      source:
+        repoURL: https://github.com/l-furquim/shin
+        targetRevision: main
+        path: deploy/charts/spring-app
+        helm:
+          releaseName: "{{.path.basename}}"
+          valueFiles:
+            - "../../../environments/dev/{{.path.basename}}/values.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: shin-dev
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

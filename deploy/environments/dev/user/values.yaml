@@ -1,0 +1,53 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/user
+  tag: latest
+
+service:
+  port: 8083
+  containerPort: 8083
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: DB_HOST
+    value: "postgres.shin-dev.svc.cluster.local"
+  - name: DB_NAME
+    value: "shin"
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: postgres-creds
+        key: username
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-creds
+        key: password
+  - name: AWS_REGION
+    value: "us-east-1"
+
+envConfig:
+  CLOUDFRONT_CDN_URL: "d1bdx17cpz5q2y.cloudfront.net"
+  CREATOR_PICTURES_BUCKET_NAME: "shin-dev-creator-pictures"
+
+serviceAccount:
+  create: true
+  roleArn: ""  # set to IRSA role ARN from terraform output irsa_role_arns["user"]

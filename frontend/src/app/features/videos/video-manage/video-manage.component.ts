@@ -27,7 +27,7 @@ import { VideoService } from '@/features/videos/video.service';
 import type { VideoItem, VideoVisibility } from '@/features/videos/video.types';
 import { UploadService } from '@/features/uploads/upload.service';
 
-type Tab = 'overview' | 'details' | 'media';
+type Tab = 'overview' | 'details' | 'media' | 'settings';
 
 const THUMBNAIL_MAX_SIZE_BYTES = 200 * 1024;
 const THUMBNAIL_ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
@@ -290,6 +290,91 @@ const THUMBNAIL_ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/
               </div>
             }
 
+            @if (activeTab() === 'settings') {
+              <div class="space-y-6 pt-4">
+                <form [formGroup]="form" class="rounded-xl border p-6 space-y-5">
+                  <div>
+                    <p class="font-medium">Configurações avançadas</p>
+                    <p class="text-xs text-muted-foreground mt-0.5">
+                      Idioma, localização e restrições de conteúdo.
+                    </p>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-medium">
+                      Idioma padrão
+                      <span class="text-muted-foreground ml-1 font-normal">(opcional)</span>
+                    </label>
+                    <z-select
+                      [zValue]="form.controls.defaultLanguage.value"
+                      (zSelectionChange)="onLanguageChange($event)"
+                      zPlaceholder="Selecione o idioma"
+                    >
+                      <z-select-item zValue="">Não especificado</z-select-item>
+                      <z-select-item zValue="PORTUGUESE">Português</z-select-item>
+                      <z-select-item zValue="ENGLISH">Inglês</z-select-item>
+                      <z-select-item zValue="SPANISH">Espanhol</z-select-item>
+                      <z-select-item zValue="FRENCH">Francês</z-select-item>
+                      <z-select-item zValue="GERMAN">Alemão</z-select-item>
+                      <z-select-item zValue="ITALIAN">Italiano</z-select-item>
+                      <z-select-item zValue="JAPANESE">Japonês</z-select-item>
+                      <z-select-item zValue="KOREAN">Coreano</z-select-item>
+                      <z-select-item zValue="MANDARIN_CHINESE">Chinês Mandarim</z-select-item>
+                      <z-select-item zValue="HINDI">Hindi</z-select-item>
+                      <z-select-item zValue="ARABIC">Árabe</z-select-item>
+                      <z-select-item zValue="RUSSIAN">Russo</z-select-item>
+                      <z-select-item zValue="TURKISH">Turco</z-select-item>
+                      <z-select-item zValue="DUTCH">Holandês</z-select-item>
+                      <z-select-item zValue="POLISH">Polonês</z-select-item>
+                      <z-select-item zValue="SWEDISH">Sueco</z-select-item>
+                      <z-select-item zValue="UKRAINIAN">Ucraniano</z-select-item>
+                      <z-select-item zValue="INDONESIAN">Indonésio</z-select-item>
+                      <z-select-item zValue="VIETNAMESE">Vietnamita</z-select-item>
+                    </z-select>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <p class="text-sm font-medium">Restrição de idade</p>
+                    <label
+                      class="flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-md border px-3 text-sm hover:bg-accent/50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        class="accent-primary"
+                        formControlName="onlyForAdults"
+                      />
+                      <span>Conteúdo apenas para adultos (+18)</span>
+                    </label>
+                    <p class="text-xs text-muted-foreground">
+                      Marque se o vídeo contém conteúdo impróprio para menores.
+                    </p>
+                  </div>
+
+                  @if (saveError()) {
+                    <z-alert zType="destructive" [zDescription]="saveError()" />
+                  }
+                  @if (saveSuccess()) {
+                    <z-alert
+                      zType="default"
+                      zTitle="Salvo!"
+                      zDescription="Configurações atualizadas com sucesso."
+                    />
+                  }
+
+                  <z-button
+                    [zDisabled]="form.invalid || isSaving()"
+                    [zLoading]="isSaving()"
+                    (click)="onSave()"
+                  >
+                    @if (!isSaving()) {
+                      <z-icon zType="save" zSize="sm" />
+                    }
+                    {{ isSaving() ? 'Salvando...' : 'Salvar alterações' }}
+                  </z-button>
+                </form>
+              </div>
+            }
+
             @if (activeTab() === 'media') {
               <div class="space-y-6 pt-4">
                 <div class="rounded-xl border p-6 space-y-4">
@@ -449,6 +534,7 @@ export class VideoManageComponent implements OnInit {
     { id: 'overview', label: 'Visão geral' },
     { id: 'details', label: 'Detalhes' },
     { id: 'media', label: 'Mídia' },
+    { id: 'settings', label: 'Configurações' },
   ];
 
   protected readonly form = this.fb.nonNullable.group({
@@ -457,6 +543,8 @@ export class VideoManageComponent implements OnInit {
     visibility: ['PRIVATE' as VideoVisibility],
     categoryId: [null as number | null],
     tags: [[] as string[]],
+    defaultLanguage: ['' as string],
+    onlyForAdults: [false],
   });
 
   private videoId = '';
@@ -494,6 +582,8 @@ export class VideoManageComponent implements OnInit {
       visibility: video.visibility,
       categoryId: video.categoryId ? Number(video.categoryId) : null,
       tags,
+      defaultLanguage: video.contentDetails?.defaultLanguage ?? '',
+      onlyForAdults: video.contentDetails?.onlyForAdults ?? false,
     });
   }
 
@@ -502,6 +592,11 @@ export class VideoManageComponent implements OnInit {
     if (v === 'PUBLIC' || v === 'PRIVATE' || v === 'NOT_LISTED') {
       this.form.controls.visibility.setValue(v);
     }
+  }
+
+  protected onLanguageChange(value: string | string[]): void {
+    const v = Array.isArray(value) ? value[0] : value;
+    this.form.controls.defaultLanguage.setValue(v ?? '');
   }
 
   protected async onSave(): Promise<void> {
@@ -514,7 +609,7 @@ export class VideoManageComponent implements OnInit {
     this.saveSuccess.set(false);
     this.saveError.set('');
 
-    const { title, description, categoryId, tags } = this.form.controls;
+    const { title, description, categoryId, tags, defaultLanguage, onlyForAdults } = this.form.controls;
     const newTags = tags.value;
     const original = this.originalTags();
     const tagsToAdd = newTags.filter((t) => !original.includes(t)).map((name) => ({ name }));
@@ -526,6 +621,8 @@ export class VideoManageComponent implements OnInit {
           title: title.value,
           description: description.value || undefined,
           categoryId: categoryId.value ?? undefined,
+          defaultLanguage: defaultLanguage.value || undefined,
+          onlyForAdults: onlyForAdults.value,
           tagsToAdd: tagsToAdd.length ? tagsToAdd : undefined,
           tagsToRemove: tagsToRemove.length ? tagsToRemove : undefined,
         }),

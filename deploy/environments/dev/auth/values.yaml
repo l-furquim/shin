@@ -1,0 +1,47 @@
+image:
+  repository: 304361287196.dkr.ecr.us-east-1.amazonaws.com/shin/auth
+  tag: latest
+
+service:
+  port: 8084
+  containerPort: 8084
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: prod
+  - name: CONFIG_SERVER_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: username
+  - name: CONFIG_SERVER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: config-server-creds
+        key: password
+  - name: JWT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: auth-secrets
+        key: jwt-secret
+  - name: REDIS_HOST
+    value: "redis.shin-dev.svc.cluster.local"
+  - name: REDIS_PORT
+    value: "6379"
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis-creds
+        key: password
+
+serviceAccount:
+  create: true
+  roleArn: ""

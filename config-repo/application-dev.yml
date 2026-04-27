@@ -1,12 +1,14 @@
-#eureka:
-#  client:
-#    service-url:
-#      defaultZone: http://eureka-server:8761/eureka/
-#  instance:
-#    prefer-ip-address: false
-#    hostname: ${spring.application.name}
 logging:
   level:
     root: INFO
     com.shin: DEBUG
     org.springframework.cloud: DEBUG
+
+# Docker-compose dev overrides for Feign clients (use docker service names)
+clients:
+  user-service:
+    url: http://user-service:8083
+  metadata-service:
+    url: http://metadata-service:8081
+  interaction-service:
+    url: http://interaction-service:8085
