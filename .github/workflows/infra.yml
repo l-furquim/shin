@@ -24,7 +24,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
+          role-to-assume: ${{ secrets.TERRAFORM_ASSUME_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ secrets.aws-region }}
 
@@ -48,21 +48,17 @@ jobs:
         run: |
           cd infra &&
           terraform workspace select ${{ inputs.environment }} || terraform workspace new ${{ inputs.environment }} &&
-          terraform plan -var-file="./envs/${{ inputs.environment }}/terraform.tfvars" -out="${{ inputs.environment }}.plan"
+          terraform plan -var-file="./environments/${{ inputs.environment }}/terraform.tfvars" -out="${{ inputs.environment }}.plan"
 
       - name: Terraform apply
         if: ${{ !inputs.destroy }}
         id: terraform-apply
         run: |
           cd infra &&
-          terraform workspace select ${{ inputs.environment }} || terraform workspace new ${{ inputs.environment }} &&
           terraform apply "${{ inputs.environment }}.plan"
 
-      - name: Get Terraform Outputs
+      - name: Get Terraform Outputs and sync to the repo
         id: outputs
         if: ${{ !inputs.destroy }}
         run: |
-          cd infra
-          echo "server_task_def_arn=$(terraform output -raw server_task_definition_arn)" >> $GITHUB_OUTPUT
-          echo "cli_task_def_arn=$(terraform output -raw cli_task_definition_arn)" >> $GITHUB_OUTPUT
-          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
+          cd infra &&

@@ -180,8 +180,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
       function_arn = aws_cloudfront_function.cors_headers.arn
     }
 
-    # SECURITY (PRODUCTION): Signed-cookie protection is intentionally disabled outside prod.
-    # Re-enable this for production-grade access control to processed video assets.
+    # Disable for now
     trusted_key_groups = var.env == "prod" ? [aws_cloudfront_key_group.video_key_group.id] : []
   }
 

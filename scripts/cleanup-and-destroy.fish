@@ -20,10 +20,14 @@ set SQS_QUEUES \
     "shin-$ENV-decode-job-dlq" \
     "shin-$ENV-thumbnail-job" \
     "shin-$ENV-thumbnail-job-dlq" \
+    "shin-$ENV-thumbnail-upload" \
+    "shin-$ENV-thumbnail-upload-dlq" \
     "shin-$ENV-video-upload-created" \
     "shin-$ENV-video-upload-created-dlq" \
     "shin-$ENV-encoding-finished-events" \
     "shin-$ENV-encoding-finished-events-dlq" \
+    "shin-$ENV-encoding-progress" \
+    "shin-$ENV-encoding-progress-dlq" \
     "shin-$ENV-thumbnail-finished-events" \
     "shin-$ENV-thumbnail-finished-events-dlq" \
     "shin-$ENV-like-events" \
@@ -66,6 +70,19 @@ set SNS_TOPICS \
     "shin-$ENV-video-published" \
     "shin-$ENV-thread-created" \
     "shin-$ENV-comment-reply"
+
+set ECR_REPOSITORIES \
+    "shin/auth" \
+    "shin/user" \
+    "shin/metadata" \
+    "shin/upload" \
+    "shin/interaction" \
+    "shin/subscription" \
+    "shin/gateway" \
+    "shin/config-server" \
+    "shin/comment" \
+    "shin/search" \
+    "shin/streaming"
 
 function log_info
     printf "%b[INFO]%b %s\n" $BLUE $NC "$argv"
@@ -217,6 +234,51 @@ function list_sns_subscriptions
     end
 end
 
+function cleanup_ecr_images
+    log_info "Cleaning ECR images..."
+
+    for repo_name in $ECR_REPOSITORIES
+        log_info "Checking repository: $repo_name"
+
+        if not aws ecr describe-repositories \
+                --repository-names "$repo_name" \
+                --region "$AWS_REGION" \
+                &> /dev/null
+            log_warning "Repository $repo_name not found, skipping..."
+            continue
+        end
+
+        set digests (aws ecr list-images \
+            --repository-name "$repo_name" \
+            --region "$AWS_REGION" \
+            --query 'imageIds[*].imageDigest' \
+            --output text 2>/dev/null)
+
+        set digest_count (count $digests)
+        if test $digest_count -eq 0
+            log_info "Repository $repo_name is already empty"
+            continue
+        end
+
+        if test "$digests[1]" = "None"
+            log_info "Repository $repo_name is already empty"
+            continue
+        end
+
+        for digest in $digests
+            aws ecr batch-delete-image \
+                --repository-name "$repo_name" \
+                --image-ids imageDigest="$digest" \
+                --region "$AWS_REGION" \
+                &> /dev/null
+        end
+
+        log_success "Deleted images in $repo_name"
+    end
+
+    log_success "ECR image cleanup complete"
+end
+
 function destroy_infrastructure
     log_warning "Starting infrastructure destruction..."
 
@@ -240,16 +302,28 @@ function destroy_infrastructure
     set backup_file "terraform.tfstate.backup."(date +%Y%m%d_%H%M%S)
     cp terraform.tfstate "$backup_file"
 
-    set CLOUDFRONT_ID (terraform output -raw cloud_front_cdn_url 2>/dev/null | cut -d'.' -f1 || echo "")
+    set CLOUDFRONT_ID (terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
+    set CLOUDFRONT_DOMAIN (terraform output -raw cloud_front_cdn_url 2>/dev/null || echo "")
 
     # Do not remove cloudfront since its using my free plan.
-    if test -n "$CLOUDFRONT_ID"
-        log_info "Found CloudFront distribution: $CLOUDFRONT_ID"
+    if test -n "$CLOUDFRONT_ID"; or test -n "$CLOUDFRONT_DOMAIN"
+        if test -n "$CLOUDFRONT_ID"
+            log_info "Found CloudFront distribution: $CLOUDFRONT_ID"
+        else
+            log_info "Found CloudFront domain: $CLOUDFRONT_DOMAIN"
+        end
+
         log_info "Removing CloudFront from Terraform state to preserve it..."
 
         terraform state rm 'module.cloudfront.aws_cloudfront_distribution.s3_distribution' 2>/dev/null || true
         terraform state rm 'module.cloudfront.aws_cloudfront_origin_access_control.default' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_cloudfront_function.cors_preflight' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_cloudfront_function.cors_headers' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_cloudfront_public_key.processed_video_signing_key' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_cloudfront_key_group.video_key_group' 2>/dev/null || true
         terraform state rm 'module.cloudfront.aws_s3_bucket_policy.processed_policy' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_s3_bucket_policy.thumbnail_policy' 2>/dev/null || true
+        terraform state rm 'module.cloudfront.aws_s3_bucket_policy.creator_policy' 2>/dev/null || true
 
         log_success "CloudFront resources removed from Terraform state"
     end
@@ -275,6 +349,10 @@ function main
     echo ""
     log_info "Emptying S3 buckets"
     empty_s3_buckets
+
+    echo ""
+    log_info "Cleaning ECR images"
+    cleanup_ecr_images
 
     echo ""
     log_info "Listing SNS subscriptions"

@@ -34,6 +34,14 @@ resource "aws_s3_bucket" "creator_pictures_bucket" {
   }
 }
 
+resource "aws_s3_bucket" "frontend_bucket" {
+  bucket = "shin-${var.env}-frontend"
+
+  tags = {
+    Environment = var.env
+  }
+}
+
 resource "aws_s3_bucket_versioning" "raw_bucket" {
   bucket = aws_s3_bucket.raw_bucket.id
 
@@ -50,6 +58,16 @@ resource "aws_s3_bucket_public_access_block" "raw_bucket" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
+
+resource "aws_s3_bucket_public_access_block" "frontend_bucket" {
+  bucket = aws_s3_bucket.frontend_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 
 resource "aws_s3_bucket_public_access_block" "processed_bucket" {
   bucket = aws_s3_bucket.processed_bucket.id
@@ -105,6 +123,18 @@ resource "aws_s3_bucket_cors_configuration" "processed_bucket" {
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "PUT", "POST", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "frontend_bucket" {
+  bucket = aws_s3_bucket.frontend_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "OPTIONS", "HEAD"]
     allowed_origins = ["*"]
     expose_headers  = ["ETag"]
     max_age_seconds = 3600
